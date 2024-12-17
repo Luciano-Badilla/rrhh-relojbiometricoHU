@@ -1,11 +1,11 @@
 @props(['id', 'headers', 'data', 'fields', 'links' => []])
 
-<div class="rounded-2xl overflow-hidden shadow-md">
+<div class="rounded-2xl overflow-hidden shadow-sm">
     <table class="min-w-full bg-white" id="{{ $id }}">
         <thead>
             <tr class="block sm:table-row">
                 @foreach ($headers as $header)
-                    <th class="py-3 px-6 text-left block sm:table-cell">{{ $header }}</th>
+                    <th class="py-3 px-6 text-left block sm:table-cell font-bold text-sm text-gray-900">{{ $header }}</th>
                 @endforeach
                 @if (!empty($links))
                     <th class="py-3 px-6 text-left block sm:table-cell">Acciones</th>

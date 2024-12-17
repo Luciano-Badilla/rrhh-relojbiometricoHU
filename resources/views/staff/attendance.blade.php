@@ -27,7 +27,7 @@
                         <div class="w-full">
                             <label for="month" class="block text-sm font-medium text-gray-700">Mes:</label>
                             <select name="month" id="month"
-                                class="border-gray-300 rounded-xl shadow-md {{ $errors->has('month') ? 'border-red-500' : '' }} block w-full py-2 px-2"
+                                class="border-gray-300 rounded-xl shadow-sm {{ $errors->has('month') ? 'border-red-500' : '' }} block w-full py-2 px-2"
                                 required>
                                 <option value="">Seleccione un mes</option>
                                 <option value="1" {{ old('month', $month) == 1 ? 'selected' : '' }}>Enero</option>
@@ -58,7 +58,7 @@
                         <div class="w-full">
                             <label for="year" class="block text-sm font-medium text-gray-700">Año:</label>
                             <input type="number" id="year" name="year" value="{{ $year }}"
-                                class="border-gray-300 rounded-xl shadow-md {{ $errors->has('year') ? 'border-red-500' : '' }} block w-full"
+                                class="border-gray-300 rounded-xl shadow-sm {{ $errors->has('year') ? 'border-red-500' : '' }} block w-full"
                                 required min="2000" max="{{ date('Y') }}" placeholder="Ingrese el año" />
                             @error('year')
                                 <span class="text-sm text-red-500">{{ $message }}</span>
@@ -84,49 +84,62 @@
                 </form>
 
             </div>
-            <div class="flex flex-row">
-                <div class="px-3 flex flex-col items-left">
-                    <span class="text-sm font-medium text-gray-700">Días: {{ $days }}</span>
-                    <span class="text-sm font-medium text-gray-700">Horas:
-                        {{ $totalHours }}</span>
-                </div>
-                <div class="px-3 flex flex-col items-left">
-                    <span class="text-sm font-medium text-white">.</span>
-                    <span class="text-sm font-medium text-gray-700">Promedio de horas:
-                        {{ $hoursAverage }}</span>
-                </div>
-                <div class="px-3">
-                    <table class="border-separate border-spacing-3">
-                        <thead>
-                            <tr>
-                                <th class="text-sm font-medium text-gray-700">Lunes</th>
-                                <th class="text-sm font-medium text-gray-700">Martes</th>
-                                <th class="text-sm font-medium text-gray-700">Miércoles</th>
-                                <th class="text-sm font-medium text-gray-700">Jueves</th>
-                                <th class="text-sm font-medium text-gray-700">Viernes</th>
-                                <th class="text-sm font-medium text-gray-700">Sábado</th>
-                                <th class="text-sm font-medium text-gray-700">Domingo</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>ASD</td>
-                                <td>ASD</td>
-                                <td>ASD</td>
-                                <td>ASD</td>
-                                <td>ASD</td>
-                                <td>ASD</td>
-                                <td>AS</td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-
-                </div>
-
+            <div class="overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-300">
+                    <thead>
+                        <tr>
+                            <th scope="col"
+                                class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Lunes
+                            </th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Martes
+                            </th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                Miércoles</th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Jueves
+                            </th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Viernes
+                            </th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Sábado
+                            </th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Domingo
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 bg-white">
+                        <tr>
+                            <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
+                                <div class="font-medium text-gray-900">8:00 a 14:00</div>
+                                <div class="text-gray-500">6 horas</div>
+                            </td>
+                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                <div class="font-medium text-gray-900">8:00 a 14:00</div>
+                                <div class="text-gray-500">6 horas</div>
+                            </td>
+                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                <div class="font-medium text-gray-900">8:00 a 14:00</div>
+                                <div class="text-gray-500">6 horas</div>
+                            </td>
+                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                <div class="font-medium text-gray-900">8:00 a 14:00</div>
+                                <div class="text-gray-500">6 horas</div>
+                            </td>
+                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                <div class="font-medium text-gray-900">8:00 a 14:00</div>
+                                <div class="text-gray-500">6 horas</div>
+                            </td>
+                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                <div class="font-medium text-gray-900">8:00 a 14:00</div>
+                                <div class="text-gray-500">6 horas</div>
+                            </td>
+                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                <div class="font-medium text-gray-900">8:00 a 14:00</div>
+                                <div class="text-gray-500">6 horas</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-
-
+            
             @if ($attendance->isEmpty())
                 <!-- Verifica si no hay tickets -->
                 <div class="text-center max-w-md" id="no_alerts" style="margin: 0 auto;">

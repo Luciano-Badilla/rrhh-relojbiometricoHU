@@ -14,7 +14,7 @@
     id="{{ $id }}" 
     name="{{ $name }}" 
     value="{{ old($name, $value) }}"
-    class="border-gray-300 rounded-xl shadow-md {{ $disabled ? 'opacity-50 cursor-not-allowed' : '' }} {{ $class }}" 
+    class="border-gray-300 rounded-xl shadow-sm {{ $disabled ? 'opacity-50 cursor-not-allowed' : '' }} {{ $class }}" 
     placeholder="{{ $placeholder }}" 
     {{ $required ? 'required' : '' }} 
     {{ $disabled ? 'disabled' : '' }} />
