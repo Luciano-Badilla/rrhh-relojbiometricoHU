@@ -1,3 +1,7 @@
+@php
+    use Carbon\Carbon;
+@endphp
+
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
@@ -11,6 +15,10 @@
                     {{ session('success') }}
                 </div>
             @endif
+            <div class="alert-success rounded-t-xl p-0.5 text-center mb-1 hidden" id="success-alert">
+            </div>
+            <div class="alert-error rounded-t-xl p-0.5 text-center mb-1 hidden" id="error-alert">
+            </div>
             <!-- Campo de búsqueda -->
             <div class="p-3">
                 <form action="{{ route('staff.attendance', ['id' => $staff->id]) }}" method="GET">
@@ -63,14 +71,33 @@
                                 data-tooltip_text="Buscar asistencias">
                                 <i class="fa-solid fa-magnifying-glass"></i>
                             </button>
-                            <button onclick="window.location.href='{{ route('clockLogs.update') }}'"
-                                class="btn btn-dark rounded-xl custom-tooltip"
-                                data-tooltip_text="Actualizar base de datos"><i class="fa-solid fa-rotate"></i></button>
+                            <button class="btn btn-dark rounded-xl custom-tooltip" id="update-btn" type="button"
+                                data-tooltip_text="Actualizar base de datos"><i class="fa-solid fa-rotate"
+                                    id="update-icon"></i>
+                                <div class="spinner-border spinner-border-sm hidden my-1" id="updating-icon"
+                                    role="status">
+                                    <span class="sr-only">Loading...</span>
+                                </div>
+                            </button>
                         </div>
                     </div>
                 </form>
 
             </div>
+            <div class="flex flex-row">
+                <div class="px-3 flex flex-col items-left">
+                    <span class="text-sm font-medium text-gray-700">Días: {{ $days }}</span>
+                    <span class="text-sm font-medium text-gray-700">Horas:
+                        {{ $totalHours }}</span>
+                </div>
+                <div class="px-3 flex flex-col items-left">
+                    <span class="text-sm font-medium text-white">.</span>
+                    <span class="text-sm font-medium text-gray-700">Promedio de horas:
+                        {{ $hoursAverage }}</span>
+                </div>
+
+            </div>
+
 
             @if ($attendance->isEmpty())
                 <!-- Verifica si no hay tickets -->
@@ -87,8 +114,46 @@
                 </div>
             @endif
             @if ($attendance->isNotEmpty())
-                <x-table id="attendance-list" :headers="['Fecha', 'Entrada', 'Salida', 'Horas cumplidas', 'Motivo inacistencias', 'Observaciones']" :fields="['date', 'entryTime', 'departureTime', 'hoursCompleted', 'absenseReason_id', 'observations']" :data="$attendance" />
+                <x-table id="attendance-list" :headers="['Dia', 'Fecha', 'Entrada', 'Salida', 'Horas cumplidas', 'Observaciones']" :fields="['day', 'date', 'entryTime', 'departureTime', 'hoursCompleted', 'observations']" :data="$attendance" />
             @endif
         </div>
     </div>
 </x-app-layout>
+<script>
+    $(document).ready(function() {
+        $('#update-btn').click(function() {
+            const updateIcon = $('#update-icon');
+            const updatingIcon = $('#updating-icon');
+            const id = "{{ $staff->id }}";
+
+            updateIcon.hide();
+            updatingIcon.show();
+
+            $.ajax({
+                url: "{{ route('clockLogs.update', ['file_number' => 'file_number_placeholder']) }}"
+                    .replace('file_number_placeholder',
+                    {{ $staff->file_number }}), // Reemplaza ID_placeholder con el id dinámico
+                type: 'GET',
+                data: {
+                    _token: '{{ csrf_token() }}', // CSRF token de Laravel
+                    file_number: {{ $staff->file_number }} // Puedes agregar el file_number aquí
+                },
+                success: function(response) {
+                    custom_alert(response.message, 'success');
+                    updateIcon.show();
+                    updatingIcon.hide();
+                    setInterval(() => {
+                        window.location.reload();
+                    }, 2000);
+                },
+                error: function(xhr, status, error) {
+                    custom_alert(error, 'error');
+                    updateIcon.show();
+                    updatingIcon.hide();
+                }
+            });
+
+
+        });
+    });
+</script>

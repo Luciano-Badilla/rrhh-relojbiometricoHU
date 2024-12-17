@@ -30,7 +30,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/staff/attendance/{id}', [staffController::class, 'attendance'])->name('staff.attendance');
     Route::get('/staff/list', [staffController::class, 'list'])->name('staff.list');
     
-    Route::get('/clockLogs/update', [clockLogsController::class, 'update'])->name('clockLogs.update');
+    Route::get('/clockLogs/update/{file_number?}', [clockLogsController::class, 'update_attendance'])->name('clockLogs.update');
 });
 
 Route::middleware('auth')->group(function () {
