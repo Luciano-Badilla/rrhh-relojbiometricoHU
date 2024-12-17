@@ -95,6 +95,34 @@
                     <span class="text-sm font-medium text-gray-700">Promedio de horas:
                         {{ $hoursAverage }}</span>
                 </div>
+                <div class="px-3">
+                    <table class="border-separate border-spacing-3">
+                        <thead>
+                            <tr>
+                                <th class="text-sm font-medium text-gray-700">Lunes</th>
+                                <th class="text-sm font-medium text-gray-700">Martes</th>
+                                <th class="text-sm font-medium text-gray-700">Miércoles</th>
+                                <th class="text-sm font-medium text-gray-700">Jueves</th>
+                                <th class="text-sm font-medium text-gray-700">Viernes</th>
+                                <th class="text-sm font-medium text-gray-700">Sábado</th>
+                                <th class="text-sm font-medium text-gray-700">Domingo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>ASD</td>
+                                <td>ASD</td>
+                                <td>ASD</td>
+                                <td>ASD</td>
+                                <td>ASD</td>
+                                <td>ASD</td>
+                                <td>AS</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+
+                </div>
 
             </div>
 
@@ -132,7 +160,8 @@
             $.ajax({
                 url: "{{ route('clockLogs.update', ['file_number' => 'file_number_placeholder']) }}"
                     .replace('file_number_placeholder',
-                    {{ $staff->file_number }}), // Reemplaza ID_placeholder con el id dinámico
+                        {{ $staff->file_number }}
+                    ), // Reemplaza ID_placeholder con el id dinámico
                 type: 'GET',
                 data: {
                     _token: '{{ csrf_token() }}', // CSRF token de Laravel

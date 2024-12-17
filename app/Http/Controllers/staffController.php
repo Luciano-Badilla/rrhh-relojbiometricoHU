@@ -59,7 +59,13 @@ class staffController extends Controller
         $totalHoursDecimal = $totalSeconds / 3600;
 
         // Calcular el promedio en segundos
-        $count = $hoursCompleted->count() - 1;
+        $count = 0;
+        foreach($hoursCompleted as $hour){
+            if($hour != '00:00:00'){
+                $count += 1;
+            }
+        }
+
         $averageSeconds = $count > 0 ? $totalSeconds / $count : 0;
 
         // Convertir el promedio y el total a formato HH:mm
