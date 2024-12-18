@@ -26,23 +26,27 @@
                 </div>
             </div>
 
-            <!-- Tabla -->
-            <x-table id="staff-list" :headers="['Legajo', 'Nombre']" :fields="['file_number', 'name_surname']" :data="$staff" :links="[
-                [
-                    'route' => 'staff.management',
-                    'classes' => 'btn btn-dark rounded-xl custom-tooltip',
-                    'icon' => '<i class=\'fas fa-user-pen\'></i>',
-                    'tooltip' => true,
-                    'tooltip_text' => 'Mantenimiento del personal',
-                ],
-                [
-                    'route' => 'staff.attendance',
-                    'classes' => 'btn btn-dark rounded-xl custom-tooltip',
-                    'icon' => '<i class=\'fas fa-calendar-days\'></i>',
-                    'tooltip' => true,
-                    'tooltip_text' => 'Resumen de asistencias',
-                ],
-            ]" />
+            <div class="overflow-hidden rounded-xl m-3">
+                <!-- Tabla -->
+                <x-table id="staff-list" :headers="['Legajo', 'Nombre']" :fields="['file_number', 'name_surname']" :data="$staff" :links="[
+                    [
+                        'id' => 'management_btn',
+                        'route' => 'staff.management',
+                        'classes' => 'btn btn-dark rounded-xl custom-tooltip',
+                        'icon' => '<i class=\'fas fa-user-pen\'></i>',
+                        'tooltip' => true,
+                        'tooltip_text' => 'Mantenimiento del personal',
+                    ],
+                    [
+                        'id' => 'attendance_btn',
+                        'route' => 'staff.attendance',
+                        'classes' => 'btn btn-dark rounded-xl custom-tooltip attendance_btn',
+                        'icon' => '<i class=\'fas fa-calendar-days\'></i>',
+                        'tooltip' => true,
+                        'tooltip_text' => 'Resumen de asistencias',
+                    ],
+                ]" />
+            </div>
         </div>
     </div>
 </x-app-layout>
@@ -63,6 +67,11 @@
 
                 row.style.display = rowText.includes(filter) ? "" : "none";
             });
+        });
+
+        $('.attendance_btn').click(function() {
+            // Eliminar la clave 'page_loaded' del localStorage
+            localStorage.removeItem('page_loaded');
         });
     });
 </script>

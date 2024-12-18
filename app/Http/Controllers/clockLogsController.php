@@ -62,8 +62,6 @@ class clockLogsController extends Controller
     public function update_attendance($file_number = null)
     {
         Log::info($file_number);
-        // Último timestamp procesado
-        $lastTimestamp = clockLogs::max('timestamp');
 
         $devices = [
             ['ip' => '172.22.112.220', 'port' => 4370, 'device_id' => 1],
@@ -76,11 +74,6 @@ class clockLogsController extends Controller
 
                 if ($zk->connect()) {
                     $logs = $zk->getAttendance();
-
-                    // Filtrar registros nuevos (basados en el último timestamp)
-                    $logs = array_filter($logs, function ($log) use ($lastTimestamp) {
-                        return strtotime($log['timestamp']) > strtotime($lastTimestamp);
-                    });
 
                     // Filtrar por file_number si está definido
                     if ($file_number !== null) {
@@ -161,35 +154,37 @@ class clockLogsController extends Controller
 
     private function createOrUpdateAttendance($entryLog, $exitLog = null)
     {
-        // Buscar si ya existe un registro de entrada para esta fecha y usuario
-        $attendance = attendance::where('file_number', $entryLog->file_number)
-            ->where('date', date('Y-m-d', strtotime($entryLog->timestamp)))
-            ->first();
-
-        Log::info($attendance);
+        // Obtener la fecha del registro
+        $date = date('Y-m-d', strtotime($entryLog->timestamp));
 
         // Definir los tiempos de entrada y salida
         $entryTime = date('H:i:s', strtotime($entryLog->timestamp));
-        $departureTime = $exitLog ? date('H:i:s', strtotime($exitLog->timestamp)) : $entryTime;
+        $departureTime = $exitLog ? date('H:i:s', strtotime($exitLog->timestamp)) : null;
 
-        // Si se encuentra el registro de asistencia
+        // Buscar un registro existente para el mismo día y usuario
+        $attendance = attendance::where('file_number', $entryLog->file_number)
+            ->where('date', $date)
+            ->where(function ($query) use ($entryTime, $departureTime) {
+                // Buscar un registro sin salida o con la misma entrada y salida
+                $query->whereNull('departureTime')
+                    ->orWhere('entryTime', $entryTime)
+                    ->orWhere('departureTime', $departureTime);
+            })
+            ->first();
+
         if ($attendance) {
-            // Verificar si entryTime y departureTime son iguales
-            if (trim($entryTime) == trim($departureTime)) {
-                return; // Se actualiza si los tiempos son iguales
+            // Si existe un registro, actualizar los tiempos si es necesario
+            if (!$attendance->departureTime || $attendance->departureTime < $departureTime) {
+                $attendance->update([
+                    'entryTime' => min($attendance->entryTime, $entryTime),
+                    'departureTime' => $departureTime ?? $attendance->departureTime,
+                ]);
             }
-
-            // Si entryTime y departureTime son iguales, proceder a la actualización
-            $updateFields = [];
-
-            $updateFields['entryTime'] = $entryTime;
-            $updateFields['departureTime'] = $departureTime;
-            $attendance->update($updateFields);
         } else {
-            // Si no existe un registro de asistencia, crear uno nuevo
-            $attendance = attendance::create([
+            // Crear un nuevo registro si no existe uno adecuado
+            attendance::create([
                 'file_number' => $entryLog->file_number,
-                'date' => date('Y-m-d', strtotime($entryLog->timestamp)),
+                'date' => $date,
                 'entryTime' => $entryTime,
                 'departureTime' => $departureTime,
                 //'hoursCompleted' => $exitLog ? $this->calculateWorkedHours($entryLog->timestamp, $exitLog->timestamp) : '00:00',
@@ -198,6 +193,10 @@ class clockLogsController extends Controller
             ]);
         }
     }
+
+
+
+
 
     private function calculateWorkedHours($entryTime, $exitTime)
     {

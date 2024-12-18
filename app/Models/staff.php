@@ -2,10 +2,7 @@
 
 namespace App\Models;
 
-use Carbon\Traits\Timestamp;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Http\JsonResponse;
 
 class staff extends Model
 {
@@ -14,7 +11,16 @@ class staff extends Model
     public $timestamps = true;
 
     protected $fillable = [
+        'id',
         'file_number',
-        'name_surname'
+        'name_surname',
     ];
+
+    /**
+     * Relación muchos a muchos con Schedule.
+     */
+    public function schedules()
+    {
+        return $this->belongsToMany(Schedule::class, 'schedule_staff', 'staff_id', 'schedule_id');
+    }
 }
