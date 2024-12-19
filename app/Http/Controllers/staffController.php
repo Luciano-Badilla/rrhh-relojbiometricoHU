@@ -62,7 +62,6 @@ class staffController extends Controller
                     }
                 }
 
-
                 return $item;
             });
 
