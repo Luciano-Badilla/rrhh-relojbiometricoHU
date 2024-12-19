@@ -31,39 +31,41 @@ class staffController extends Controller
             ->whereMonth('date', $month)
             ->whereYear('date', $year)
             ->get()
-            ->map(function ($item,) use ($schedules) {
+            ->map(function ($item) use ($schedules) {
                 // Formatear las fechas en formato dd/mm/yy
                 $item->date = \Carbon\Carbon::parse($item->date)->format('d/m/y');
                 $item->day = \Carbon\Carbon::createFromFormat('d/m/y', $item->date)->locale('es')->translatedFormat('l');
                 $item->day = ucfirst($item->day);
                 $item->hoursCompleted = $this->calculateWorkedHours($item->entryTime, $item->departureTime) ?? '00:00:00';
 
+                // Inicializar las horas extra por defecto
+                $item->extraHours = gmdate('H:i:s', 0);
+
+                // Recorrer los horarios para calcular horas extra
                 foreach ($schedules as $schedule) {
                     if ($schedule->day == $item->day) {
+                        // Validar que no sea un registro vacío de asistencia
                         if (trim($item->entryTime) != trim($item->departureTime)) {
                             $startTime = Carbon::createFromFormat('H:i:s', $schedule->startTime);
                             $endTime = Carbon::createFromFormat('H:i:s', $schedule->endTime);
                             $hoursRequiredInSeconds = $startTime->diffInSeconds($endTime);
-                            $hoursRequiredStr = gmdate('H:i:s', $hoursRequiredInSeconds); // Formatear como hh:mm:ss
 
                             $hoursCompleted = Carbon::createFromFormat('H:i:s', $item->hoursCompleted);
-                            $hoursRequired = Carbon::createFromFormat('H:i:s', $hoursRequiredStr);
+                            $hoursRequired = Carbon::createFromFormat('H:i:s', gmdate('H:i:s', $hoursRequiredInSeconds));
 
                             // Comprobar si se completaron más horas de las requeridas
                             if ($hoursCompleted->greaterThan($hoursRequired)) {
-                                $extraHoursInSecond = $hoursCompleted->diffInSeconds($hoursRequired);
-                                $item->extraHours = gmdate('H:i:s', $extraHoursInSecond); // Formatear como hh:mm:ss
-                            } else {
-                                $item->extraHours = gmdate('H:i:s', 0); // Sin horas extra
+                                $extraHoursInSeconds = $hoursCompleted->diffInSeconds($hoursRequired);
+                                $item->extraHours = gmdate('H:i:s', $extraHoursInSeconds); // Formatear como hh:mm:ss
                             }
-                        } else {
-                            $item->extraHours = gmdate('H:i:s', 0); // Sin horas extra
                         }
+                        break; // Detener el bucle porque ya se encontró un horario coincidente
                     }
                 }
 
                 return $item;
             });
+
 
         $days = $attendance->pluck('date')->unique()->count();
         $hoursCompleted = $attendance->pluck('hoursCompleted');
