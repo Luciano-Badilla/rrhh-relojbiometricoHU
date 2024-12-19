@@ -64,6 +64,22 @@
         .custom-tooltip:hover::before {
             opacity: 1;
         }
+
+        thead th:first-child {
+            border-top-left-radius: 0.75rem; /* Esquina superior izquierda */
+        }
+
+        thead th:last-child {
+            border-top-right-radius: 0.75rem; /* Esquina superior derecha */
+        }
+
+        tbody tr:last-child td:first-child {
+            border-bottom-left-radius: 0.75rem; /* Esquina inferior izquierda */
+        }
+
+        tbody tr:last-child td:last-child {
+            border-bottom-right-radius: 0.75rem; /* Esquina inferior derecha */
+        }
         </style>
 </head>
 
@@ -89,14 +105,14 @@
 </html>
 <script>
     function custom_alert(message, type) {
-            if (type == 'success') {
-                $('#success-alert').html(message);
-                $('#success-alert').show();
-            } else if (type == 'error') {
-                $('#error-alert').html(message);
-                $('#error-alert').show();
-            }
+        if (type == 'success') {
+            $('#success-alert').html(message);
+            $('#success-alert').show();
+        } else if (type == 'error') {
+            $('#error-alert').html(message);
+            $('#error-alert').show();
         }
+    }
 </script>
 
 

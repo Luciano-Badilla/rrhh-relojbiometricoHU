@@ -26,7 +26,7 @@
                 </div>
             </div>
 
-            <div class="overflow-hidden rounded-xl m-3">
+            <div class="m-3">
                 <!-- Tabla -->
                 <x-table id="staff-list" :headers="['Legajo', 'Nombre']" :fields="['file_number', 'name_surname']" :data="$staff" :links="[
                     [

@@ -1,4 +1,4 @@
-@props(['id', 'headers', 'data', 'fields', 'links' => []])
+@props(['id', 'headers', 'data', 'fields', 'links' => [], 'buttons' => []])
 
 <table class="min-w-full bg-white" id="{{ $id }}">
     <thead class="bg-gray-100">
@@ -7,8 +7,8 @@
                 <th class="py-3 px-6 text-left block sm:table-cell font-bold text-sm text-gray-900">{{ $header }}
                 </th>
             @endforeach
-            @if (!empty($links))
-                <th class="py-3 px-6 text-left block sm:table-cell">Acciones</th>
+            @if (!empty($links) || !empty($buttons))
+                <th class="py-3 px-6 text-center block sm:table-cell">Acciones</th>
             @endif
         </tr>
     </thead>
@@ -20,15 +20,31 @@
                         {{ $record->$field }}
                     </td>
                 @endforeach
-                @if (!empty($links))
-                    <td class="py-3 px-6 text-left block sm:table-cell">
-                        @foreach ($links as $link)
-                            <a href="{{ route($link['route'], $record->id) }}" id="{{$link['id']}}"
-                                @if ($link['tooltip']) data-tooltip_text="{{ $link['tooltip_text'] }}" @endif
-                                class="{{ $link['classes'] }}">
-                                {!! $link['icon'] !!}
-                            </a>
-                        @endforeach
+                @if (!empty($links) || !empty($buttons))
+                    <td class="py-3 px-6 text-center block sm:table-cell">
+                        @if (!empty($links))
+                            @foreach ($links as $link)
+                                <a href="{{ route($link['route'], $record->id) }}" id="{{ $link['id'] }}"
+                                    @if ($link['tooltip']) data-tooltip_text="{{ $link['tooltip_text'] }}" @endif
+                                    class="{{ $link['classes'] }}">
+                                    {!! $link['icon'] !!}
+                                </a>
+                            @endforeach
+                        @endif
+                        @if (!empty($buttons))
+                            @foreach ($buttons as $button)
+                                <button id="{{ $button['id'] }}" type="button" data-id="{{ $record->id }}"
+                                    @isset($button['tooltip']) data-tooltip_text="{{ $button['tooltip_text'] }}" @endisset
+                                    @isset($button['modal']) data-toggle="modal" data-target="#{{ $button['modal_id'] }}" @endisset
+                                    @foreach ($button as $attr => $value)
+                                @if (Str::startsWith($attr, 'data-') && $value === true)
+                                    {{ $attr }}="{{ $record->{Str::after($attr, 'data-')} }}"
+                                @endif @endforeach
+                                    class="{{ $button['classes'] }}">
+                                    {!! $button['icon'] !!}
+                                </button>
+                            @endforeach
+                        @endif
                     </td>
                 @endif
             </tr>

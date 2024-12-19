@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\AsistenciaController;
+use App\Http\Controllers\attendanceController;
 use App\Http\Controllers\clockLogsController;
 use App\Http\Controllers\staffController;
 use App\Http\Controllers\ProfileController;
@@ -29,6 +29,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/staff/management/{id}', [staffController::class, 'management'])->name('staff.management');
     Route::get('/staff/attendance/{id}', [staffController::class, 'attendance'])->name('staff.attendance');
     Route::get('/staff/list', [staffController::class, 'list'])->name('staff.list');
+
+    Route::post('/attendance/edit/{id?}', [attendanceController::class, 'edit'])->name('attendance.edit');
     
     Route::get('/clockLogs/update/{file_number?}', [clockLogsController::class, 'update_attendance'])->name('clockLogs.update');
 });
