@@ -8,6 +8,33 @@
             {{ __('Asistencias de #' . $staff->file_number . ' ' . $staff->name_surname) }}
         </h2>
     </x-slot>
+    <x-modal-custom id="edit_modal" title="Editar asistencia"
+        subtitle="¿Estás seguro de que deseas editar esta asistencia?">
+        <form action="" method="POST" id="edit_form">
+            @csrf
+            <div class="px-3 flex flex-col gap-3 justify-center items-center">
+                <div class="flex gap-3">
+                    <x-text-input id="attendance_id" name="attendance_id" type="text" class="hidden" />
+                    <div class="flex flex-col">
+                        <label for="entryTime" class="block text-sm font-medium text-gray-700">Entrada:</label>
+                        <x-text-input id="entryTime" name="entryTime" type="time" />
+                    </div>
+                    <div class="flex flex-col">
+                        <label for="departureTime" class="block text-sm font-medium text-gray-700">Salida:</label>
+                        <x-text-input id="departureTime" name="departureTime" type="time" />
+                    </div>
+                </div>
+            </div>
+            <div class="flex flex-col px-3 mb-3">
+                <label for="observations" class="block text-sm font-medium text-gray-700">Observaciones:</label>
+                <x-text-input id="observations" name="observations" type="text" class="w-100" required />
+            </div>
+            <div class="flex justify-end px-3">
+                <button type="submit" class="btn btn-success rounded-xl">Editar
+                </button>
+            </div>
+        </form>
+    </x-modal-custom>
     <div class="flex items-center justify-center py-6">
         <div class="bg-white rounded-xl w-full lg:w-2/4">
             <div id="loading-overlay" class="hidden">
@@ -159,7 +186,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="overflow-hidden rounded-xl m-3">
+                <div class="m-3">
                     <table class="min-w-full">
                         <thead class="bg-gray-100">
                             <tr>
@@ -195,8 +222,7 @@
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                         @if ($schedule)
                                             <div class="font-medium text-gray-900">
-                                                {{ \Carbon\Carbon::parse($schedule->startTime)->format('H:i') }} a
-                                                {{ \Carbon\Carbon::parse($schedule->endTime)->format('H:i') }}
+                                                {{ \Carbon\Carbon::parse($schedule->startTime)->format('H:i') . ' a ' . \Carbon\Carbon::parse($schedule->endTime)->format('H:i') }}
                                             </div>
                                             <div class="text-gray-500">
                                                 {{ \Carbon\Carbon::parse($schedule->startTime)->diffInHours($schedule->endTime) }}
@@ -211,7 +237,7 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="overflow-hidden rounded-xl m-3">
+                <div class="rounded-xl m-3">
                     @if ($attendance->isEmpty())
                         <!-- Verifica si no hay tickets -->
                         <div class="text-center max-w-md" id="no_alerts" style="margin: 0 auto;">
@@ -244,7 +270,20 @@
                             'hoursCompleted',
                             'extraHours',
                             'observations',
-                        ]" :data="$attendance" />
+                        ]" :data="$attendance"
+                            :buttons="[
+                                [
+                                    'id' => 'edit_btn',
+                                    'classes' => 'btn btn-dark rounded-xl custom-tooltip edit_btn',
+                                    'icon' => '<i class=\'fas fa-pen\'></i>',
+                                    'tooltip' => true,
+                                    'tooltip_text' => 'Editar asistencia',
+                                    'modal' => true,
+                                    'modal_id' => 'edit_modal',
+                                    'data-entryTime' => true,
+                                    'data-departureTime' => true,
+                                ],
+                            ]" />
                     @endif
                 </div>
             </div>
@@ -318,7 +357,34 @@
                 }
             });
 
-
         });
+
+        document.querySelectorAll('.edit_btn').forEach(button => {
+            button.addEventListener('click', function() {
+                // Obtener valores de los atributos data-*
+                const entryTime = this.getAttribute('data-entrytime'); // Formato "HH:MM:SS"
+                const departureTime = this.getAttribute(
+                'data-departuretime'); // Formato "HH:MM:SS"
+                const id = this.getAttribute('data-id'); // ID de la asistencia
+
+                // Convertir "HH:MM:SS" a "HH:MM"
+                const formattedEntryTime = entryTime.slice(0, 5);
+                const formattedDepartureTime = departureTime.slice(0, 5);
+
+                // Rellenar los campos de entrada
+                document.getElementById('entryTime').value = formattedEntryTime;
+                document.getElementById('departureTime').value = formattedDepartureTime;
+                document.getElementById('attendance_id').value = id;
+
+                // Cambiar dinámicamente el atributo 'action' del formulario
+                const form = document.getElementById('edit_form');
+                url = "{{ route('attendance.edit') }}";
+                form.action =
+                url +"/"+ id; // Ajusta esta ruta según tus necesidades
+            });
+        });
+
+
+
     });
 </script>
