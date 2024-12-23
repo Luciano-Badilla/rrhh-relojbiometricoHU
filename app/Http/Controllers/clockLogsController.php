@@ -139,6 +139,7 @@ class clockLogsController extends Controller
                     }
 
                     // Si hay entrada y salida en el mismo día, procesarlas como un par
+
                     $this->createOrUpdateAttendance($entryLog, $exitLog);
 
                     // Saltar al siguiente par
@@ -173,8 +174,9 @@ class clockLogsController extends Controller
             ->first();
 
         if ($attendance) {
+
             // Si existe un registro, actualizar los tiempos si es necesario
-            if (!$attendance->departureTime || $attendance->departureTime < $departureTime) {
+            if ($attendance->departureTime === $attendance->entryTime) {
                 $attendance->update([
                     'entryTime' => min($attendance->entryTime, $entryTime),
                     'departureTime' => $departureTime ?? $attendance->departureTime,
@@ -187,30 +189,9 @@ class clockLogsController extends Controller
                 'date' => $date,
                 'entryTime' => $entryTime,
                 'departureTime' => $departureTime,
-                //'hoursCompleted' => $exitLog ? $this->calculateWorkedHours($entryLog->timestamp, $exitLog->timestamp) : '00:00',
                 'absenceReason_id' => null,
                 'observations' => null,
             ]);
         }
-    }
-
-
-
-
-
-    private function calculateWorkedHours($entryTime, $exitTime)
-    {
-        $entryTimestamp = strtotime($entryTime);
-        $exitTimestamp = strtotime($exitTime);
-
-        // Calcular la diferencia en segundos
-        $workedSeconds = $exitTimestamp - $entryTimestamp;
-
-        // Convertir los segundos a horas y minutos
-        $hours = floor($workedSeconds / 3600); // Horas completas
-        $minutes = floor(($workedSeconds % 3600) / 60); // Minutos restantes
-
-        // Retornar en formato H:i
-        return sprintf('%02d:%02d', $hours, $minutes);
     }
 }

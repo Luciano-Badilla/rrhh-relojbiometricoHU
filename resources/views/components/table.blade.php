@@ -33,16 +33,24 @@
                         @endif
                         @if (!empty($buttons))
                             @foreach ($buttons as $button)
-                                <button id="{{ $button['id'] }}" type="button" data-id="{{ $record->id }}"
-                                    @isset($button['tooltip']) data-tooltip_text="{{ $button['tooltip_text'] }}" @endisset
-                                    @isset($button['modal']) data-toggle="modal" data-target="#{{ $button['modal_id'] }}" @endisset
-                                    @foreach ($button as $attr => $value)
-                                @if (Str::startsWith($attr, 'data-') && $value === true)
-                                    {{ $attr }}="{{ $record->{Str::after($attr, 'data-')} }}"
-                                @endif @endforeach
-                                    class="{{ $button['classes'] }}">
-                                    {!! $button['icon'] !!}
-                                </button>
+                                @php
+                                    $showButton = $button['condition'] ?? true;
+                                    if (is_callable($showButton)) {
+                                        $showButton = $showButton($record);
+                                    }
+                                @endphp
+                                @if ($showButton)
+                                    <button id="{{ $button['id'] }}" type="button" data-id="{{ $record->id }}"
+                                        @isset($button['tooltip']) data-tooltip_text="{{ $button['tooltip_text'] }}" @endisset
+                                        @isset($button['modal']) data-toggle="modal" data-target="#{{ $button['modal_id'] }}" @endisset
+                                        @foreach ($button as $attr => $value)
+                                            @if (Str::startsWith($attr, 'data-') && $value === true)
+                                                {{ $attr }}="{{ $record->{Str::after($attr, 'data-')} }}"
+                                            @endif @endforeach
+                                        class="{{ $button['classes'] }}">
+                                        {!! $button['icon'] !!}
+                                    </button>
+                                @endif
                             @endforeach
                         @endif
                     </td>

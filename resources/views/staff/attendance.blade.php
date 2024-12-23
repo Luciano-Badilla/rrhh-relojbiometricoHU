@@ -8,20 +8,18 @@
             {{ __('Asistencias de #' . $staff->file_number . ' ' . $staff->name_surname) }}
         </h2>
     </x-slot>
-    <x-modal-custom id="edit_modal" title="Editar asistencia"
-        subtitle="¿Estás seguro de que deseas editar esta asistencia?">
-        <form action="" method="POST" id="edit_form">
+    <x-modal-custom id="add_attendance_modal" title="Agregar marca de asistencia"
+        subtitle="Esta acción agregará una marca de asistencia para esta persona.">
+        <form action="" method="POST" id="add_attendance_form">
             @csrf
             <div class="px-3 flex flex-col gap-3 justify-center items-center">
                 <div class="flex gap-3">
                     <x-text-input id="attendance_id" name="attendance_id" type="text" class="hidden" />
+                    <x-text-input id="file_number" name="file_number" type="text" class="hidden"
+                        value="{{ $staff->file_number }}" />
                     <div class="flex flex-col">
-                        <label for="entryTime" class="block text-sm font-medium text-gray-700">Entrada:</label>
-                        <x-text-input id="entryTime" name="entryTime" type="time" />
-                    </div>
-                    <div class="flex flex-col">
-                        <label for="departureTime" class="block text-sm font-medium text-gray-700">Salida:</label>
-                        <x-text-input id="departureTime" name="departureTime" type="time" />
+                        <label for="entryTime" class="block text-sm font-medium text-gray-700">Nueva marca:</label>
+                        <x-text-input id="entryTime" name="attendance_time" type="time" step="1" />
                     </div>
                 </div>
             </div>
@@ -30,7 +28,7 @@
                 <x-text-input id="observations" name="observations" type="text" class="w-100" required />
             </div>
             <div class="flex justify-end px-3">
-                <button type="submit" class="btn btn-success rounded-xl">Editar
+                <button type="submit" class="btn btn-success rounded-xl" id="add_attendance_btn">Agregar
                 </button>
             </div>
         </form>
@@ -275,13 +273,14 @@
                                 [
                                     'id' => 'edit_btn',
                                     'classes' => 'btn btn-dark rounded-xl custom-tooltip edit_btn',
-                                    'icon' => '<i class=\'fas fa-pen\'></i>',
+                                    'icon' => '<i class=\'fas fa-fingerprint\'></i>',
                                     'tooltip' => true,
-                                    'tooltip_text' => 'Editar asistencia',
+                                    'tooltip_text' => 'Agregar marca de asistencia',
                                     'modal' => true,
-                                    'modal_id' => 'edit_modal',
+                                    'modal_id' => 'add_attendance_modal',
                                     'data-entryTime' => true,
                                     'data-departureTime' => true,
+                                    'condition' => fn($record) => $record->entryTime === $record->departureTime,
                                 ],
                             ]" />
                     @endif
@@ -292,6 +291,7 @@
 </x-app-layout>
 <script>
     $(document).ready(function() {
+
         const overlay = $('#loading-overlay');
         const content = $('#content');
         const updateBtn = $('#update-btn');
@@ -363,28 +363,25 @@
             button.addEventListener('click', function() {
                 // Obtener valores de los atributos data-*
                 const entryTime = this.getAttribute('data-entrytime'); // Formato "HH:MM:SS"
-                const departureTime = this.getAttribute(
-                'data-departuretime'); // Formato "HH:MM:SS"
                 const id = this.getAttribute('data-id'); // ID de la asistencia
 
-                // Convertir "HH:MM:SS" a "HH:MM"
-                const formattedEntryTime = entryTime.slice(0, 5);
-                const formattedDepartureTime = departureTime.slice(0, 5);
-
                 // Rellenar los campos de entrada
-                document.getElementById('entryTime').value = formattedEntryTime;
-                document.getElementById('departureTime').value = formattedDepartureTime;
+                document.getElementById('entryTime').value = entryTime;
                 document.getElementById('attendance_id').value = id;
 
                 // Cambiar dinámicamente el atributo 'action' del formulario
-                const form = document.getElementById('edit_form');
-                url = "{{ route('attendance.edit') }}";
+                const form = document.getElementById('add_attendance_form');
+                url = "{{ route('attendance.add') }}";
                 form.action =
-                url +"/"+ id; // Ajusta esta ruta según tus necesidades
+                    url + "/" + id; // Ajusta esta ruta según tus necesidades
             });
         });
 
-
+        $('#add_attendance_btn').click(function() {
+            alert('hola');
+            // Eliminar la clave 'page_loaded' del localStorage
+            localStorage.removeItem('page_loaded');
+        });
 
     });
 </script>
