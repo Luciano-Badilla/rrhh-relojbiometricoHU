@@ -378,7 +378,6 @@
         });
 
         $('#add_attendance_btn').click(function() {
-            alert('hola');
             // Eliminar la clave 'page_loaded' del localStorage
             localStorage.removeItem('page_loaded');
         });
