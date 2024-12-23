@@ -18,10 +18,6 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
-    return view('welcome');
-});
-
-Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -30,7 +26,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/staff/attendance/{id}', [staffController::class, 'attendance'])->name('staff.attendance');
     Route::get('/staff/list', [staffController::class, 'list'])->name('staff.list');
 
-    Route::post('/attendance/edit/{id?}', [attendanceController::class, 'edit'])->name('attendance.edit');
+    Route::post('/attendance/add/{id?}', [attendanceController::class, 'add'])->name('attendance.add');
     
     Route::get('/clockLogs/update/{file_number?}', [clockLogsController::class, 'update_attendance'])->name('clockLogs.update');
 });
