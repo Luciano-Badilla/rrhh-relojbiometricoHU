@@ -20,7 +20,7 @@ class CreateStaffTable extends Migration
             $table->string('email'); // Nombre y apellido del personal
             $table->string('phone');
             $table->string('address');
-            $table->timestamps(); // Agrega las columnas created_at y updated_at
+            $table->timestamps(); // Agrega las columnas created_at y updated_atz
         });
     }
 

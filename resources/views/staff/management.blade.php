@@ -10,8 +10,8 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
                         <x-input-label for="legajo" value="Legajo" />
-                        <x-text-input id="legajo" type="text" name="legajo" value="{{$staff->file_number}}" placeholder="Legajo"
-                            required />
+                        <x-text-input id="legajo" type="text" name="legajo" value="{{$staff->file_number}}"
+                            placeholder="Legajo" required />
                     </div>
                     <div>
                         <x-input-label for="cargo" value="Cargo" />
@@ -19,32 +19,33 @@
                             class="mt-1 block w-full" />
                     </div>
                     <div>
-                        <label for="seccion" class="block text-sm font-medium text-gray-700">Sección</label>
-                        <select id="seccion" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                            <option>Seleccionar sección</option>
+                        <label for="section" class="block text-sm font-medium text-gray-700">Secretaria</label>
+                        <select id="section" class="h-10 mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            <option>Seleccionar secretaria</option>
                         </select>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
                         <x-input-label for="nombre" value="Nombre" />
-                        <x-text-input id="nombre" type="text" name="nombre" placeholder="Nombre completo" value="{{$staff->name_surname}}"
-                            class="mt-1 block w-full" />
+                        <x-text-input id="nombre" type="text" name="nombre" placeholder="Nombre completo"
+                            value="{{$staff->name_surname}}" class="mt-1 block w-full" />
                     </div>
                     <div>
-                        <label for="direccion" class="block text-sm font-medium text-gray-700">Dirección</label>
-                        <select id="direccion" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                            <option>Seleccionar dirección</option>
-                        </select>
+                        <x-select id="category" name="category" :options="$categories"
+                            placeholder="Seleccionar categoría">
+                            Categoría
+                        </x-select>
+                    </div>
+                    <div>
+                        <x-select id="scale" name="scale" :options="$scales"
+                            placeholder="Seleccionar escalafon">
+                            Escalafon
+                        </x-select>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div>
-                        <label for="categoria" class="block text-sm font-medium text-gray-700">Categoría</label>
-                        <select id="categoria" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                            <option>Seleccionar categoría</option>
-                        </select>
-                    </div>
+
                     <div>
                         <label for="opciones" class="block text-sm font-medium text-gray-700">Opciones</label>
                         <div class="mt-1 flex items-center space-x-4">
@@ -59,28 +60,20 @@
                         </div>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div>
-                        <label for="instituto" class="block text-sm font-medium text-gray-700">Instituto</label>
-                        <select id="instituto" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                            <option>Seleccionar instituto</option>
-                        </select>
-                    </div>
-                </div>
                 <div class="mb-4">
                     <x-input-label for="email" value="Email" />
-                    <x-text-input type="email" id="email" name="email" placeholder="correo@ejemplo.com"
-                        class="mt-1 block w-full" />
+                    <x-text-input type="email" id="email" name="email" value="{{$staff->email}}"
+                        placeholder="correo@ejemplo.com" class="mt-1 block w-full" />
                 </div>
                 <div class="mb-4">
                     <x-input-label for="telefono" value="Teléfono" />
-                    <x-text-input type="tel" id="telefono" name="telefono" placeholder="Teléfono móvil"
-                        class="mt-1 block w-full" />
+                    <x-text-input type="tel" id="telefono" name="telefono" value="{{$staff->phone}}"
+                        placeholder="Teléfono móvil" class="mt-1 block w-full" />
                 </div>
                 <div class="mb-4">
                     <x-input-label for="domicilio" value="Domicilio" />
-                    <x-text-input type="text" id="domicilio" name="domicilio" placeholder="Dirección completa"
-                        class="mt-1 block w-full" />
+                    <x-text-input type="text" id="domicilio" name="domicilio" value="{{$staff->address}}"
+                        placeholder="Dirección completa" class="mt-1 block w-full" />
                 </div>
                 <div class="flex justify-between">
                     <button type="button" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md">Buscar</button>

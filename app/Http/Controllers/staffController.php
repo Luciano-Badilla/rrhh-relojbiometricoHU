@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\attendance;
+use App\Models\category;
 use App\Models\schedule_staff;
 use App\Models\staff;
+use App\Models\scale;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -13,9 +15,18 @@ class staffController extends Controller
 {
     public function management($id)
     {
-        $staff = staff::find($id);
-        return view('staff.management', ['staff' => $staff]);
+        $staff = staff::find($id); // Encuentra el registro del staff
+        $categories = Category::all()->pluck('name', 'id'); // Obtén las categorías como un array [id => name]
+        $scales = Scale::all()->pluck('name', 'id'); // Obtén las categorías como un array [id => name]
+
+        // Pasa ambas variables a la vista
+        return view('staff.management', [
+            'staff' => $staff,
+            'categories' => $categories, // Añadir esta línea
+            'scales' => $scales, // Añadir esta línea
+        ]);
     }
+
     public function attendance($id, Request $request)
     {
         $staff = staff::find($id);
@@ -77,9 +88,9 @@ class staffController extends Controller
         foreach ($hoursCompleted as $time) {
             // Separar horas, minutos y segundos
             $timeParts = explode(':', $time);
-            $hours = (int)$timeParts[0]; // Horas
-            $minutes = (int)$timeParts[1]; // Minutos
-            $seconds = (int)$timeParts[2]; // Segundos
+            $hours = (int) $timeParts[0]; // Horas
+            $minutes = (int) $timeParts[1]; // Minutos
+            $seconds = (int) $timeParts[2]; // Segundos
 
             // Calcular el total en segundos
             $totalSeconds += ($hours * 3600) + ($minutes * 60) + $seconds;
@@ -102,9 +113,9 @@ class staffController extends Controller
         foreach ($extraHours as $time) {
             // Separar horas, minutos y segundos
             $timeParts = explode(':', $time);
-            $hours = (int)$timeParts[0]; // Horas
-            $minutes = (int)$timeParts[1]; // Minutos
-            $seconds = (int)$timeParts[2]; // Segundos
+            $hours = (int) $timeParts[0]; // Horas
+            $minutes = (int) $timeParts[1]; // Minutos
+            $seconds = (int) $timeParts[2]; // Segundos
 
             // Calcular el total en segundos
             $totalExtraSeconds += ($hours * 3600) + ($minutes * 60) + $seconds;
