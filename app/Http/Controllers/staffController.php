@@ -3,10 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\attendance;
+use App\Models\NonAttendance;
 use App\Models\schedule_staff;
 use App\Models\staff;
 use Carbon\Carbon;
+use GuzzleHttp\Client;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class staffController extends Controller
@@ -117,6 +121,30 @@ class staffController extends Controller
         $totalHoursFormatted = sprintf('%02d:%02d:%02d', floor($totalSeconds / 3600), floor(($totalSeconds % 3600) / 60), $totalSeconds % 60);
         $hoursAverageFormatted = sprintf('%02d:%02d:%02d', floor($averageSeconds / 3600), floor(($averageSeconds % 3600) / 60), $averageSeconds % 60);
 
+        $workingDays = $this->getWorkingDays($staff->id, $month, $year);
+
+        // Comparar workingDays con attendance y crear registros en NonAttendance si no existen
+        foreach ($workingDays as $workingDay) {
+            $attendanceExists = $attendance->where('date', Carbon::parse($workingDay)->format('d/m/y'))->first();
+            $nonAttendanceExist = NonAttendance::where('file_number', $staff->file_number)->where('date', $workingDay)->first();
+            // Si no hay asistencia para ese día, crear el registro en NonAttendance
+            if (!$attendanceExists && !$nonAttendanceExist) {
+                NonAttendance::create([
+                    'file_number' => $staff->file_number,
+                    'date' => $workingDay
+                ]);
+            }
+        }
+
+        $nonAttendance = NonAttendance::where('file_number', $staff->file_number)->with('absenceReason')->get()->map(function ($item) use ($schedules) {
+            // Formatear las fechas en formato dd/mm/yy
+            $item->date = \Carbon\Carbon::parse($item->date)->format('d/m/y');
+            $item->day = \Carbon\Carbon::createFromFormat('d/m/y', $item->date)->locale('es')->translatedFormat('l');
+            $item->day = ucfirst($item->day);
+            $item->absenceReason = $item->absenceReason->name ?? null;
+
+            return $item;
+        });
 
         return view('staff.attendance', [
             'staff' => $staff,
@@ -127,7 +155,9 @@ class staffController extends Controller
             'hoursAverage' => $hoursAverageFormatted,
             'totalHours' => $totalHoursFormatted,
             'schedules' => $schedules,
-            'totalExtraHours' => $totalExtraHoursFormatted
+            'totalExtraHours' => $totalExtraHoursFormatted,
+            'workingDays' => $workingDays,
+            'nonAttendance' => $nonAttendance->sortBy('date')
         ]);
     }
 
@@ -156,5 +186,73 @@ class staffController extends Controller
 
         // Retornar en formato H:i:s
         return sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+    }
+
+    public function getWorkingDays($staffId, $month, $year)
+    {
+        Carbon::setLocale('es');
+        $today = Carbon::create($year, $month, Carbon::now()->day);
+        $startOfMonth = $today->copy()->startOfMonth();
+
+        // Mapeo de días en español a formato numérico
+        $daysMap = [
+            'Lunes' => 1,
+            'Martes' => 2,
+            'Miércoles' => 3,
+            'Jueves' => 4,
+            'Viernes' => 5,
+            'Sábado' => 6,
+            'Domingo' => 0,
+        ];
+
+        // Obtener los días de trabajo asignados al empleado
+        $workingDays = schedule_staff::join('schedule', 'schedule_staff.schedule_id', '=', 'schedule.id')
+            ->where('schedule_staff.staff_id', $staffId)
+            ->select('schedule.day')
+            ->pluck('day')
+            ->map(function ($day) use ($daysMap) {
+                return $daysMap[$day] ?? null;
+            })
+            ->filter()
+            ->toArray();
+
+        // Crear un rango de fechas y filtrar por los días laborales
+        $dates = [];
+        for ($date = $today; $date >= $startOfMonth; $date->subDay()) {
+            if (in_array($date->dayOfWeek, $workingDays)) {
+                $dates[] = $date->toDateString();
+            }
+        }
+
+        // Obtener los feriados del año desde la API
+        $response = Http::get('https://api.argentinadatos.com/v1/feriados/' . $year);
+        $holidays = $response->json();
+
+        // Filtrar los días laborales excluyendo los feriados
+        $dates = array_filter($dates, function ($date) use ($holidays) {
+            // Compara las fechas laborales con los feriados
+            foreach ($holidays as $holiday) {
+                if ($holiday['fecha'] == $date) {
+                    return false; // Si es un feriado, lo excluye
+                }
+            }
+            return true; // Si no es un feriado, lo incluye
+        });
+
+        return $dates;
+    }
+
+    // Obtener feriados desde la API de ArgentinaDatos
+    public function getHolidaysFromArgentinaDatos($year)
+    {
+        $url = "https://api.argentinadatos.com/v1/feriados/$year";
+
+        $client = new Client();
+        $response = $client->get($url);
+
+        $data = json_decode($response->getBody(), true);
+
+        // Extraer solo las fechas de los feriados
+        return collect($data)->pluck('fecha')->toArray();
     }
 }

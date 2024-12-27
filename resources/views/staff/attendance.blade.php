@@ -1,7 +1,20 @@
 @php
     use Carbon\Carbon;
 @endphp
+<style>
+    .nav-link.active {
+        background-color: #f3f4f6 !important;
+        color: rgb(17 24 39 1) !important;
+        font-weight: 500 !important;
+    }
 
+    .nav-link {
+        border-top-left-radius: 0.5rem !important;
+        border-top-right-radius: 0.5rem !important;
+        color: rgb(17 24 39 1) !important;
+    }
+
+</style>
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
@@ -115,13 +128,13 @@
 
                             <!-- Botón de Envío -->
                             <div class="w-full lg:mt-6">
-                                <button type="submit" class="btn btn-dark rounded-xl custom-tooltip"
+                                <button type="submit" class="btn btn-dark rounded-xl custom-tooltip h-10"
                                     data-tooltip_text="Buscar asistencias">
                                     <i class="fa-solid fa-magnifying-glass"></i>
                                 </button>
-                                <button class="btn btn-dark rounded-xl custom-tooltip" id="update-btn" type="button"
-                                    data-tooltip_text="Actualizar base de datos"><i class="fa-solid fa-rotate"
-                                        id="update-icon"></i>
+                                <button class="btn btn-dark rounded-xl custom-tooltip h-10" id="update-btn"
+                                    type="button" data-tooltip_text="Actualizar base de datos"><i
+                                        class="fa-solid fa-rotate" id="update-icon"></i>
                                     <div class="spinner-border spinner-border-sm hidden my-1" id="updating-icon"
                                         role="status">
                                         <span class="sr-only">Loading...</span>
@@ -235,55 +248,108 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="rounded-xl m-3">
-                    @if ($attendance->isEmpty())
-                        <!-- Verifica si no hay tickets -->
-                        <div class="text-center max-w-md" id="no_alerts" style="margin: 0 auto;">
-                            <div class="p-6 rounded-lg mt-3">
-                                <div
-                                    class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <i class="fa-solid fa-clipboard-user text-3xl"></i>
-                                </div>
-                                <h2 class="text-2xl font-bold text-gray-900 mb-2">No hay asistencias</h2>
-                                <p class="text-gray-600 mb-6">
-                                    No se encontraron asistencias según los filtros aplicados.
-                                </p>
+                <div class="container -mt-2">
+                    <!-- Pestañas -->
+                    <ul class="nav nav-tabs" id="attendanceTabs" role="tablist">
+                        <!-- Pestaña Asistencias -->
+                        <li class="nav-item">
+                            <a class="nav-link active" id="asistencias-tab" data-toggle="tab" href="#asistencias"
+                                role="tab" aria-controls="asistencias" aria-selected="true">Asistencias</a>
+                        </li>
+                        <!-- Pestaña Inasistencias -->
+                        <li class="nav-item">
+                            <a class="nav-link" id="inasistencias-tab" data-toggle="tab" href="#inasistencias"
+                                role="tab" aria-controls="inasistencias" aria-selected="false">Inasistencias</a>
+                        </li>
+                    </ul>
+
+                    <!-- Contenido de las pestañas -->
+                    <div class="tab-content" id="attendanceTabsContent">
+                        <!-- Contenido de la pestaña Asistencias -->
+                        <div class="tab-pane fade show active" id="asistencias" role="tabpanel"
+                            aria-labelledby="asistencias-tab">
+                            <div class="mt-3">
+                                @if ($attendance->isEmpty())
+                                    <!-- Verifica si no hay tickets -->
+                                    <div class="text-center max-w-md" id="no_assistances" style="margin: 0 auto;">
+                                        <div class="p-6 rounded-lg mt-3">
+                                            <div
+                                                class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                <i class="fa-solid fa-clipboard-user text-3xl"></i>
+                                            </div>
+                                            <h2 class="text-2xl font-bold text-gray-900 mb-2">No hay asistencias</h2>
+                                            <p class="text-gray-600 mb-6">
+                                                No se encontraron asistencias según los filtros aplicados.
+                                            </p>
+                                        </div>
+                                    </div>
+                                @endif
+
+                                @if ($attendance->isNotEmpty())
+                                    <x-table id="attendance-list" :headers="[
+                                        'Dia',
+                                        'Fecha',
+                                        'Entrada',
+                                        'Salida',
+                                        'Horas cumplidas',
+                                        'Horas extra',
+                                        'Observaciones',
+                                    ]" :fields="[
+                                        'day',
+                                        'date',
+                                        'entryTime',
+                                        'departureTime',
+                                        'hoursCompleted',
+                                        'extraHours',
+                                        'observations',
+                                    ]" :data="$attendance"
+                                        :buttons="[
+                                            [
+                                                'id' => 'edit_btn',
+                                                'classes' => 'btn btn-dark rounded-xl custom-tooltip edit_btn h-10',
+                                                'icon' => '<i class=\'fas fa-fingerprint\'></i>',
+                                                'tooltip' => true,
+                                                'tooltip_text' => 'Agregar marca de asistencia',
+                                                'modal' => true,
+                                                'modal_id' => 'add_attendance_modal',
+                                                'data-entryTime' => true,
+                                                'data-departureTime' => true,
+                                                'condition' => fn($record) => $record->entryTime ===
+                                                    $record->departureTime &&
+                                                    $record->date != Carbon::now()->format('d/m/y'),
+                                            ],
+                                        ]" />
+                                @endif
                             </div>
                         </div>
-                    @endif
-                    @if ($attendance->isNotEmpty())
-                        <x-table id="attendance-list" :headers="[
-                            'Dia',
-                            'Fecha',
-                            'Entrada',
-                            'Salida',
-                            'Horas cumplidas',
-                            'Horas extra',
-                            'Observaciones',
-                        ]" :fields="[
-                            'day',
-                            'date',
-                            'entryTime',
-                            'departureTime',
-                            'hoursCompleted',
-                            'extraHours',
-                            'observations',
-                        ]" :data="$attendance"
-                            :buttons="[
-                                [
-                                    'id' => 'edit_btn',
-                                    'classes' => 'btn btn-dark rounded-xl custom-tooltip edit_btn',
-                                    'icon' => '<i class=\'fas fa-fingerprint\'></i>',
-                                    'tooltip' => true,
-                                    'tooltip_text' => 'Agregar marca de asistencia',
-                                    'modal' => true,
-                                    'modal_id' => 'add_attendance_modal',
-                                    'data-entryTime' => true,
-                                    'data-departureTime' => true,
-                                    'condition' => fn($record) => $record->entryTime === $record->departureTime,
-                                ],
-                            ]" />
-                    @endif
+
+                        <!-- Contenido de la pestaña Inasistencias -->
+                        <div class="tab-pane fade" id="inasistencias" role="tabpanel"
+                            aria-labelledby="inasistencias-tab">
+                            <div class="mt-3 text-center">
+                                @if ($nonAttendance->isEmpty())
+                                    <!-- Verifica si no hay tickets -->
+                                    <div class="text-center max-w-md" id="no_assistances" style="margin: 0 auto;">
+                                        <div class="p-6 rounded-lg mt-3">
+                                            <div
+                                                class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                <i class="fa-solid fa-clipboard-user text-3xl"></i>
+                                            </div>
+                                            <h2 class="text-2xl font-bold text-gray-900 mb-2">No hay inasistencias</h2>
+                                            <p class="text-gray-600 mb-6">
+                                                No se encontraron inasistencias según los filtros aplicados.
+                                            </p>
+                                        </div>
+                                    </div>
+                                @endif
+
+                                @if ($nonAttendance->isNotEmpty())
+                                    <x-table id="non_attendance-list" :headers="['Día','Fecha', 'Motivo']" :fields="['day','date', 'absenceReason']"
+                                        :data="$nonAttendance" />
+                                @endif
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
