@@ -19,10 +19,10 @@
                             class="mt-1 block w-full" />
                     </div>
                     <div>
-                        <label for="section" class="block text-sm font-medium text-gray-700">Secretaria</label>
-                        <select id="section" class="h-10 mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                            <option>Seleccionar secretaria</option>
-                        </select>
+                    <x-select id="secretary" name="secretary" :options="$secretaries"
+                            placeholder="Seleccionar secretaria">
+                            Secretaria
+                        </x-select>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
