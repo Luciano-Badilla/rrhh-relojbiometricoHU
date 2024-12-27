@@ -17,6 +17,9 @@ class CreateStaffTable extends Migration
             $table->id(); // Crea la columna id auto-incremental
             $table->string('file_number')->unique(); // Número de archivo, asegurándose de que sea único
             $table->string('name_surname'); // Nombre y apellido del personal
+            $table->string('email'); // Nombre y apellido del personal
+            $table->string('phone');
+            $table->string('address');
             $table->timestamps(); // Agrega las columnas created_at y updated_at
         });
     }

@@ -10,7 +10,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
                         <x-input-label for="legajo" value="Legajo" />
-                        <x-text-input id="legajo" type="text" name="legajo" value="30896" placeholder="Legajo"
+                        <x-text-input id="legajo" type="text" name="legajo" value="{{$staff->file_number}}" placeholder="Legajo"
                             required />
                     </div>
                     <div>
@@ -28,7 +28,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
                         <x-input-label for="nombre" value="Nombre" />
-                        <x-text-input id="nombre" type="text" name="nombre" placeholder="Nombre completo"
+                        <x-text-input id="nombre" type="text" name="nombre" placeholder="Nombre completo" value="{{$staff->name_surname}}"
                             class="mt-1 block w-full" />
                     </div>
                     <div>
