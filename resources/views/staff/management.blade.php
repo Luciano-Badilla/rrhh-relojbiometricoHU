@@ -11,16 +11,17 @@
                     <div>
                         <x-input-label for="legajo" value="Legajo" />
                         <x-text-input id="legajo" type="text" name="legajo" value="{{$staff->file_number}}"
-                            placeholder="Legajo" required />
+                            placeholder="Legajo" disabled />
                     </div>
                     <div>
-                        <x-input-label for="cargo" value="Cargo" />
-                        <x-text-input id="cargo" type="text" name="cargo" placeholder="Cargo"
-                            class="mt-1 block w-full" />
+                        <x-select id="coordinator" name="coordinator" :options="$coordinators"
+                            placeholder="Seleccionar Coordinador" :selected="$staff->coordinator_id">
+                            Coordinador
+                        </x-select>
                     </div>
                     <div>
-                    <x-select id="secretary" name="secretary" :options="$secretaries"
-                            placeholder="Seleccionar secretaria">
+                        <x-select id="secretary" name="secretary" :options="$secretaries"
+                            placeholder="Seleccionar secretaria" :selected="$staff->secretary_id">
                             Secretaria
                         </x-select>
                     </div>
@@ -33,33 +34,20 @@
                     </div>
                     <div>
                         <x-select id="category" name="category" :options="$categories"
-                            placeholder="Seleccionar categoría">
+                            placeholder="Seleccionar categoría" :selected="$staff->category_id">
                             Categoría
                         </x-select>
                     </div>
+
+
                     <div>
-                        <x-select id="scale" name="scale" :options="$scales"
-                            placeholder="Seleccionar escalafon">
+                        <x-select id="scale" name="scale" :options="$scales" placeholder="Seleccionar escalafon"
+                            :selected="$staff->scale_id">
                             Escalafon
                         </x-select>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-
-                    <div>
-                        <label for="opciones" class="block text-sm font-medium text-gray-700">Opciones</label>
-                        <div class="mt-1 flex items-center space-x-4">
-                            <label class="inline-flex items-center">
-                                <input type="checkbox" class="form-checkbox" id="nodoc">
-                                <span class="ml-2">NoDoc</span>
-                            </label>
-                            <label class="inline-flex items-center">
-                                <input type="checkbox" class="form-checkbox" id="cct">
-                                <span class="ml-2">CCT</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
+                
                 <div class="mb-4">
                     <x-input-label for="email" value="Email" />
                     <x-text-input type="email" id="email" name="email" value="{{$staff->email}}"

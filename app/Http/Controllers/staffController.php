@@ -8,6 +8,7 @@ use App\Models\schedule_staff;
 use App\Models\staff;
 use App\Models\scale;
 use App\Models\secretary;
+use App\Models\coordinator;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -16,19 +17,27 @@ class staffController extends Controller
 {
     public function management($id)
     {
-        $staff = staff::find($id); // Encuentra el registro del staff
-        $categories = Category::all()->pluck('name', 'id'); // Obtén las categorías como un array [id => name]
-        $scales = Scale::all()->pluck('name', 'id'); // Obtén las categorías como un array [id => name]
-        $secretaries = Secretary::all()->pluck('name', 'id'); // Obtén las categorías como un array [id => name]
+        $staff = Staff::find($id); // Encuentra el registro del staff
+        $categories = Category::all()->pluck('name', 'id'); 
+        $scales = Scale::all()->pluck('name', 'id'); 
+        $secretaries = Secretary::all()->pluck('name', 'id');
 
-        // Pasa ambas variables a la vista
+        // Obtén los coordinadores con los nombres del staff
+        $coordinators = Coordinator::with('staff')
+            ->get()
+            ->pluck('staff.name_surname', 'id');
+
+
+        // Pasa las variables a la vista
         return view('staff.management', [
             'staff' => $staff,
-            'categories' => $categories, // Añadir esta línea
-            'scales' => $scales, // Añadir esta línea
-            'secretaries' => $secretaries, // Añadir esta línea
+            'categories' => $categories,
+            'scales' => $scales,
+            'secretaries' => $secretaries,
+            'coordinators' => $coordinators,
         ]);
     }
+
 
     public function attendance($id, Request $request)
     {
