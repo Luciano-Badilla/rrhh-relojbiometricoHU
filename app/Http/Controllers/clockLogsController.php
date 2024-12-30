@@ -61,7 +61,6 @@ class clockLogsController extends Controller
 
     public function update_attendance($file_number = null)
     {
-        Log::info($file_number);
 
         $devices = [
             ['ip' => '172.22.112.220', 'port' => 4370, 'device_id' => 1],

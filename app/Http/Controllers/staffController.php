@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\attendance;
+use App\Models\clockLogs;
 use App\Models\NonAttendance;
 use App\Models\schedule_staff;
 use App\Models\staff;
@@ -123,20 +124,40 @@ class staffController extends Controller
 
         $workingDays = $this->getWorkingDays($staff->id, $month, $year);
 
-        // Comparar workingDays con attendance y crear registros en NonAttendance si no existen
+        // Obtener todas las asistencias del mes para el staff
+        $attendances = clockLogs::where('file_number', $file_number)
+            ->whereMonth('timestamp', $month)
+            ->whereYear('timestamp', $year)
+            ->pluck('timestamp') // Solo obtener las fechas
+            ->map(function ($timestamp) {
+                return Carbon::parse($timestamp)->toDateString(); // Formato yyyy-mm-dd
+            })
+            ->toArray();
+
+        // Comparar días laborales con asistencias y generar inasistencias si corresponde
         foreach ($workingDays as $workingDay) {
-            $attendanceExists = $attendance->where('date', Carbon::parse($workingDay)->format('d/m/y'))->first();
-            $nonAttendanceExist = NonAttendance::where('file_number', $staff->file_number)->where('date', $workingDay)->first();
-            // Si no hay asistencia para ese día, crear el registro en NonAttendance
+            $workingDay = Carbon::parse($workingDay)->format('Y-m-d'); // Formatear el día laboral
+
+            // Verificar si ya existe una asistencia o una inasistencia para este día
+            $attendanceExists = in_array($workingDay, $attendances);
+            $nonAttendanceExist = NonAttendance::where([
+                ['file_number', '=', $staff->file_number],
+                ['date', '=', $workingDay]
+            ])->exists();
+
+
             if (!$attendanceExists && !$nonAttendanceExist) {
-                NonAttendance::create([
-                    'file_number' => $staff->file_number,
-                    'date' => $workingDay
-                ]);
+                if($workingDay != Carbon::now()->format('Y-m-d')){
+                    NonAttendance::create([
+                        'file_number' => $staff->file_number,
+                        'date' => $workingDay,
+                    ]);
+                }
+                
             }
         }
 
-        $nonAttendance = NonAttendance::where('file_number', $staff->file_number)->with('absenceReason')->get()->map(function ($item) use ($schedules) {
+        $nonAttendance = NonAttendance::where('file_number', $file_number)->with('absenceReason')->get()->map(function ($item) use ($schedules) {
             // Formatear las fechas en formato dd/mm/yy
             $item->date = \Carbon\Carbon::parse($item->date)->format('d/m/y');
             $item->day = \Carbon\Carbon::createFromFormat('d/m/y', $item->date)->locale('es')->translatedFormat('l');
