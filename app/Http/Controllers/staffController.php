@@ -6,8 +6,12 @@ use App\Models\absenceReason;
 use App\Models\attendance;
 use App\Models\clockLogs;
 use App\Models\NonAttendance;
+use App\Models\category;
 use App\Models\schedule_staff;
 use App\Models\staff;
+use App\Models\scale;
+use App\Models\secretary;
+use App\Models\coordinator;
 use Carbon\Carbon;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
@@ -19,9 +23,28 @@ class staffController extends Controller
 {
     public function management($id)
     {
-        $staff = staff::find($id);
-        return view('staff.management', ['staff' => $staff]);
+        $staff = Staff::find($id); // Encuentra el registro del staff
+        $categories = Category::all()->pluck('name', 'id'); 
+        $scales = Scale::all()->pluck('name', 'id'); 
+        $secretaries = Secretary::all()->pluck('name', 'id');
+
+        // Obtén los coordinadores con los nombres del staff
+        $coordinators = Coordinator::with('staff')
+            ->get()
+            ->pluck('staff.name_surname', 'id');
+
+
+        // Pasa las variables a la vista
+        return view('staff.management', [
+            'staff' => $staff,
+            'categories' => $categories,
+            'scales' => $scales,
+            'secretaries' => $secretaries,
+            'coordinators' => $coordinators,
+        ]);
     }
+
+
     public function attendance($id, Request $request)
     {
         $staff = staff::find($id);
@@ -84,9 +107,9 @@ class staffController extends Controller
         foreach ($hoursCompleted as $time) {
             // Separar horas, minutos y segundos
             $timeParts = explode(':', $time);
-            $hours = (int)$timeParts[0]; // Horas
-            $minutes = (int)$timeParts[1]; // Minutos
-            $seconds = (int)$timeParts[2]; // Segundos
+            $hours = (int) $timeParts[0]; // Horas
+            $minutes = (int) $timeParts[1]; // Minutos
+            $seconds = (int) $timeParts[2]; // Segundos
 
             // Calcular el total en segundos
             $totalSeconds += ($hours * 3600) + ($minutes * 60) + $seconds;
@@ -109,9 +132,9 @@ class staffController extends Controller
         foreach ($extraHours as $time) {
             // Separar horas, minutos y segundos
             $timeParts = explode(':', $time);
-            $hours = (int)$timeParts[0]; // Horas
-            $minutes = (int)$timeParts[1]; // Minutos
-            $seconds = (int)$timeParts[2]; // Segundos
+            $hours = (int) $timeParts[0]; // Horas
+            $minutes = (int) $timeParts[1]; // Minutos
+            $seconds = (int) $timeParts[2]; // Segundos
 
             // Calcular el total en segundos
             $totalExtraSeconds += ($hours * 3600) + ($minutes * 60) + $seconds;
