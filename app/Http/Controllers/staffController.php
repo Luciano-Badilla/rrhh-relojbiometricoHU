@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\absenceReason;
 use App\Models\attendance;
 use App\Models\clockLogs;
 use App\Models\NonAttendance;
@@ -26,6 +27,7 @@ class staffController extends Controller
         $staff = staff::find($id);
         $file_number = $staff->file_number;
         $schedules = $staff->schedules;
+        $absenceReasons = absenceReason::all();
 
         // Obtener mes y año actuales por si no están presentes en la solicitud
         $month = $request->input('month') ?? now()->month; // Mes actual si no se proporciona
@@ -147,25 +149,26 @@ class staffController extends Controller
 
 
             if (!$attendanceExists && !$nonAttendanceExist) {
-                if($workingDay != Carbon::now()->format('Y-m-d')){
+                if ($workingDay != Carbon::now()->format('Y-m-d')) {
                     NonAttendance::create([
                         'file_number' => $staff->file_number,
                         'date' => $workingDay,
                     ]);
                 }
-                
             }
         }
 
-        $nonAttendance = NonAttendance::where('file_number', $file_number)->with('absenceReason')->get()->map(function ($item) use ($schedules) {
-            // Formatear las fechas en formato dd/mm/yy
-            $item->date = \Carbon\Carbon::parse($item->date)->format('d/m/y');
-            $item->day = \Carbon\Carbon::createFromFormat('d/m/y', $item->date)->locale('es')->translatedFormat('l');
-            $item->day = ucfirst($item->day);
-            $item->absenceReason = $item->absenceReason->name ?? null;
+        $nonAttendance = NonAttendance::where('file_number', $file_number)->with('absenceReason')
+            ->whereMonth('date', $month)
+            ->whereYear('date', $year)->get()->map(function ($item) use ($schedules) {
+                // Formatear las fechas en formato dd/mm/yy
+                $item->date = \Carbon\Carbon::parse($item->date)->format('d/m/y');
+                $item->day = \Carbon\Carbon::createFromFormat('d/m/y', $item->date)->locale('es')->translatedFormat('l');
+                $item->day = ucfirst($item->day);
+                $item->absenceReason = $item->absenceReason->name ?? null;
 
-            return $item;
-        });
+                return $item;
+            });
 
         return view('staff.attendance', [
             'staff' => $staff,
@@ -178,7 +181,8 @@ class staffController extends Controller
             'schedules' => $schedules,
             'totalExtraHours' => $totalExtraHoursFormatted,
             'workingDays' => $workingDays,
-            'nonAttendance' => $nonAttendance->sortBy('date')
+            'nonAttendance' => $nonAttendance->sortBy('date'),
+            'absenceReasons' => $absenceReasons
         ]);
     }
 
@@ -212,7 +216,10 @@ class staffController extends Controller
     public function getWorkingDays($staffId, $month, $year)
     {
         Carbon::setLocale('es');
-        $today = Carbon::create($year, $month, Carbon::now()->day);
+        $today = ($year == Carbon::now()->year && $month == Carbon::now()->month)
+            ? Carbon::create($year, $month, Carbon::now()->day)
+            : Carbon::create($year, $month)->endOfMonth();
+
         $startOfMonth = $today->copy()->startOfMonth();
 
         // Mapeo de días en español a formato numérico
@@ -245,6 +252,7 @@ class staffController extends Controller
             }
         }
 
+
         // Obtener los feriados del año desde la API
         $response = Http::get('https://api.argentinadatos.com/v1/feriados/' . $year);
         $holidays = $response->json();
@@ -259,21 +267,6 @@ class staffController extends Controller
             }
             return true; // Si no es un feriado, lo incluye
         });
-
         return $dates;
-    }
-
-    // Obtener feriados desde la API de ArgentinaDatos
-    public function getHolidaysFromArgentinaDatos($year)
-    {
-        $url = "https://api.argentinadatos.com/v1/feriados/$year";
-
-        $client = new Client();
-        $response = $client->get($url);
-
-        $data = json_decode($response->getBody(), true);
-
-        // Extraer solo las fechas de los feriados
-        return collect($data)->pluck('fecha')->toArray();
     }
 }

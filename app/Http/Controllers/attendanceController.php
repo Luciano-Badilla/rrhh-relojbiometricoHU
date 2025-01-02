@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\attendance;
 use App\Models\clockLogs;
+use App\Models\NonAttendance;
 use App\Models\schedule_staff;
 use App\Models\staff;
 use Carbon\Carbon;
@@ -81,5 +82,17 @@ class attendanceController extends Controller
         }
 
         return redirect()->back()->with('success', 'Asistencia editada correctamente');
+    }
+
+    public function add_absereason(request $request, $nonattendance_id)
+    {
+        $id = $nonattendance_id;
+        $absenceReason = $request->input('absenceReason');
+
+        $nonattendance = NonAttendance::find($id);
+        $nonattendance->absenceReason_id = $absenceReason;
+        $nonattendance->update();
+
+        return redirect()->back()->with('success', 'Inasistencia justificada correctamente');
     }
 }
