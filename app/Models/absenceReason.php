@@ -23,9 +23,8 @@ class absenceReason extends Model
         'decree',
     ];
 
-    // Relación con la tabla Attendance
-    public function attendances()
+    public function nonAttendances()
     {
-        return $this->hasMany(attendance::class);
+        return $this->hasMany(NonAttendance::class);
     }
 }
