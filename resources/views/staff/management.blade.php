@@ -1,17 +1,21 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Manetenimiento de #' . $staff->file_number . ' ' . $staff->name_surname) }}
+            {{ __('Mantenimiento de #' . $staff->file_number . ' ' . $staff->name_surname) }}
         </h2>
     </x-slot>
+
     <div class="flex items-center justify-center py-6">
-        <div class="bg-white p-8 rounded-xl shadow-lg w-2/4">
-            <form>
+        <!-- Inicializa el estado de edición con Alpine.js -->
+        <div x-data="{ isEditing: false }" class="bg-white p-8 rounded-xl shadow-lg w-2/4">
+            <!-- Usa el estado para deshabilitar todo -->
+            <form :class="{ 'opacity-50 pointer-events-none'}">
+                <!-- Campos bloqueados por defecto -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
                         <x-input-label for="legajo" value="Legajo" />
                         <x-text-input id="legajo" type="text" name="legajo" value="{{$staff->file_number}}"
-                            placeholder="Legajo" disabled />
+                            placeholder="Legajo" />
                     </div>
                     <div>
                         <x-select id="coordinator" name="coordinator" :options="$coordinators"
@@ -26,6 +30,7 @@
                         </x-select>
                     </div>
                 </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
                         <x-input-label for="nombre" value="Nombre" />
@@ -38,41 +43,44 @@
                             Categoría
                         </x-select>
                     </div>
-
-
                     <div>
-                        <x-select id="scale" name="scale" :options="$scales" placeholder="Seleccionar escalafon"
+                        <x-select id="scale" name="scale" :options="$scales" placeholder="Seleccionar escalafón"
                             :selected="$staff->scale_id">
-                            Escalafon
+                            Escalafón
                         </x-select>
                     </div>
                 </div>
-                
+
                 <div class="mb-4">
                     <x-input-label for="email" value="Email" />
                     <x-text-input type="email" id="email" name="email" value="{{$staff->email}}"
                         placeholder="correo@ejemplo.com" class="mt-1 block w-full" />
                 </div>
+
                 <div class="mb-4">
                     <x-input-label for="telefono" value="Teléfono" />
                     <x-text-input type="tel" id="telefono" name="telefono" value="{{$staff->phone}}"
                         placeholder="Teléfono móvil" class="mt-1 block w-full" />
                 </div>
+
                 <div class="mb-4">
                     <x-input-label for="domicilio" value="Domicilio" />
                     <x-text-input type="text" id="domicilio" name="domicilio" value="{{$staff->address}}"
                         placeholder="Dirección completa" class="mt-1 block w-full" />
                 </div>
+
                 <div class="flex justify-between">
-                    <button type="button" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md">Buscar</button>
-                    <button type="button" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md">Agregar</button>
-                    <button type="button" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md">Borrar</button>
-                    <button type="button" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md">Modificar</button>
-                    <button type="button" class="bg-black text-white px-4 py-2 rounded-md">Aceptar</button>
-                    <button type="button" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md">Cancelar</button>
-                    <button type="button" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md">Cerrar</button>
+                    <button type="button" @click="isEditing = !isEditing"
+                        class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md">
+                        <span x-text="isEditing ? 'Finalizar Edición' : 'Modificar'"></span>
+                    </button>
+                    <button type="submit" class="bg-black text-white px-4 py-2 rounded-md">Aceptar</button>
+                    <button type="reset" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md">Cancelar</button>
                 </div>
             </form>
         </div>
     </div>
+
+    <!-- Asegúrate de cargar Alpine.js -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </x-app-layout>

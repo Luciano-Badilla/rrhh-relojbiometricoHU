@@ -27,7 +27,6 @@ class staffController extends Controller
             ->get()
             ->pluck('staff.name_surname', 'id');
 
-
         // Pasa las variables a la vista
         return view('staff.management', [
             'staff' => $staff,
