@@ -18,8 +18,8 @@ class staffController extends Controller
     public function management($id)
     {
         $staff = Staff::find($id); // Encuentra el registro del staff
-        $categories = Category::all()->pluck('name', 'id'); 
-        $scales = Scale::all()->pluck('name', 'id'); 
+        $categories = Category::all()->pluck('name', 'id');
+        $scales = Scale::all()->pluck('name', 'id');
         $secretaries = Secretary::all()->pluck('name', 'id');
 
         // Obtén los coordinadores con los nombres del staff
@@ -178,5 +178,39 @@ class staffController extends Controller
 
         // Retornar en formato H:i:s
         return sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+    }
+
+    public function update(Request $request, $id)
+    {
+        // Valida los datos del formulario
+        $request->validate([
+            'file_number' => 'required|string|max:255',
+            'coordinator' => 'nullable|integer',
+            'secretary' => 'nullable|integer',
+            'name_surname' => 'required|string|max:255',
+            'category' => 'nullable|integer',
+            'email' => 'required|email|max:255',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:255',
+        ]);
+
+        // Busca el registro en la base de datos
+        $staff = Staff::findOrFail($id);
+
+        // Actualiza los campos
+        $staff->file_number = $request->input('file_number');
+        $staff->coordinator_id = $request->input('coordinator');
+        $staff->secretary_id = $request->input('secretary');
+        $staff->name_surname = $request->input('name_surname');
+        $staff->category_id = $request->input('category');
+        $staff->email = $request->input('email');
+        $staff->phone = $request->input('phone');
+        $staff->address = $request->input('address');
+
+        // Guarda los cambios en la base de datos
+        $staff->save();
+
+        // Redirige con un mensaje de éxito
+        return redirect()->back()->with('success', 'Datos actualizados correctamente.');
     }
 }

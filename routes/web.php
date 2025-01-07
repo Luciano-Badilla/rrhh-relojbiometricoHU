@@ -25,9 +25,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/staff/management/{id}', [staffController::class, 'management'])->name('staff.management');
     Route::get('/staff/attendance/{id}', [staffController::class, 'attendance'])->name('staff.attendance');
     Route::get('/staff/list', [staffController::class, 'list'])->name('staff.list');
+    Route::post('/staff/update/{id}', [StaffController::class, 'update'])->name('staff.update');
 
     Route::post('/attendance/add/{id?}', [attendanceController::class, 'add'])->name('attendance.add');
-    
+
     Route::get('/clockLogs/update/{file_number?}', [clockLogsController::class, 'update_attendance'])->name('clockLogs.update');
 });
 
