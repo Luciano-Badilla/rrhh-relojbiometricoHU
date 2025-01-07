@@ -16,13 +16,7 @@ class attendance extends Model
         'entryTime',
         'departureTime',
         'hoursCompleted',
-        'absenceReason_id',
         'observations',
     ];
 
-    // Relación con la tabla AbsenceReason
-    public function absenceReason()
-    {
-        return $this->belongsTo(absenceReason::class);
-    }
 }
