@@ -66,6 +66,13 @@
             </div>
         </form>
     </x-modal-custom>
+    <x-modal-custom id="view_absenseReason_modal" title="Motivos de inasistencia" subtitle="">
+        <div class="p-2">
+        <x-table id="view_absenseReason-list" :headers="['Motivo', 'Cantidad']" :fields="['name','count']" :data="$absenceReasonCount"/>
+
+        </div>
+
+    </x-modal-custom>
     <div class="flex items-center justify-center py-6">
         <div class="bg-white rounded-xl w-full lg:w-2/4">
             <div id="loading-overlay" class="hidden">
@@ -364,6 +371,17 @@
                                 @endif
 
                                 @if ($nonAttendance->isNotEmpty())
+                                <div class="flex justify-start mb-3">
+                                    <x-button :button="[
+                                        'id' => 'view_nonattendance_btn',
+                                        'classes' => 'btn btn-dark rounded-xl custom-tooltip add_nonattendance_btn h-10',
+                                        'icon' => '<i class=\'fa-solid fa-clipboard-list\'></i>',
+                                        'tooltip' => true,
+                                        'tooltip_text' => 'Ver motivos de inasistencia',
+                                        'modal' => true,
+                                        'modal_id' => 'view_absenseReason_modal'
+                                    ]" />
+                                </div>
                                     <x-table id="non_attendance-list" :headers="['Día', 'Fecha', 'Motivo']" :fields="['day', 'date', 'absenceReason']"
                                         :data="$nonAttendance" :buttons="[
                                             [

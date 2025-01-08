@@ -180,9 +180,22 @@ class staffController extends Controller
             }
         }
 
+        $attendanceDates = Attendance::where('file_number', $file_number)
+            ->whereMonth('date', $month)
+            ->whereYear('date', $year)
+            ->pluck('date')
+            ->toArray();
+
+        // Filtrar y eliminar las inasistencias que coincidan con fechas de asistencia
         $nonAttendance = NonAttendance::where('file_number', $file_number)->with('absenceReason')
             ->whereMonth('date', $month)
-            ->whereYear('date', $year)->get()->map(function ($item) use ($schedules) {
+            ->whereYear('date', $year)->get()->map(function ($item) use ($schedules, $attendanceDates) {
+                // Verificar si la fecha de inasistencia coincide con una fecha de asistencia
+                if (in_array($item->date, $attendanceDates)) {
+                    NonAttendance::where('id', $item->id)->delete();
+                    return null; // Excluir del resultado
+                }
+
                 // Formatear las fechas en formato dd/mm/yy
                 $item->date = \Carbon\Carbon::parse($item->date)->format('d/m/y');
                 $item->day = \Carbon\Carbon::createFromFormat('d/m/y', $item->date)->locale('es')->translatedFormat('l');
@@ -190,7 +203,22 @@ class staffController extends Controller
                 $item->absenceReason = $item->absenceReason->name ?? null;
 
                 return $item;
+            })->filter(); // Filtrar nulos después de eliminar
+
+        $absenceReasonCount = $nonAttendance
+            ->filter(function ($item) {
+                return !empty($item->absenceReason); // Excluir razones vacías
+            })
+            ->groupBy('absenceReason')
+            ->map(function ($items, $reason) {
+                return (object) [
+                    'name' => $reason,       // Nombre del tipo de ausencia
+                    'count' => count($items) // Cantidad de inasistencias de ese tipo
+                ];
             });
+
+
+
 
         return view('staff.attendance', [
             'staff' => $staff,
@@ -204,7 +232,8 @@ class staffController extends Controller
             'totalExtraHours' => $totalExtraHoursFormatted,
             'workingDays' => $workingDays,
             'nonAttendance' => $nonAttendance->sortBy('date'),
-            'absenceReasons' => $absenceReasons
+            'absenceReasons' => $absenceReasons,
+            'absenceReasonCount' => $absenceReasonCount
         ]);
     }
 
@@ -267,7 +296,8 @@ class staffController extends Controller
 
         // Redirige con un mensaje de éxito
         return redirect()->back()->with('success', 'Datos actualizados correctamente.');
-      
+    }
+
     public function getWorkingDays($staffId, $month, $year)
     {
         Carbon::setLocale('es');
