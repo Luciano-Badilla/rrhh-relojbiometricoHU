@@ -66,10 +66,26 @@
             </div>
         </form>
     </x-modal-custom>
-    <x-modal-custom id="view_absenseReason_modal" title="Motivos de inasistencia" subtitle="">
+    <x-modal-custom id="view_absenseReason_modal" title="Justificaciones" subtitle="">
         <div class="p-2">
-        <x-table id="view_absenseReason-list" :headers="['Motivo', 'Cantidad']" :fields="['name','count']" :data="$absenceReasonCount"/>
-
+            @if ($absenceReasonCount->isEmpty())
+                <!-- Verifica si no hay tickets -->
+                <div class="text-center max-w-md" id="no_assistances" style="margin: 0 auto;">
+                    <div class="p-6 rounded-lg mt-3">
+                        <div
+                            class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fa-solid fa-clipboard-user text-2xl"></i>
+                        </div>
+                        <h2 class="text-1xl font-bold text-gray-900 mb-2">No hay justificaciones</h2>
+                        <p class="text-gray-600 mb-6">
+                            No se hay inasistencias justificadas.
+                        </p>
+                    </div>
+                </div>
+            @endif
+            @if ($absenceReasonCount->isNotEmpty())
+                <x-table id="view_absenseReason-list" :headers="['Motivo', 'Cantidad']" :fields="['name','count']" :data="$absenceReasonCount"/>
+            @endif
         </div>
 
     </x-modal-custom>
@@ -313,6 +329,22 @@
                                 @endif
 
                                 @if ($attendance->isNotEmpty())
+                                    <div class="flex gap-1 justify-end mb-3">
+                                        <x-button :button="[
+                                            'id' => 'report_individual_hours_btn',
+                                            'classes' => 'btn btn-success rounded-xl custom-tooltip add_nonattendance_btn h-10',
+                                            'icon' => '<i class=\'fa-solid fa-stopwatch\'></i>',
+                                            'tooltip' => true,
+                                            'tooltip_text' => 'Reporte de horas'
+                                        ]" />
+                                        <x-button :button="[
+                                            'id' => 'report_individual_hours_btn',
+                                            'classes' => 'btn btn-success rounded-xl custom-tooltip add_nonattendance_btn h-10',
+                                            'icon' => '<i class=\'fa-solid fa-table\'></i>',
+                                            'tooltip' => true,
+                                            'tooltip_text' => 'Reporte de asistencias'
+                                        ]" />
+                                    </div>
                                     <x-table id="attendance-list" clas :headers="[
                                         'Dia',
                                         'Fecha',
@@ -377,7 +409,7 @@
                                         'classes' => 'btn btn-dark rounded-xl custom-tooltip add_nonattendance_btn h-10',
                                         'icon' => '<i class=\'fa-solid fa-clipboard-list\'></i>',
                                         'tooltip' => true,
-                                        'tooltip_text' => 'Ver motivos de inasistencia',
+                                        'tooltip_text' => 'Ver cantidad de justificaciones',
                                         'modal' => true,
                                         'modal_id' => 'view_absenseReason_modal'
                                     ]" />
@@ -508,6 +540,13 @@
             // Eliminar la clave 'page_loaded' del localStorage
             localStorage.removeItem('page_loaded');
         });
+
+        $('#report_individual_hours_btn').click(function() {
+            const dataToExport = @json($dataToExport);
+            const encodedData = encodeURIComponent(JSON.stringify(dataToExport));
+            window.location.href = "{{ route('report.individual_hours') }}?data=" + encodedData;
+        });
+
 
     });
 </script>

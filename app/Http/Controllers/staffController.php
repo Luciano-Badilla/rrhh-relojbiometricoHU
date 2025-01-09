@@ -48,7 +48,27 @@ class staffController extends Controller
     {
         $staff = staff::find($id);
         $file_number = $staff->file_number;
+
         $schedules = $staff->schedules;
+        // Definir el orden de los días
+        $order = [
+            'Lunes' => 1,
+            'Martes' => 2,
+            'Miércoles' => 3,
+            'Jueves' => 4,
+            'Viernes' => 5,
+            'Sábado' => 6,
+            'Domingo' => 7,
+        ];
+
+        // Reordenar la colección según el orden definido
+        $schedules = $schedules->sortBy(function ($schedule) use ($order) {
+            return $order[$schedule->day] ?? 8; // Si no coincide, poner al final
+        });
+
+        // Para preservar los índices originales, utiliza sortBy y valores por referencia
+        $schedules = $schedules->values();
+
         $absenceReasons = absenceReason::all();
 
         // Obtener mes y año actuales por si no están presentes en la solicitud
@@ -217,8 +237,13 @@ class staffController extends Controller
                 ];
             });
 
-
-
+        $dataToExprot = [
+            'staff' => $staff,
+            'hoursAverage' => $hoursAverageFormatted,
+            'totalHours' => $totalHoursFormatted,
+            'totalExtraHours' => $totalExtraHoursFormatted,
+            'workingDays' => $workingDays,
+        ];
 
         return view('staff.attendance', [
             'staff' => $staff,
@@ -233,7 +258,8 @@ class staffController extends Controller
             'workingDays' => $workingDays,
             'nonAttendance' => $nonAttendance->sortBy('date'),
             'absenceReasons' => $absenceReasons,
-            'absenceReasonCount' => $absenceReasonCount
+            'absenceReasonCount' => $absenceReasonCount,
+            'dataToExprot' => $dataToExprot
         ]);
     }
 
@@ -243,7 +269,8 @@ class staffController extends Controller
 
         $staff = staff::all();
 
-        return view('staff.list', ['staff' => $staff->sortBy('name_surname'),
+        return view('staff.list', [
+            'staff' => $staff->sortBy('name_surname'),
         ]);
     }
 
