@@ -35,7 +35,7 @@ class staffController extends Controller
 
         // Pasa las variables a la vista
         return view('staff.management', [
-            'staff' => $staff,
+            'staff' => $staff->sortBy('name_surname'),
             'categories' => $categories,
             'scales' => $scales,
             'secretaries' => $secretaries,
@@ -243,7 +243,8 @@ class staffController extends Controller
 
         $staff = staff::all();
 
-        return view('staff.list', ['staff' => $staff]);
+        return view('staff.list', ['staff' => $staff->sortBy('name_surname'),
+        ]);
     }
 
 

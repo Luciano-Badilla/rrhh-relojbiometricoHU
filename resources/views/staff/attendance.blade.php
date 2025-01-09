@@ -313,7 +313,7 @@
                                 @endif
 
                                 @if ($attendance->isNotEmpty())
-                                    <x-table id="attendance-list" :headers="[
+                                    <x-table id="attendance-list" clas :headers="[
                                         'Dia',
                                         'Fecha',
                                         'Entrada',
