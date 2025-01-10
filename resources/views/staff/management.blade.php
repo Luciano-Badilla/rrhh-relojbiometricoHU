@@ -67,6 +67,33 @@
                         placeholder="Dirección completa" class="mt-1 block w-full" x-bind:disabled="!isEditing" />
                 </div>
 
+                <div class="bg-white p-6 rounded-xl shadow-lg mt-6">
+                    <h3 class="text-lg font-semibold mb-4">Vacaciones</h3>
+                    <table class="table-auto w-full">
+                        <thead>
+                            <tr>
+                                <th class="px-4 py-2 text-left">Año</th>
+                                <th class="px-4 py-2 text-left">Días</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($vacations as $vacation)
+                                <tr>
+                                    <td class="border px-4 py-2">{{ $vacation->year }}</td>
+                                    <td class="border px-4 py-2">{{ $vacation->days }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="2" class="border px-4 py-2 text-center text-gray-500">
+                                        No hay registros de vacaciones.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+
                 <div class="flex justify-between">
                     <button type="button" @click="isEditing = !isEditing"
                         class="flex items-center gap-2 px-4 py-2 rounded-md" :class="isEditing ? 'bg-gray-200 text-gray-700' : 'bg-red-500 text-white'">

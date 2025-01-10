@@ -12,6 +12,7 @@ use App\Models\staff;
 use App\Models\scale;
 use App\Models\secretary;
 use App\Models\coordinator;
+use App\Models\vacations;
 use Carbon\Carbon;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
@@ -27,7 +28,8 @@ class staffController extends Controller
         $categories = Category::all()->pluck('name', 'id');
         $scales = Scale::all()->pluck('name', 'id');
         $secretaries = Secretary::all()->pluck('name', 'id');
-
+        $vacations = Vacations::where('staff_id', $staff->file_number)->orderBy('year')->get();
+        //dd($vacations);
         // Obtén los coordinadores con los nombres del staff
         $coordinators = Coordinator::with('staff')
             ->get()
@@ -40,6 +42,7 @@ class staffController extends Controller
             'scales' => $scales,
             'secretaries' => $secretaries,
             'coordinators' => $coordinators,
+            'vacations' => $vacations,
         ]);
     }
 
@@ -87,7 +90,7 @@ class staffController extends Controller
                                 $extraHoursInSeconds = $hoursCompleted->diffInSeconds($hoursRequired);
                                 $item->extraHours = gmdate('H:i:s', $extraHoursInSeconds); // Formatear como hh:mm:ss
                             }
-                        }
+                        } 
                         break; // Detener el bucle porque ya se encontró un horario coincidente
                     }
                 }
@@ -267,7 +270,8 @@ class staffController extends Controller
 
         // Redirige con un mensaje de éxito
         return redirect()->back()->with('success', 'Datos actualizados correctamente.');
-      
+    }
+
     public function getWorkingDays($staffId, $month, $year)
     {
         Carbon::setLocale('es');

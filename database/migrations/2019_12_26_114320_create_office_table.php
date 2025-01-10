@@ -51,6 +51,10 @@ return new class extends Migration {
             ['name' => 'Farmacia'],
             ['name' => 'Despacho - Mesa de Entradas'],
             ['name' => 'Kinesiología'],
+            ['name' => 'Comunicación Institucional'],
+            ['name' => 'Admisión Servicios Complementarios'],
+            ['name' => 'Dirección de Tecnologia Biométrica'],
+            ['name' => 'Ginecología'],
         ]);
     }
 
