@@ -237,7 +237,7 @@ class staffController extends Controller
                 ];
             });
 
-        $dataToExprot = [
+        $dataToExport = [
             'staff' => $staff,
             'hoursAverage' => $hoursAverageFormatted,
             'totalHours' => $totalHoursFormatted,
@@ -259,7 +259,7 @@ class staffController extends Controller
             'nonAttendance' => $nonAttendance->sortBy('date'),
             'absenceReasons' => $absenceReasons,
             'absenceReasonCount' => $absenceReasonCount,
-            'dataToExprot' => $dataToExprot
+            'dataToExport' => $dataToExport
         ]);
     }
 
