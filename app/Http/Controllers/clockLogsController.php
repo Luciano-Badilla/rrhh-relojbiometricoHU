@@ -31,12 +31,13 @@ class clockLogsController extends Controller
 
                     foreach ($logs as $log) {
                         // Verificar si el log ya existe en clockLogs
-                        $exists = clockLogs::where('id', $log['uid'])->exists();
+                        $exists = clockLogs::where('uid', $log['uid'])->exists();
+
 
                         if (!$exists) {
                             // Guardar el log si no existe
                             clockLogs::create([
-                                'id' => $log['uid'],
+                                'uid' => $log['uid'],
                                 'file_number' => $log['id'],
                                 'timestamp' => $log['timestamp'],
                                 'device_id' => $device['device_id']
@@ -82,11 +83,11 @@ class clockLogsController extends Controller
                     }
 
                     foreach ($logs as $log) {
-                        $exists = clockLogs::where('id', $log['uid'])->exists();
+                        $exists = clockLogs::where('uid', $log['uid'])->exists();
 
                         if (!$exists) {
                             clockLogs::create([
-                                'id' => $log['uid'],
+                                'uid' => $log['uid'],
                                 'file_number' => $log['id'],
                                 'timestamp' => $log['timestamp'],
                                 'device_id' => $device['device_id']

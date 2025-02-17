@@ -12,7 +12,7 @@
                     {{ session('success') }}
                 </div>
             @endif
-            <div class="p-3">
+            <div class="flex justify-between p-3">
                 <!-- Campo de búsqueda -->
                 <div class="relative">
                     <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
@@ -24,6 +24,15 @@
                     </div>
                     <x-text-input id="table-search" type="text" placeholder="Buscar..." class="ps-10" />
                 </div>
+                <x-button :button="[
+                    'id' => 'backup-btn',
+                    'type' => 'button',
+                    'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
+                    'icon' => '<i class=\'fa-solid fa-rotate\'></i>',
+                    'tooltip' => true,
+                    'tooltip_text' => 'Backup de marcadas',
+                    'loading' => true,
+                ]" />
             </div>
 
             <div class="m-3">
@@ -72,6 +81,24 @@
         $('.attendance_btn').click(function() {
             // Eliminar la clave 'page_loaded' del localStorage
             localStorage.removeItem('page_loaded');
+        });
+
+        $('#backup-btn').click(function() {
+            $.ajax({
+                url: "{{ route('clockLogs.backup') }}",
+                type: 'GET',
+                data: {
+                    _token: '{{ csrf_token() }}'
+                },
+                success: function(response) {
+                    custom_alert(response.message, 'success');
+                    window.location.reload();
+                },
+                error: function(xhr, status, error) {
+                    custom_alert(error, 'error');
+                }
+            });
+
         });
     });
 </script>

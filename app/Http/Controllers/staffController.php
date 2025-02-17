@@ -63,7 +63,7 @@ class staffController extends Controller
 
         // Reordenar la colección según el orden definido
         $schedules = $schedules->sortBy(function ($schedule) use ($order) {
-            return $order[$schedule->day] ?? 8; // Si no coincide, poner al final
+            return $order[$schedule->day_id] ?? 8; // Si no coincide, poner al final
         });
 
         // Para preservar los índices originales, utiliza sortBy y valores por referencia
@@ -116,7 +116,10 @@ class staffController extends Controller
             });
 
 
-        $days = $attendance->pluck('date')->unique()->count();
+        $days = $attendance->filter(function ($item) {
+            return $item->departureTime !== $item->entryTime;
+        })->pluck('date')->unique()->count();
+
         $hoursCompleted = $attendance->pluck('hoursCompleted');
         $extraHours = $attendance->pluck('extraHours');
 
@@ -189,9 +192,8 @@ class staffController extends Controller
                 ['date', '=', $workingDay]
             ])->exists();
 
-
             if (!$attendanceExists && !$nonAttendanceExist) {
-                if ($workingDay != Carbon::now()->format('Y-m-d')) {
+                if ($workingDay != Carbon::now()->format('Y-m-d') && Carbon::now() >= Carbon::createFromDate($year, $month)) {
                     NonAttendance::create([
                         'file_number' => $staff->file_number,
                         'date' => $workingDay,
@@ -243,6 +245,9 @@ class staffController extends Controller
             'totalHours' => $totalHoursFormatted,
             'totalExtraHours' => $totalExtraHoursFormatted,
             'workingDays' => $workingDays,
+            'month' => $month,
+            'year' => $year,
+            'days' => $days
         ];
 
         return view('staff.attendance', [
@@ -348,11 +353,12 @@ class staffController extends Controller
 
         // Obtener los días de trabajo asignados al empleado
         $workingDays = schedule_staff::join('schedule', 'schedule_staff.schedule_id', '=', 'schedule.id')
+            ->join('days', 'schedule.day_id', '=', 'days.id')  // Unimos con la tabla 'days' usando 'day_id'
             ->where('schedule_staff.staff_id', $staffId)
-            ->select('schedule.day')
-            ->pluck('day')
+            ->select('days.name')  // Seleccionamos el nombre del día
+            ->pluck('name')  // Obtenemos los días en español
             ->map(function ($day) use ($daysMap) {
-                return $daysMap[$day] ?? null;
+                return $daysMap[$day] ?? null;  // Mapeamos al formato numérico si es necesario
             })
             ->filter()
             ->toArray();

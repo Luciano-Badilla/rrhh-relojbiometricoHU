@@ -1,5 +1,6 @@
 @php
     use Carbon\Carbon;
+    use App\Models\shift;
 @endphp
 <style>
     .nav-link.active {
@@ -78,7 +79,7 @@
                         </div>
                         <h2 class="text-1xl font-bold text-gray-900 mb-2">No hay justificaciones</h2>
                         <p class="text-gray-600 mb-6">
-                            No se hay inasistencias justificadas.
+                            No se justificaron inasistencias.
                         </p>
                     </div>
                 </div>
@@ -171,18 +172,24 @@
 
                             <!-- Botón de Envío -->
                             <div class="w-full lg:mt-6">
-                                <button type="submit" class="btn btn-dark rounded-xl custom-tooltip h-10"
-                                    data-tooltip_text="Buscar asistencias">
-                                    <i class="fa-solid fa-magnifying-glass"></i>
-                                </button>
-                                <button class="btn btn-dark rounded-xl custom-tooltip h-10" id="update-btn"
-                                    type="button" data-tooltip_text="Actualizar base de datos"><i
-                                        class="fa-solid fa-rotate" id="update-icon"></i>
-                                    <div class="spinner-border spinner-border-sm hidden my-1" id="updating-icon"
-                                        role="status">
-                                        <span class="sr-only">Loading...</span>
-                                    </div>
-                                </button>
+                                <x-button :button="[
+                                    'id' => 'search-btn',
+                                    'type' => 'submit',
+                                    'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
+                                    'icon' => '<i class=\'fa-solid fa-magnifying-glass\'></i>',
+                                    
+                                    'tooltip_text' => 'Buscar asistencias',
+                                    'loading' => true
+                                ]" />
+                                <x-button :button="[
+                                    'id' => 'update-btn',
+                                    'type' => 'button',
+                                    'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
+                                    'icon' => '<i class=\'fa-solid fa-rotate\'></i>',
+                                    
+                                    'tooltip_text' => 'Actualizar',
+                                    'loading' => true
+                                ]" />
                             </div>
                         </div>
                     </form>
@@ -194,7 +201,7 @@
                         <div
                             class="estado relative block overflow-hidden bg-white border border-black rounded-xl p-3 hover:text-black w-25 shadow-sm">
                             <div class="flex flex-row items-center justify-between pb-2">
-                                <h2 class="text-md font-bold">Días:</h2>
+                                <h2 class="text-md font-bold">Días completados:</h2>
                                 <i class="fa-solid fa-calendar-check h-4 w-4 text-gray-500"></i>
                             </div>
                             <div>
@@ -268,18 +275,18 @@
                         </thead>
                         <tbody class="divide-y divide-gray-200 bg-white">
                             <tr>
-                                @foreach (['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'] as $day)
+                                @foreach ([1, 2, 3, 4, 5, 6, 7] as $day)
                                     @php
                                         // Buscar el horario correspondiente al día
-                                        $schedule = $schedules->firstWhere('day', $day);
+                                        $schedule = $schedules->firstWhere('day_id', $day);
                                     @endphp
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                         @if ($schedule)
                                             <div class="font-medium text-gray-900">
-                                                {{ \Carbon\Carbon::parse($schedule->startTime)->format('H:i') . ' a ' . \Carbon\Carbon::parse($schedule->endTime)->format('H:i') }}
+                                                {{ \Carbon\Carbon::parse(shift::find($schedule->shift_id)->startTime)->format('H:i') . ' a ' . \Carbon\Carbon::parse(shift::find($schedule->shift_id)->endTime)->format('H:i') }}
                                             </div>
                                             <div class="text-gray-500">
-                                                {{ \Carbon\Carbon::parse($schedule->startTime)->diffInHours($schedule->endTime) }}
+                                                {{ \Carbon\Carbon::parse(shift::find($schedule->shift_id)->startTime)->diffInHours(\Carbon\Carbon::parse(shift::find($schedule->shift_id)->endTime)->format('H:i')) }}
                                                 horas
                                             </div>
                                         @else
@@ -334,14 +341,14 @@
                                             'id' => 'report_individual_hours_btn',
                                             'classes' => 'btn btn-success rounded-xl custom-tooltip add_nonattendance_btn h-10',
                                             'icon' => '<i class=\'fa-solid fa-stopwatch\'></i>',
-                                            'tooltip' => true,
+                                            
                                             'tooltip_text' => 'Reporte de horas'
                                         ]" />
                                         <x-button :button="[
                                             'id' => 'report_individual_hours_btn',
                                             'classes' => 'btn btn-success rounded-xl custom-tooltip add_nonattendance_btn h-10',
                                             'icon' => '<i class=\'fa-solid fa-table\'></i>',
-                                            'tooltip' => true,
+                                            
                                             'tooltip_text' => 'Reporte de asistencias'
                                         ]" />
                                     </div>
@@ -367,9 +374,9 @@
                                                 'id' => 'edit_btn',
                                                 'classes' => 'btn btn-dark rounded-xl custom-tooltip edit_btn h-10',
                                                 'icon' => '<i class=\'fas fa-fingerprint\'></i>',
-                                                'tooltip' => true,
+                                                
                                                 'tooltip_text' => 'Agregar marca de asistencia',
-                                                'modal' => true,
+                                                
                                                 'modal_id' => 'add_attendance_modal',
                                                 'data-entryTime' => true,
                                                 'data-departureTime' => true,
@@ -408,9 +415,7 @@
                                         'id' => 'view_nonattendance_btn',
                                         'classes' => 'btn btn-dark rounded-xl custom-tooltip add_nonattendance_btn h-10',
                                         'icon' => '<i class=\'fa-solid fa-clipboard-list\'></i>',
-                                        'tooltip' => true,
                                         'tooltip_text' => 'Ver cantidad de justificaciones',
-                                        'modal' => true,
                                         'modal_id' => 'view_absenseReason_modal'
                                     ]" />
                                 </div>
@@ -420,9 +425,7 @@
                                                 'id' => 'add_nonattendance_btn',
                                                 'classes' => 'btn btn-dark rounded-xl custom-tooltip add_nonattendance_btn h-10',
                                                 'icon' => '<i class=\'fas fa-plus\'></i>',
-                                                'tooltip' => true,
                                                 'tooltip_text' => 'Agregar justificaciones de ausencia',
-                                                'modal' => true,
                                                 'modal_id' => 'add_nonattendance_modal',
                                                 'data-id' => true,
                                                 'condition' => fn($record) => $record->absenceReason === null || $record->absenceReason === ''
@@ -470,38 +473,10 @@
             content.removeClass('hidden');
         }
         
-        $('#update-btn').click(function() {
-            const updateIcon = $('#update-icon');
-            const updatingIcon = $('#updating-icon');
+        updateBtn.click(function() {
             const id = "{{ $staff->id }}";
-
-            updateIcon.hide();
-            updatingIcon.show();
-
-            $.ajax({
-                url: "{{ route('clockLogs.update', ['file_number' => 'file_number_placeholder']) }}"
-                    .replace('file_number_placeholder',
-                        {{ $staff->file_number }}
-                    ), // Reemplaza ID_placeholder con el id dinámico
-                type: 'GET',
-                data: {
-                    _token: '{{ csrf_token() }}', // CSRF token de Laravel
-                    file_number: {{ $staff->file_number }} // Puedes agregar el file_number aquí
-                },
-                success: function(response) {
-                    custom_alert(response.message, 'success');
-                    updateIcon.show();
-                    updatingIcon.hide();
-                    setInterval(() => {
-                        window.location.reload();
-                    }, 2000);
-                },
-                error: function(xhr, status, error) {
-                    custom_alert(error, 'error');
-                    updateIcon.show();
-                    updatingIcon.hide();
-                }
-            });
+            localStorage.removeItem('page_loaded');
+            window.location.reload();
 
         });
 

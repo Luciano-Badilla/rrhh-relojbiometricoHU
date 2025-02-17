@@ -20,6 +20,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/attendance/add/{id?}', [attendanceController::class, 'add'])->name('attendance.add');
     Route::post('/absereason/add/{nonattendance_id?}', [attendanceController::class, 'add_absereason'])->name('absereason.add');
     Route::get('/clockLogs/update/{file_number?}', [clockLogsController::class, 'update_attendance'])->name('clockLogs.update');
+    Route::get('/clockLogs/backup', [clockLogsController::class, 'backup'])->name('clockLogs.backup');
 
     Route::get('/individual_hours_report', [reports::class, 'individual_hours'])->name('report.individual_hours');
 });
