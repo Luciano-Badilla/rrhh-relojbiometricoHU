@@ -8,10 +8,12 @@ use App\Models\clockLogs;
 use App\Models\NonAttendance;
 use App\Models\category;
 use App\Models\schedule_staff;
+use App\Models\shift;
 use App\Models\staff;
 use App\Models\scale;
 use App\Models\secretary;
 use App\Models\coordinator;
+use App\Models\day;
 use Carbon\Carbon;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
@@ -92,11 +94,11 @@ class staffController extends Controller
 
                 // Recorrer los horarios para calcular horas extra
                 foreach ($schedules as $schedule) {
-                    if ($schedule->day == $item->day) {
+                    if (day::find($schedule->day_id)->name == $item->day) {
                         // Validar que no sea un registro vacío de asistencia
                         if (trim($item->entryTime) != trim($item->departureTime)) {
-                            $startTime = Carbon::createFromFormat('H:i:s', $schedule->startTime);
-                            $endTime = Carbon::createFromFormat('H:i:s', $schedule->endTime);
+                            $startTime = Carbon::createFromFormat('H:i:s', shift::find($schedule->shift_id)->startTime);
+                            $endTime = Carbon::createFromFormat('H:i:s', shift::find($schedule->shift_id)->endTime);
                             $hoursRequiredInSeconds = $startTime->diffInSeconds($endTime);
 
                             $hoursCompleted = Carbon::createFromFormat('H:i:s', $item->hoursCompleted);
@@ -184,16 +186,16 @@ class staffController extends Controller
         // Comparar días laborales con asistencias y generar inasistencias si corresponde
         foreach ($workingDays as $workingDay) {
             $workingDay = Carbon::parse($workingDay)->format('Y-m-d'); // Formatear el día laboral
-
+            
             // Verificar si ya existe una asistencia o una inasistencia para este día
             $attendanceExists = in_array($workingDay, $attendances);
             $nonAttendanceExist = NonAttendance::where([
                 ['file_number', '=', $staff->file_number],
                 ['date', '=', $workingDay]
-            ])->exists();
+                ])->exists();
 
             if (!$attendanceExists && !$nonAttendanceExist) {
-                if ($workingDay != Carbon::now()->format('Y-m-d') && Carbon::now() >= Carbon::createFromDate($year, $month)) {
+                if ($workingDay != Carbon::now()->format('Y-m-d')) {
                     NonAttendance::create([
                         'file_number' => $staff->file_number,
                         'date' => $workingDay,

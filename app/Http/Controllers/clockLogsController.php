@@ -30,9 +30,9 @@ class clockLogsController extends Controller
                     $logs = $zk->getAttendance();
 
                     foreach ($logs as $log) {
+
                         // Verificar si el log ya existe en clockLogs
                         $exists = clockLogs::where('uid', $log['uid'])->exists();
-
 
                         if (!$exists) {
                             // Guardar el log si no existe
