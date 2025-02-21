@@ -15,6 +15,7 @@ class clockLogs extends Model
 
     protected $fillable = [
         'id',
+        'uid',
         'file_number',
         'timestamp',
         'type_id',

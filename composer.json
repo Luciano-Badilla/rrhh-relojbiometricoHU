@@ -11,6 +11,7 @@
         "laravel/framework": "^10.10",
         "laravel/sanctum": "^3.3",
         "laravel/tinker": "^2.8",
+        "phpoffice/phpspreadsheet": "^3.7",
         "rats/zkteco": "^002.0"
     },
     "require-dev": {

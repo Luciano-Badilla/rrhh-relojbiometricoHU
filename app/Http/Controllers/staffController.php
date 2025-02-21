@@ -8,10 +8,12 @@ use App\Models\clockLogs;
 use App\Models\NonAttendance;
 use App\Models\category;
 use App\Models\schedule_staff;
+use App\Models\shift;
 use App\Models\staff;
 use App\Models\scale;
 use App\Models\secretary;
 use App\Models\coordinator;
+use App\Models\day;
 use Carbon\Carbon;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
@@ -35,7 +37,7 @@ class staffController extends Controller
 
         // Pasa las variables a la vista
         return view('staff.management', [
-            'staff' => $staff,
+            'staff' => $staff->sortBy('name_surname'),
             'categories' => $categories,
             'scales' => $scales,
             'secretaries' => $secretaries,
@@ -48,7 +50,27 @@ class staffController extends Controller
     {
         $staff = staff::find($id);
         $file_number = $staff->file_number;
+
         $schedules = $staff->schedules;
+        // Definir el orden de los días
+        $order = [
+            'Lunes' => 1,
+            'Martes' => 2,
+            'Miércoles' => 3,
+            'Jueves' => 4,
+            'Viernes' => 5,
+            'Sábado' => 6,
+            'Domingo' => 7,
+        ];
+
+        // Reordenar la colección según el orden definido
+        $schedules = $schedules->sortBy(function ($schedule) use ($order) {
+            return $order[$schedule->day_id] ?? 8; // Si no coincide, poner al final
+        });
+
+        // Para preservar los índices originales, utiliza sortBy y valores por referencia
+        $schedules = $schedules->values();
+
         $absenceReasons = absenceReason::all();
 
         // Obtener mes y año actuales por si no están presentes en la solicitud
@@ -72,11 +94,11 @@ class staffController extends Controller
 
                 // Recorrer los horarios para calcular horas extra
                 foreach ($schedules as $schedule) {
-                    if ($schedule->day == $item->day) {
+                    if (day::find($schedule->day_id)->name == $item->day) {
                         // Validar que no sea un registro vacío de asistencia
                         if (trim($item->entryTime) != trim($item->departureTime)) {
-                            $startTime = Carbon::createFromFormat('H:i:s', $schedule->startTime);
-                            $endTime = Carbon::createFromFormat('H:i:s', $schedule->endTime);
+                            $startTime = Carbon::createFromFormat('H:i:s', shift::find($schedule->shift_id)->startTime);
+                            $endTime = Carbon::createFromFormat('H:i:s', shift::find($schedule->shift_id)->endTime);
                             $hoursRequiredInSeconds = $startTime->diffInSeconds($endTime);
 
                             $hoursCompleted = Carbon::createFromFormat('H:i:s', $item->hoursCompleted);
@@ -96,7 +118,10 @@ class staffController extends Controller
             });
 
 
-        $days = $attendance->pluck('date')->unique()->count();
+        $days = $attendance->filter(function ($item) {
+            return $item->departureTime !== $item->entryTime;
+        })->pluck('date')->unique()->count();
+
         $hoursCompleted = $attendance->pluck('hoursCompleted');
         $extraHours = $attendance->pluck('extraHours');
 
@@ -161,14 +186,13 @@ class staffController extends Controller
         // Comparar días laborales con asistencias y generar inasistencias si corresponde
         foreach ($workingDays as $workingDay) {
             $workingDay = Carbon::parse($workingDay)->format('Y-m-d'); // Formatear el día laboral
-
+            
             // Verificar si ya existe una asistencia o una inasistencia para este día
             $attendanceExists = in_array($workingDay, $attendances);
             $nonAttendanceExist = NonAttendance::where([
                 ['file_number', '=', $staff->file_number],
                 ['date', '=', $workingDay]
-            ])->exists();
-
+                ])->exists();
 
             if (!$attendanceExists && !$nonAttendanceExist) {
                 if ($workingDay != Carbon::now()->format('Y-m-d')) {
@@ -180,9 +204,22 @@ class staffController extends Controller
             }
         }
 
+        $attendanceDates = Attendance::where('file_number', $file_number)
+            ->whereMonth('date', $month)
+            ->whereYear('date', $year)
+            ->pluck('date')
+            ->toArray();
+
+        // Filtrar y eliminar las inasistencias que coincidan con fechas de asistencia
         $nonAttendance = NonAttendance::where('file_number', $file_number)->with('absenceReason')
             ->whereMonth('date', $month)
-            ->whereYear('date', $year)->get()->map(function ($item) use ($schedules) {
+            ->whereYear('date', $year)->get()->map(function ($item) use ($schedules, $attendanceDates) {
+                // Verificar si la fecha de inasistencia coincide con una fecha de asistencia
+                if (in_array($item->date, $attendanceDates)) {
+                    NonAttendance::where('id', $item->id)->delete();
+                    return null; // Excluir del resultado
+                }
+
                 // Formatear las fechas en formato dd/mm/yy
                 $item->date = \Carbon\Carbon::parse($item->date)->format('d/m/y');
                 $item->day = \Carbon\Carbon::createFromFormat('d/m/y', $item->date)->locale('es')->translatedFormat('l');
@@ -190,7 +227,30 @@ class staffController extends Controller
                 $item->absenceReason = $item->absenceReason->name ?? null;
 
                 return $item;
+            })->filter(); // Filtrar nulos después de eliminar
+
+        $absenceReasonCount = $nonAttendance
+            ->filter(function ($item) {
+                return !empty($item->absenceReason); // Excluir razones vacías
+            })
+            ->groupBy('absenceReason')
+            ->map(function ($items, $reason) {
+                return (object) [
+                    'name' => $reason,       // Nombre del tipo de ausencia
+                    'count' => count($items) // Cantidad de inasistencias de ese tipo
+                ];
             });
+
+        $dataToExport = [
+            'staff' => $staff,
+            'hoursAverage' => $hoursAverageFormatted,
+            'totalHours' => $totalHoursFormatted,
+            'totalExtraHours' => $totalExtraHoursFormatted,
+            'workingDays' => $workingDays,
+            'month' => $month,
+            'year' => $year,
+            'days' => $days
+        ];
 
         return view('staff.attendance', [
             'staff' => $staff,
@@ -204,7 +264,9 @@ class staffController extends Controller
             'totalExtraHours' => $totalExtraHoursFormatted,
             'workingDays' => $workingDays,
             'nonAttendance' => $nonAttendance->sortBy('date'),
-            'absenceReasons' => $absenceReasons
+            'absenceReasons' => $absenceReasons,
+            'absenceReasonCount' => $absenceReasonCount,
+            'dataToExport' => $dataToExport
         ]);
     }
 
@@ -214,7 +276,9 @@ class staffController extends Controller
 
         $staff = staff::all();
 
-        return view('staff.list', ['staff' => $staff]);
+        return view('staff.list', [
+            'staff' => $staff->sortBy('name_surname'),
+        ]);
     }
 
 
@@ -267,7 +331,8 @@ class staffController extends Controller
 
         // Redirige con un mensaje de éxito
         return redirect()->back()->with('success', 'Datos actualizados correctamente.');
-      
+    }
+
     public function getWorkingDays($staffId, $month, $year)
     {
         Carbon::setLocale('es');
@@ -290,11 +355,12 @@ class staffController extends Controller
 
         // Obtener los días de trabajo asignados al empleado
         $workingDays = schedule_staff::join('schedule', 'schedule_staff.schedule_id', '=', 'schedule.id')
+            ->join('days', 'schedule.day_id', '=', 'days.id')  // Unimos con la tabla 'days' usando 'day_id'
             ->where('schedule_staff.staff_id', $staffId)
-            ->select('schedule.day')
-            ->pluck('day')
+            ->select('days.name')  // Seleccionamos el nombre del día
+            ->pluck('name')  // Obtenemos los días en español
             ->map(function ($day) use ($daysMap) {
-                return $daysMap[$day] ?? null;
+                return $daysMap[$day] ?? null;  // Mapeamos al formato numérico si es necesario
             })
             ->filter()
             ->toArray();
