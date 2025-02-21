@@ -13,6 +13,9 @@ use App\Models\staff;
 use App\Models\scale;
 use App\Models\secretary;
 use App\Models\coordinator;
+use App\Models\vacations;
+use App\Models\annual_vacation_days;
+=======
 use App\Models\day;
 use Carbon\Carbon;
 use GuzzleHttp\Client;
@@ -29,7 +32,11 @@ class staffController extends Controller
         $categories = Category::all()->pluck('name', 'id');
         $scales = Scale::all()->pluck('name', 'id');
         $secretaries = Secretary::all()->pluck('name', 'id');
+        $vacations = Vacations::where('staff_id', $staff->file_number)->orderBy('year')->get();
+        $annual_vacation_days = annual_vacation_days::where('staff_id', $staff->file_number)
+            ->first();
 
+        //dd($annual_vacation_days);
         // Obtén los coordinadores con los nombres del staff
         $coordinators = Coordinator::with('staff')
             ->get()
@@ -42,6 +49,8 @@ class staffController extends Controller
             'scales' => $scales,
             'secretaries' => $secretaries,
             'coordinators' => $coordinators,
+            'vacations' => $vacations,
+            'annual_vacation_days' => $annual_vacation_days,
         ]);
     }
 
