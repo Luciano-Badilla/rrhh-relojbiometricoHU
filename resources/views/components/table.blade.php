@@ -25,7 +25,7 @@
                         @if (!empty($links))
                             @foreach ($links as $link)
                                 <a href="{{ route($link['route'], $record->id) }}" id="{{ $link['id'] }}"
-                                    @if ($link['tooltip']) data-tooltip_text="{{ $link['tooltip_text'] }}" @endif
+                                    @if ($link['tooltip_text']) data-tooltip_text="{{ $link['tooltip_text'] }}" @endif
                                     class="{{ $link['classes'] }}">
                                     {!! $link['icon'] !!}
                                 </a>
@@ -41,8 +41,8 @@
                                 @endphp
                                 @if ($showButton)
                                     <button id="{{ $button['id'] }}" type="button" data-id="{{ $record->id }}"
-                                        @isset($button['tooltip']) data-tooltip_text="{{ $button['tooltip_text'] }}" @endisset
-                                        @isset($button['modal']) data-toggle="modal" data-target="#{{ $button['modal_id'] }}" @endisset
+                                        @isset($button['tooltip_text']) data-tooltip_text="{{ $button['tooltip_text'] }}" @endisset
+                                        @isset($button['modal_id']) data-toggle="modal" data-target="#{{ $button['modal_id'] }}" @endisset
                                         @foreach ($button as $attr => $value)
                                             @if (Str::startsWith($attr, 'data-') && $value === true)
                                                 {{ $attr }}="{{ $record->{Str::after($attr, 'data-')} }}"
