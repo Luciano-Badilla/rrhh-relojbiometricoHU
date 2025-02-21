@@ -13,6 +13,7 @@ use App\Models\scale;
 use App\Models\secretary;
 use App\Models\coordinator;
 use App\Models\vacations;
+use App\Models\annual_vacation_days;
 use Carbon\Carbon;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
@@ -29,7 +30,10 @@ class staffController extends Controller
         $scales = Scale::all()->pluck('name', 'id');
         $secretaries = Secretary::all()->pluck('name', 'id');
         $vacations = Vacations::where('staff_id', $staff->file_number)->orderBy('year')->get();
-        //dd($vacations);
+        $annual_vacation_days = annual_vacation_days::where('staff_id', $staff->file_number)
+            ->first();
+
+        //dd($annual_vacation_days);
         // Obtén los coordinadores con los nombres del staff
         $coordinators = Coordinator::with('staff')
             ->get()
@@ -43,6 +47,7 @@ class staffController extends Controller
             'secretaries' => $secretaries,
             'coordinators' => $coordinators,
             'vacations' => $vacations,
+            'annual_vacation_days' => $annual_vacation_days,
         ]);
     }
 
@@ -90,7 +95,7 @@ class staffController extends Controller
                                 $extraHoursInSeconds = $hoursCompleted->diffInSeconds($hoursRequired);
                                 $item->extraHours = gmdate('H:i:s', $extraHoursInSeconds); // Formatear como hh:mm:ss
                             }
-                        } 
+                        }
                         break; // Detener el bucle porque ya se encontró un horario coincidente
                     }
                 }

@@ -67,24 +67,32 @@
                         placeholder="Dirección completa" class="mt-1 block w-full" x-bind:disabled="!isEditing" />
                 </div>
 
-                <div class="bg-white p-6 rounded-xl shadow-lg mt-6">
-                    <h3 class="text-lg font-semibold mb-4">Vacaciones</h3>
-                    <table class="table-auto w-full">
-                        <thead>
+                <div class="bg-white p-6 rounded-xl mt-6">
+                    <h3 class="text-2xl font-bold mb-4 text-center text-indigo-700">Vacaciones</h3>
+
+                    <div class="flex items-center mb-4">
+                        <label for="annual-vacation-days" class="mr-2 text-gray-700">Días anuales:</label>
+                        <input id="annual-vacation-days" style="text-align: right; width: 65px"
+                            value="{{ $annual_vacation_days->days ?? '' }}" x-bind:disabled="!isEditing" type="number"
+                            class="border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:border-indigo-500">
+                    </div>
+
+                    <table class="w-full text-sm text-left text-gray-500">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                             <tr>
-                                <th class="px-4 py-2 text-left">Año</th>
-                                <th class="px-4 py-2 text-left">Días</th>
+                                <th scope="col" class="px-6 py-3">Año</th>
+                                <th scope="col" class="px-6 py-3">Días</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse ($vacations as $vacation)
-                                <tr>
-                                    <td class="border px-4 py-2">{{ $vacation->year }}</td>
-                                    <td class="border px-4 py-2">{{ $vacation->days }}</td>
+                                <tr class="bg-white border-b hover:bg-gray-50">
+                                    <td class="px-6 py-4">{{ $vacation->year }}</td>
+                                    <td class="px-6 py-4">{{ $vacation->days }}</td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="2" class="border px-4 py-2 text-center text-gray-500">
+                                    <td colspan="2" class="px-6 py-4 text-center text-gray-500">
                                         No hay registros de vacaciones.
                                     </td>
                                 </tr>
@@ -117,3 +125,36 @@
     <!-- Asegúrate de cargar Alpine.js -->
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </x-app-layout>
+
+<style>
+    /* Estilos para el título */
+    .text-indigo-700 {
+        color: #4c51bf;
+    }
+
+    /* Estilos para la tabla */
+    .table-auto {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .table-auto th,
+    .table-auto td {
+        padding: 8px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .table-auto tr:hover {
+        background-color: #f5f5f5;
+    }
+
+    .table-auto thead th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+    }
+
+    .table-auto tbody tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+</style>
