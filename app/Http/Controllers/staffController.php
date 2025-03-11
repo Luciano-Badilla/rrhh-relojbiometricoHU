@@ -15,7 +15,6 @@ use App\Models\secretary;
 use App\Models\coordinator;
 use App\Models\vacations;
 use App\Models\annual_vacation_days;
-=======
 use App\Models\day;
 use Carbon\Carbon;
 use GuzzleHttp\Client;
@@ -44,7 +43,7 @@ class staffController extends Controller
 
         // Pasa las variables a la vista
         return view('staff.management', [
-            'staff' => $staff->sortBy('name_surname'),
+            'staff' => $staff,
             'categories' => $categories,
             'scales' => $scales,
             'secretaries' => $secretaries,
@@ -192,19 +191,29 @@ class staffController extends Controller
             })
             ->toArray();
 
-        // Comparar días laborales con asistencias y generar inasistencias si corresponde
+        // Obtener la última fecha en la que se calcularon inasistencias para este empleado
+        $lastChecked = $staff->last_checked ? Carbon::parse($staff->last_checked)->toDateString() : null;
+
         foreach ($workingDays as $workingDay) {
             $workingDay = Carbon::parse($workingDay)->format('Y-m-d'); // Formatear el día laboral
-            
+
+            // Si la fecha ya fue revisada, se omite
+            if ($lastChecked && $workingDay <= $lastChecked) {
+                continue;
+            }
+
             // Verificar si ya existe una asistencia o una inasistencia para este día
             $attendanceExists = in_array($workingDay, $attendances);
             $nonAttendanceExist = NonAttendance::where([
                 ['file_number', '=', $staff->file_number],
                 ['date', '=', $workingDay]
-                ])->exists();
+            ])->exists();
 
             if (!$attendanceExists && !$nonAttendanceExist) {
-                if ($workingDay != Carbon::now()->format('Y-m-d')) {
+                $actualDate = Carbon::now()->format('Y-m-d');
+                $dateToCompare = Carbon::createFromDate($year, $month, Carbon::now()->day)->format('Y-m-d');
+
+                if ($workingDay != $actualDate && $actualDate >= $dateToCompare) {
                     NonAttendance::create([
                         'file_number' => $staff->file_number,
                         'date' => $workingDay,
@@ -212,6 +221,10 @@ class staffController extends Controller
                 }
             }
         }
+
+        // Actualizar la fecha de última revisión después de procesar las inasistencias
+        $staff->update(['last_checked' => Carbon::now()->toDateString()]);
+
 
         $attendanceDates = Attendance::where('file_number', $file_number)
             ->whereMonth('date', $month)
