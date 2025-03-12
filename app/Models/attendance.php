@@ -15,8 +15,10 @@ class attendance extends Model
         'date',
         'entryTime',
         'departureTime',
-        'hoursCompleted',
+        'extraHours',
         'observations',
+        'day',
+        'hoursCompleted'
     ];
 
 }

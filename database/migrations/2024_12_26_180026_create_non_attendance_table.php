@@ -20,6 +20,7 @@ class CreateNonAttendanceTable extends Migration
             $table->foreignId('absenceReason_id')->nullable() // Crea el campo de la clave foránea
                 ->constrained('absence_reasons') // Relaciona con la tabla absence_reasons
                 ->onDelete('cascade'); // Elimina los registros en caso de eliminar la razón de ausencia
+            $table->binary('logical_erase');
 
             $table->timestamps(); // Crea los campos created_at y updated_at
         });

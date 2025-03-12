@@ -19,6 +19,9 @@ return new class extends Migration
             $table->string('password');
             $table->rememberToken();
             $table->timestamps();
+
+            // Agregar campo role_id y clave foránea
+            $table->foreignId('role_id')->constrained('roles');
         });
     }
 

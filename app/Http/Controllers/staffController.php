@@ -120,6 +120,7 @@ class staffController extends Controller
                             if ($hoursCompleted->greaterThan($hoursRequired)) {
                                 $extraHoursInSeconds = $hoursCompleted->diffInSeconds($hoursRequired);
                                 $item->extraHours = gmdate('H:i:s', $extraHoursInSeconds); // Formatear como hh:mm:ss
+                                $item->save();
                             }
                         }
                         break; // Detener el bucle porque ya se encontró un horario coincidente
@@ -184,7 +185,7 @@ class staffController extends Controller
         $hoursAverageFormatted = sprintf('%02d:%02d:%02d', floor($averageSeconds / 3600), floor(($averageSeconds % 3600) / 60), $averageSeconds % 60);
 
         $workingDays = $this->getWorkingDays($staff->id, $month, $year);
-        //dd($workingDays);
+
         // Obtener todas las asistencias del mes para el staff
         $attendances = clockLogs::where('file_number', $file_number)
             ->whereMonth('timestamp', $month)
@@ -195,19 +196,29 @@ class staffController extends Controller
             })
             ->toArray();
 
-        // Comparar días laborales con asistencias y generar inasistencias si corresponde
+        // Obtener la última fecha en la que se calcularon inasistencias para este empleado
+        $lastChecked = $staff->last_checked ? Carbon::parse($staff->last_checked)->toDateString() : null;
+
         foreach ($workingDays as $workingDay) {
             $workingDay = Carbon::parse($workingDay)->format('Y-m-d'); // Formatear el día laboral
-            
+
+            // Si la fecha ya fue revisada, se omite
+            if ($lastChecked && $workingDay <= $lastChecked) {
+                continue;
+            }
+
             // Verificar si ya existe una asistencia o una inasistencia para este día
             $attendanceExists = in_array($workingDay, $attendances);
             $nonAttendanceExist = NonAttendance::where([
                 ['file_number', '=', $staff->file_number],
                 ['date', '=', $workingDay]
-                ])->exists();
+            ])->exists();
 
             if (!$attendanceExists && !$nonAttendanceExist) {
-                if ($workingDay != Carbon::now()->format('Y-m-d')) {
+                $actualDate = Carbon::now()->format('Y-m-d');
+                $dateToCompare = Carbon::createFromDate($year, $month, Carbon::now()->day)->format('Y-m-d');
+
+                if ($workingDay != $actualDate && $actualDate >= $dateToCompare) {
                     NonAttendance::create([
                         'file_number' => $staff->file_number,
                         'date' => $workingDay,
@@ -215,6 +226,9 @@ class staffController extends Controller
                 }
             }
         }
+
+        // Actualizar la fecha de última revisión después de procesar las inasistencias
+        $staff->update(['last_checked' => Carbon::now()->toDateString()]);
 
         $attendanceDates = Attendance::where('file_number', $file_number)
             ->whereMonth('date', $month)
