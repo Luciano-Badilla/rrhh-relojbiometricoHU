@@ -14,4 +14,6 @@ class category extends Model
         $categories = Category::all()->pluck('name', 'id'); // 'id' como valor y 'name' como texto
         return view('form', compact('categories'));
     }
+
+    
 }

@@ -9,7 +9,8 @@ class shift extends Model
 {
     use HasFactory;
 
-    // Indicar la tabla si no sigue el nombre por defecto
+    public $timestamps = false;
+    
     protected $table = 'shifts';
 
     // Si solo necesitas algunos campos de manera masiva (Mass Assignment)
