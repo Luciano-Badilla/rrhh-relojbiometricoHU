@@ -18,7 +18,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/staff/list', [staffController::class, 'list'])->name('staff.list');
     Route::post('/staff/update/{id}', [StaffController::class, 'update'])->name('staff.update');
 
-    Route::post('/schedule', [ScheduleController::class, 'store']);
+    Route::post('/schedule', [ScheduleController::class, 'store'])->name('schedule.store');
 
     Route::post('/attendance/add/{id?}', [attendanceController::class, 'add'])->name('attendance.add');
     Route::post('/absereason/add/{nonattendance_id?}', [attendanceController::class, 'add_absereason'])->name('absereason.add');
