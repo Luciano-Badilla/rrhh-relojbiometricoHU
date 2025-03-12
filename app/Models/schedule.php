@@ -11,6 +11,8 @@ class Schedule extends Model
 
     // Indicar la tabla si no sigue el nombre por defecto
     protected $table = 'schedule';
+    public $timestamps = false;
+
 
     // Si solo necesitas algunos campos de manera masiva (Mass Assignment)
     protected $fillable = ['day_id', 'shift_id'];
