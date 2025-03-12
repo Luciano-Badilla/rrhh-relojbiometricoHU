@@ -1,3 +1,8 @@
+@php
+    use Carbon\Carbon;
+    use App\Models\shift;
+@endphp
+
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
@@ -67,42 +72,156 @@
                         placeholder="Dirección completa" class="mt-1 block w-full" x-bind:disabled="!isEditing" />
                 </div>
 
-                <div class="bg-white p-6 rounded-xl mt-6">
-                    <h3 class="text-2xl font-bold mb-4 text-center text-indigo-700">Vacaciones</h3>
-
-                    <div class="flex items-center mb-4">
-                        <label for="annual-vacation-days" class="mr-2 text-gray-700">Días anuales:</label>
-                        <input id="annual-vacation-days" style="text-align: right; width: 65px"
-                            value="{{ $annual_vacation_days->days ?? '' }}" x-bind:disabled="!isEditing" type="number"
-                            class="border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:border-indigo-500">
-                    </div>
-
-                    <table class="w-full text-sm text-left text-gray-500">
-                        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
-                            <tr>
-                                <th scope="col" class="px-6 py-3">Año</th>
-                                <th scope="col" class="px-6 py-3">Días</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse ($vacations as $vacation)
-                                <tr class="bg-white border-b hover:bg-gray-50">
-                                    <td class="px-6 py-4">{{ $vacation->year }}</td>
-                                    <td class="px-6 py-4">{{ $vacation->days }}</td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="2" class="px-6 py-4 text-center text-gray-500">
-                                        No hay registros de vacaciones.
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                <div class="flex items-center mb-4 mt-2">
+                    <label for="annual-vacation-days" class="mr-2 text-gray-700">Días anuales:</label>
+                    <input id="annual-vacation-days" style="text-align: right; width: 65px"
+                        value="{{ $annual_vacation_days->days ?? '' }}" x-bind:disabled="!isEditing" type="number"
+                        class="border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:border-indigo-500">
                 </div>
 
 
-                <div class="flex justify-between">
+                <div class="container mt-8">
+                    <!-- Pestañas -->
+                    <ul class="nav nav-tabs" id="attendanceTabs" role="tablist">
+                        <!-- Pestaña Vaciones -->
+                        <li class="nav-item">
+                            <a class="nav-link active" id="vacaciones-tab" data-toggle="tab" href="#vacaciones"
+                                role="tab" aria-controls="vacaciones" aria-selected="true">Vacaciones</a>
+                        </li>
+                        <!-- Pestaña Horarios -->
+                        <li class="nav-item">
+                            <a class="nav-link" id="horarios-tab" data-toggle="tab" href="#horarios" role="tab"
+                                aria-controls="horarios" aria-selected="false">Horarios</a>
+                        </li>
+                    </ul>
+
+                    <!-- Contenido de las pestañas -->
+                    <div class="tab-content" id="attendanceTabsContent">
+                        <!-- Contenido de la pestaña Vacaciones -->
+
+                        <div class="tab-pane fade show active" id="vacaciones" role="tabpanel"
+                            aria-labelledby="vacaciones-tab">
+                            <div class="">
+
+                                <table class="w-full text-sm text-left text-gray-500    ">
+                                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                                        <tr>
+                                            @foreach ($vacations as $vacation)
+                                                <th scope="col" class="px-6 py-3">{{ $vacation->year }}</th>
+                                            @endforeach
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="bg-white border-b hover:bg-gray-50">
+                                            @foreach ($vacations as $vacation)
+                                                <td class="px-6 py-4">{{ $vacation->days }}</td>
+                                            @endforeach
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+
+
+                        <!-- Contenido de la pestaña Horarios -->
+
+                        <div class="tab-pane fade" id="horarios" role="tabpanel" aria-labelledby="horarios-tab">
+                            <div class="">
+                                <table class="min-w-full">
+                                    <thead class="bg-gray-100">
+                                        <tr>
+                                            <th
+                                                class="py-3.5 pl-4 pr-3 text-left text-sm font-bold text-gray-900 sm:pl-6">
+                                                Lunes</th>
+                                            <th class="px-3 py-3.5 text-left text-sm font-bold text-gray-900">Martes
+                                            </th>
+                                            <th class="px-3 py-3.5 text-left text-sm font-bold text-gray-900">Miércoles
+                                            </th>
+                                            <th class="px-3 py-3.5 text-left text-sm font-bold text-gray-900">Jueves
+                                            </th>
+                                            <th class="px-3 py-3.5 text-left text-sm font-bold text-gray-900">Viernes
+                                            </th>
+                                            <th class="px-3 py-3.5 text-left text-sm font-bold text-gray-900">Sábado
+                                            </th>
+                                            <th class="px-3 py-3.5 text-left text-sm font-bold text-gray-900">Domingo
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200 bg-white">
+    <tr>
+        @foreach ([1, 2, 3, 4, 5, 6, 7] as $day)
+            @php
+                $schedule = $schedules->firstWhere('day_id', $day);
+                $shift = $schedule ? shift::find($schedule->shift_id) : null;
+                $startTime = $shift ? \Carbon\Carbon::parse($shift->startTime)->format('H:i') : '';
+                $endTime = $shift ? \Carbon\Carbon::parse($shift->endTime)->format('H:i') : '';
+            @endphp
+            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                <div x-data="{
+                    isEditing: false, 
+                    startTime: '{{ $startTime }}', 
+                    endTime: '{{ $endTime }}',
+                    saveSchedule() {
+                        axios.post('/rrhh-relojbiometricoHU/public/schedule', {
+                            staff_id: {{ $staff['id'] }},
+                            day_id: {{ $day }},
+                            start_time: this.startTime,
+                            end_time: this.endTime
+                        })
+                        .then(response => {
+                            console.log('Horario guardado:', response.data);
+                        })
+                        .catch(error => {
+                            console.error('Error al guardar el horario:', error);
+                        });
+                    }
+                }">
+                    <!-- Modo vista -->
+                    <div x-show="!isEditing">
+                        <div class="font-medium text-gray-900">
+                            <template x-if="startTime && endTime">
+                                <span><span x-text="startTime"></span> a <span x-text="endTime"></span></span>
+                            </template>
+                            <template x-if="!startTime || !endTime">
+                                <span class="text-gray-500">Sin horario</span>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Modo edición -->
+                    <div x-show="isEditing" class="flex flex-col gap-1">
+                        <input type="time" x-model="startTime" class="h-6 px-2 py-1 text-sm border rounded-md" style="width: 90px">
+                        <input type="time" x-model="endTime" class="h-6 px-2 py-1 text-sm border rounded-md" style="width: 90px">
+                    </div>
+
+
+                    <!-- Botón Guardar -->
+                    <button type="button" @click="isEditing = !isEditing; if (!isEditing) saveSchedule()" 
+                        class="mt-2 text-blue-500 hover:text-blue-700 transition-all flex items-center gap-2">
+                        <svg x-show="!isEditing" xmlns="http://www.w3.org/2000/svg" fill="none" 
+                            viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                d="M12 20h9M16.5 3.5a2.121 2.121 0 113 3L7 19H4v-3L16.5 3.5z" />
+                        </svg>
+                        <svg x-show="isEditing" xmlns="http://www.w3.org/2000/svg" fill="none" 
+                            viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </button>
+                </div>
+            </td>
+        @endforeach
+    </tr>
+</tbody>
+
+                                </table>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-between mt-2">
                     <button type="button" @click="isEditing = !isEditing"
                         class="flex items-center gap-2 px-4 py-2 rounded-md" :class="isEditing ? 'bg-gray-200 text-gray-700' : 'bg-red-500 text-white'">
                         <svg x-show="!isEditing" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
@@ -121,6 +240,10 @@
             </form>
         </div>
     </div>
+
+    <script>
+        
+    </script>
 
     <!-- Asegúrate de cargar Alpine.js -->
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>

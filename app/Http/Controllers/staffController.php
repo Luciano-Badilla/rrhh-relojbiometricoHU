@@ -9,7 +9,9 @@ use App\Models\NonAttendance;
 use App\Models\category;
 use App\Models\schedule_staff;
 use App\Models\shift;
+
 use App\Models\staff;
+use App\Models\schedule;
 use App\Models\scale;
 use App\Models\secretary;
 use App\Models\coordinator;
@@ -31,11 +33,11 @@ class staffController extends Controller
         $categories = Category::all()->pluck('name', 'id');
         $scales = Scale::all()->pluck('name', 'id');
         $secretaries = Secretary::all()->pluck('name', 'id');
+        $schedules = $staff->schedules;
         $vacations = Vacations::where('staff_id', $staff->file_number)->orderBy('year')->get();
         $annual_vacation_days = annual_vacation_days::where('staff_id', $staff->file_number)
             ->first();
 
-        //dd($annual_vacation_days);
         // Obtén los coordinadores con los nombres del staff
         $coordinators = Coordinator::with('staff')
             ->get()
@@ -49,6 +51,7 @@ class staffController extends Controller
             'secretaries' => $secretaries,
             'coordinators' => $coordinators,
             'vacations' => $vacations,
+            'schedules' => $schedules,
             'annual_vacation_days' => $annual_vacation_days,
         ]);
     }
@@ -56,6 +59,7 @@ class staffController extends Controller
 
     public function attendance($id, Request $request)
     {
+        
         $staff = staff::find($id);
         $file_number = $staff->file_number;
 
@@ -181,7 +185,7 @@ class staffController extends Controller
         $hoursAverageFormatted = sprintf('%02d:%02d:%02d', floor($averageSeconds / 3600), floor(($averageSeconds % 3600) / 60), $averageSeconds % 60);
 
         $workingDays = $this->getWorkingDays($staff->id, $month, $year);
-        
+
         // Obtener todas las asistencias del mes para el staff
         $attendances = clockLogs::where('file_number', $file_number)
             ->whereMonth('timestamp', $month)
@@ -372,7 +376,7 @@ class staffController extends Controller
             'Jueves' => 4,
             'Viernes' => 5,
             'Sábado' => 6,
-            'Domingo' => 0,
+            'Domingo' => 7,
         ];
 
         // Obtener los días de trabajo asignados al empleado
@@ -399,7 +403,7 @@ class staffController extends Controller
         // Obtener los feriados del año desde la API
         $response = Http::get('https://api.argentinadatos.com/v1/feriados/' . $year);
         $holidays = $response->json();
-
+        //dd($holidays);
         // Filtrar los días laborales excluyendo los feriados
         $dates = array_filter($dates, function ($date) use ($holidays) {
             // Compara las fechas laborales con los feriados
