@@ -116,6 +116,7 @@ class staffController extends Controller
                             if ($hoursCompleted->greaterThan($hoursRequired)) {
                                 $extraHoursInSeconds = $hoursCompleted->diffInSeconds($hoursRequired);
                                 $item->extraHours = gmdate('H:i:s', $extraHoursInSeconds); // Formatear como hh:mm:ss
+                                $item->save();
                             }
                         }
                         break; // Detener el bucle porque ya se encontró un horario coincidente
@@ -180,7 +181,7 @@ class staffController extends Controller
         $hoursAverageFormatted = sprintf('%02d:%02d:%02d', floor($averageSeconds / 3600), floor(($averageSeconds % 3600) / 60), $averageSeconds % 60);
 
         $workingDays = $this->getWorkingDays($staff->id, $month, $year);
-
+        
         // Obtener todas las asistencias del mes para el staff
         $attendances = clockLogs::where('file_number', $file_number)
             ->whereMonth('timestamp', $month)
@@ -224,7 +225,6 @@ class staffController extends Controller
 
         // Actualizar la fecha de última revisión después de procesar las inasistencias
         $staff->update(['last_checked' => Carbon::now()->toDateString()]);
-
 
         $attendanceDates = Attendance::where('file_number', $file_number)
             ->whereMonth('date', $month)
