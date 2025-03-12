@@ -163,7 +163,7 @@
                     startTime: '{{ $startTime }}', 
                     endTime: '{{ $endTime }}',
                     saveSchedule() {
-                        axios.post('/rrhh-relojbiometricoHU/public/schedule', {
+                        axios.post('{{route('schedule.store')}}', {
                             staff_id: {{ $staff['id'] }},
                             day_id: {{ $day }},
                             start_time: this.startTime,
