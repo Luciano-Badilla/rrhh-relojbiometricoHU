@@ -14,6 +14,14 @@ class staff extends Model
         'id',
         'file_number',
         'name_surname',
+        'phone',
+        'email',
+        'address',
+        'coordinator_id',
+        'category_id',
+        'secretary_id',
+        'scale_id',
+        'last_checked'
     ];
 
     /**

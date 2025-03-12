@@ -14,6 +14,9 @@ class CreateAttendancesTable extends Migration
             $table->date('date'); // Fecha
             $table->time('entryTime'); // Hora de entrada
             $table->time('departureTime'); // Hora de salida
+            $table->time('extraHours');
+            $table->time('hoursCompleted');
+            $table->string('day');
             $table->foreignId('absenceReason_id')->constrained('absence_reasons')->onDelete('cascade'); // Relación con la tabla absence_reasons
             $table->text('observations')->nullable(); // Observaciones
             $table->timestamps(); // Tiempos de creación y actualización

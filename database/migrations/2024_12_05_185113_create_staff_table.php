@@ -20,6 +20,8 @@ class CreateStaffTable extends Migration
             $table->string('email'); // Email del personal
             $table->string('phone'); // Teléfono del personal
             $table->string('address'); // Dirección del personal
+            $table->timestamp('last_checked');       //
+
 
             // Agregar claves foráneas
             $table->unsignedBigInteger('coordinator_id'); // Relación con la tabla coordinator
