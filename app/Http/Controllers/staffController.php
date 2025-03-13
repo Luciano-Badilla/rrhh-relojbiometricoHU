@@ -59,7 +59,7 @@ class staffController extends Controller
 
     public function attendance($id, Request $request)
     {
-        
+
         $staff = staff::find($id);
         $file_number = $staff->file_number;
 
@@ -94,38 +94,11 @@ class staffController extends Controller
             ->whereMonth('date', $month)
             ->whereYear('date', $year)
             ->get()
-            ->map(function ($item) use ($schedules) {
+            ->map(function ($item) {
                 // Formatear las fechas en formato dd/mm/yy
-                $item->date = \Carbon\Carbon::parse($item->date)->format('d/m/y');
-                $item->day = \Carbon\Carbon::createFromFormat('d/m/y', $item->date)->locale('es')->translatedFormat('l');
-                $item->day = ucfirst($item->day);
-                $item->hoursCompleted = $this->calculateWorkedHours($item->entryTime, $item->departureTime) ?? '00:00:00';
 
-                // Inicializar las horas extra por defecto
-                $item->extraHours = gmdate('H:i:s', 0);
-
-                // Recorrer los horarios para calcular horas extra
-                foreach ($schedules as $schedule) {
-                    if (day::find($schedule->day_id)->name == $item->day) {
-                        // Validar que no sea un registro vacío de asistencia
-                        if (trim($item->entryTime) != trim($item->departureTime)) {
-                            $startTime = Carbon::createFromFormat('H:i:s', shift::find($schedule->shift_id)->startTime);
-                            $endTime = Carbon::createFromFormat('H:i:s', shift::find($schedule->shift_id)->endTime);
-                            $hoursRequiredInSeconds = $startTime->diffInSeconds($endTime);
-
-                            $hoursCompleted = Carbon::createFromFormat('H:i:s', $item->hoursCompleted);
-                            $hoursRequired = Carbon::createFromFormat('H:i:s', gmdate('H:i:s', $hoursRequiredInSeconds));
-
-                            // Comprobar si se completaron más horas de las requeridas
-                            if ($hoursCompleted->greaterThan($hoursRequired)) {
-                                $extraHoursInSeconds = $hoursCompleted->diffInSeconds($hoursRequired);
-                                $item->extraHours = gmdate('H:i:s', $extraHoursInSeconds); // Formatear como hh:mm:ss
-                                $item->save();
-                            }
-                        }
-                        break; // Detener el bucle porque ya se encontró un horario coincidente
-                    }
-                }
+                $item->date_formated = \Carbon\Carbon::parse($item->date)->format('d/m/y');
+                $item->hoursCompleted = $this->calculateWorkedHours($item->entryTime, $item->departureTime) ?? gmdate('H:i:s', 0);
 
                 return $item;
             });
@@ -184,52 +157,6 @@ class staffController extends Controller
         $totalHoursFormatted = sprintf('%02d:%02d:%02d', floor($totalSeconds / 3600), floor(($totalSeconds % 3600) / 60), $totalSeconds % 60);
         $hoursAverageFormatted = sprintf('%02d:%02d:%02d', floor($averageSeconds / 3600), floor(($averageSeconds % 3600) / 60), $averageSeconds % 60);
 
-        $workingDays = $this->getWorkingDays($staff->id, $month, $year);
-
-        // Obtener todas las asistencias del mes para el staff
-        $attendances = clockLogs::where('file_number', $file_number)
-            ->whereMonth('timestamp', $month)
-            ->whereYear('timestamp', $year)
-            ->pluck('timestamp') // Solo obtener las fechas
-            ->map(function ($timestamp) {
-                return Carbon::parse($timestamp)->toDateString(); // Formato yyyy-mm-dd
-            })
-            ->toArray();
-
-        // Obtener la última fecha en la que se calcularon inasistencias para este empleado
-        $lastChecked = $staff->last_checked ? Carbon::parse($staff->last_checked)->toDateString() : null;
-
-        foreach ($workingDays as $workingDay) {
-            $workingDay = Carbon::parse($workingDay)->format('Y-m-d'); // Formatear el día laboral
-
-            // Si la fecha ya fue revisada, se omite
-            if ($lastChecked && $workingDay <= $lastChecked) {
-                continue;
-            }
-
-            // Verificar si ya existe una asistencia o una inasistencia para este día
-            $attendanceExists = in_array($workingDay, $attendances);
-            $nonAttendanceExist = NonAttendance::where([
-                ['file_number', '=', $staff->file_number],
-                ['date', '=', $workingDay]
-            ])->exists();
-
-            if (!$attendanceExists && !$nonAttendanceExist) {
-                $actualDate = Carbon::now()->format('Y-m-d');
-                $dateToCompare = Carbon::createFromDate($year, $month, Carbon::now()->day)->format('Y-m-d');
-
-                if ($workingDay != $actualDate && $actualDate >= $dateToCompare) {
-                    NonAttendance::create([
-                        'file_number' => $staff->file_number,
-                        'date' => $workingDay,
-                    ]);
-                }
-            }
-        }
-
-        // Actualizar la fecha de última revisión después de procesar las inasistencias
-        $staff->update(['last_checked' => Carbon::now()->toDateString()]);
-
         $attendanceDates = Attendance::where('file_number', $file_number)
             ->whereMonth('date', $month)
             ->whereYear('date', $year)
@@ -272,7 +199,6 @@ class staffController extends Controller
             'hoursAverage' => $hoursAverageFormatted,
             'totalHours' => $totalHoursFormatted,
             'totalExtraHours' => $totalExtraHoursFormatted,
-            'workingDays' => $workingDays,
             'month' => $month,
             'year' => $year,
             'days' => $days
@@ -288,7 +214,6 @@ class staffController extends Controller
             'totalHours' => $totalHoursFormatted,
             'schedules' => $schedules,
             'totalExtraHours' => $totalExtraHoursFormatted,
-            'workingDays' => $workingDays,
             'nonAttendance' => $nonAttendance->sortBy('date'),
             'absenceReasons' => $absenceReasons,
             'absenceReasonCount' => $absenceReasonCount,
@@ -368,6 +293,7 @@ class staffController extends Controller
 
         $startOfMonth = $today->copy()->startOfMonth();
 
+
         // Mapeo de días en español a formato numérico
         $daysMap = [
             'Lunes' => 1,
@@ -386,6 +312,7 @@ class staffController extends Controller
             ->select('days.name')  // Seleccionamos el nombre del día
             ->pluck('name')  // Obtenemos los días en español
             ->map(function ($day) use ($daysMap) {
+
                 return $daysMap[$day] ?? null;  // Mapeamos al formato numérico si es necesario
             })
             ->filter()
@@ -398,6 +325,8 @@ class staffController extends Controller
                 $dates[] = $date->toDateString();
             }
         }
+
+        dd($dates);
 
 
         // Obtener los feriados del año desde la API
