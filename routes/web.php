@@ -13,6 +13,8 @@ Route::get('/', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/staff/administration_panel/{id}', [staffController::class, 'administration_panel'])->name('staff.administration_panel');
+
     Route::get('/staff/management/{id}', [staffController::class, 'management'])->name('staff.management');
     Route::get('/staff/attendance/{id}', [staffController::class, 'attendance'])->name('staff.attendance');
     Route::get('/staff/list', [staffController::class, 'list'])->name('staff.list');
