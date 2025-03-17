@@ -9,7 +9,9 @@ class attendance extends Model
 {
     use HasFactory;
 
-    // Si los nombres de las columnas en la base de datos son diferentes a los predeterminados, puedes especificarlas aquí
+    protected $table = 'attendance';
+
+    
     protected $fillable = [
         'file_number',
         'date',

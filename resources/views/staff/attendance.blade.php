@@ -362,7 +362,7 @@
                                         'Observaciones',
                                     ]" :fields="[
                                         'day',
-                                        'date',
+                                        'date_formated',
                                         'entryTime',
                                         'departureTime',
                                         'hoursCompleted',
@@ -382,7 +382,7 @@
                                                 'data-departureTime' => true,
                                                 'condition' => fn($record) => $record->entryTime ===
                                                     $record->departureTime &&
-                                                    $record->date != Carbon::now()->format('d/m/y'),
+                                                    $record->date_formated != Carbon::now()->format('d/m/y'),
                                             ],
                                         ]" />
                                 @endif

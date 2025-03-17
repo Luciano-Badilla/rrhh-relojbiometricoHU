@@ -39,21 +39,13 @@
                 <!-- Tabla -->
                 <x-table id="staff-list" :headers="['Legajo', 'Nombre']" :fields="['file_number', 'name_surname']" :data="$staff" :links="[
                     [
-                        'id' => 'management_btn',
-                        'route' => 'staff.management',
-                        'classes' => 'btn btn-dark rounded-xl custom-tooltip',
-                        'icon' => '<i class=\'fas fa-user-pen\'></i>',
+                        'id' => 'administration_panel_btn',
+                        'route' => 'staff.administration_panel',
+                        'classes' => 'btn btn-dark rounded-xl custom-tooltip administration_panel_btn',
+                        'icon' => '<i class=\'fas fa-bars\'></i>',
                         'tooltip' => true,
-                        'tooltip_text' => 'Mantenimiento del personal',
-                    ],
-                    [
-                        'id' => 'attendance_btn',
-                        'route' => 'staff.attendance',
-                        'classes' => 'btn btn-dark rounded-xl custom-tooltip attendance_btn',
-                        'icon' => '<i class=\'fas fa-calendar-days\'></i>',
-                        'tooltip' => true,
-                        'tooltip_text' => 'Resumen de asistencias',
-                    ],
+                        'tooltip_text' => 'Panel administrativo',
+                    ]
                 ]" />
             </div>
         </div>
@@ -78,8 +70,7 @@
             });
         });
 
-        $('.attendance_btn').click(function() {
-            // Eliminar la clave 'page_loaded' del localStorage
+        $('.administration_panel_btn').click(function() {
             localStorage.removeItem('page_loaded');
         });
 
