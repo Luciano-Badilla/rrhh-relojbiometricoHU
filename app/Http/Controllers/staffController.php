@@ -272,6 +272,7 @@ class staffController extends Controller
             'email' => 'required|email|max:255',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
+            'date_of_entry' => 'nullable',
         ]);
 
         // Busca el registro en la base de datos
@@ -286,6 +287,7 @@ class staffController extends Controller
         $staff->email = $request->input('email');
         $staff->phone = $request->input('phone');
         $staff->address = $request->input('address');
+        $staff->date_of_entry = $request->input('date_of_entry');
 
         // Guarda los cambios en la base de datos
         $staff->save();
