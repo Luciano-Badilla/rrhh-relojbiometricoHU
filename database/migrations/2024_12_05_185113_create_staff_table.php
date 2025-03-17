@@ -20,7 +20,9 @@ class CreateStaffTable extends Migration
             $table->string('email'); // Email del personal
             $table->string('phone'); // Teléfono del personal
             $table->string('address'); // Dirección del personal
-            $table->timestamp('last_checked');       //
+            $table->timestamp('last_checked');
+            $table->date('date_of_entry'); // Fecha de ingreso al hospital
+            $table->date('antiquity'); // Fecha de antiguedad
 
 
             // Agregar claves foráneas
