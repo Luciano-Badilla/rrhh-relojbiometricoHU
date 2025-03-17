@@ -9,6 +9,8 @@ class attendance extends Model
 {
     use HasFactory;
 
+    protected $table = 'attendance';
+
     
     protected $fillable = [
         'file_number',

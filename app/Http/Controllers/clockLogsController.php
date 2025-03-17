@@ -89,7 +89,7 @@ class clockLogsController extends Controller
                             return isset($log['id']) && $log['id'] == $file_number;
                         });
                     }
-                    
+
                     foreach ($logs as $log) {
                         $exists = clockLogs::where('uid', $log['uid'])->exists();
 
@@ -154,6 +154,7 @@ class clockLogsController extends Controller
             }
 
             $this->createNonAttendance($entryLog->file_number);
+            
             Staff::where('file_number', $entryLog->file_number)->update([
                 'last_checked' => Carbon::now()->toDateString()
             ]);

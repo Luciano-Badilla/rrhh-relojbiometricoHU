@@ -27,6 +27,16 @@ use Illuminate\Support\Facades\Log;
 
 class staffController extends Controller
 {
+
+    public function administration_panel($id)
+    {
+        $staff = Staff::find($id); // Encuentra el registro del staf
+
+        // Pasa las variables a la vista
+        return view('staff.administration_panel', [
+            'staff' => $staff
+        ]);
+    }
     public function management($id)
     {
         $staff = Staff::find($id); // Encuentra el registro del staff
