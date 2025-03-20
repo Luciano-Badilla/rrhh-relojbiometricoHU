@@ -17,11 +17,12 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->integer('file_number');
             $table->rememberToken();
             $table->timestamps();
 
             // Agregar campo role_id y clave foránea
-            $table->foreignId('role_id')->constrained('roles');
+            $table->foreignId('role_id')->default(1)->constrained('roles');
         });
     }
 

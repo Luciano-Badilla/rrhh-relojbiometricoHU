@@ -178,104 +178,112 @@
                                     <tbody class="divide-y divide-gray-200 bg-white">
                                         <tr>
                                             @foreach ([1, 2, 3, 4, 5, 6, 7] as $day)
-                                                                                        @php
-                                                                                            $schedule = $schedules->firstWhere('day_id', $day);
-                                                                                            $shift = $schedule ? shift::find($schedule->shift_id) : null;
-                                                                                            $startTime = $shift ? \Carbon\Carbon::parse($shift->startTime)->format('H:i') : '';
-                                                                                            $endTime = $shift ? \Carbon\Carbon::parse($shift->endTime)->format('H:i') : '';
-                                                                                        @endphp
-                                                                                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                                                                            <div
-                                                                                                x-data="{
-                                                                                                                                                                                                    isEditing: false, 
-                                                                                                                                                                                                    startTime: '{{ $startTime }}', 
-                                                                                                                                                                                                    endTime: '{{ $endTime }}',
-                                                                                                                                                                                                    saveSchedule() {
-                                                                                                                                                                                                        axios.post('{{route('schedule.store')}}', {
-                                                                                                                                                                                                            staff_id: {{ $staff['id'] }},
-                                                                                                                                                                                                            day_id: {{ $day }},
-                                                                                                                                                                                                            start_time: this.startTime,
-                                                                                                                                                                                                            end_time: this.endTime
-                                                                                                                                                                                                        })
-                                                                                                                                                                                                        .then(response => {
-                                                                                                                                                                                                            console.log('Horario guardado:', response.data);
-                                                                                                                                                                                                        })
-                                                                                                                                                                                                        .catch(error => {
-                                                                                                                                                                                                            console.error('Error al guardar el horario:', error);
-                                                                                                                                                                                                        });
-                                                                                                                                                                                                    }
-                                                                                                                                                                                                }">
-                                                                                                <!-- Modo vista -->
-                                                                                                <div x-show="!isEditing">
-                                                                                                    <div class="font-medium text-gray-900">
-                                                                                                        <template x-if="startTime && endTime">
-                                                                                                            <span><span x-text="startTime"></span> a <span
-                                                                                                                    x-text="endTime"></span></span>
-                                                                                                        </template>
-                                                                                                        <template x-if="!startTime || !endTime">
-                                                                                                            <span class="text-gray-500">Sin horario</span>
-                                                                                                        </template>
-                                                                                                    </div>
-                                                                                                </div>
+                                                @php
+                                                    $schedule = $schedules->firstWhere('day_id', $day);
+                                                    $shift = $schedule ? shift::find($schedule->shift_id) : null;
+                                                    $startTime = $shift ? \Carbon\Carbon::parse($shift->startTime)->format('H:i') : '';
+                                                    $endTime = $shift ? \Carbon\Carbon::parse($shift->endTime)->format('H:i') : '';
+                                                @endphp
+                                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                                    <div
+                                                        x-data="{
+                                            isEditing: false, 
+                                            startTime: '{{ $startTime }}', 
+                                            endTime: '{{ $endTime }}',
+                                            saveSchedule() {
+                                                axios.post('{{route('schedule.store')}}', {
+                                                    staff_id: {{ $staff['id'] }},
+                                                    day_id: {{ $day }},
+                                                    start_time: this.startTime,
+                                                    end_time: this.endTime
+                                                })
+                                                .then(response => {
+                                                    console.log('Horario guardado:', response.data);
+                                                })
+                                                .catch(error => {
+                                                    console.error('Error al guardar el horario:', error);
+                                                });
+                                            }
+                                        }">
+                                                        <!-- Modo vista -->
+                                                        <div x-show="!isEditing">
+                                                            <div class="font-medium text-gray-900">
+                                                                <template x-if="startTime && endTime">
+                                                                    <span><span x-text="startTime"></span> a <span
+                                                                            x-text="endTime"></span></span>
+                                                                </template>
+                                                                <template x-if="!startTime || !endTime">
+                                                                    <span class="text-gray-500">Sin horario</span>
+                                                                </template>
+                                                            </div>
+                                                        </div>
 
-                                                                                                <!-- Modo edición -->
-                                                                                                <div x-show="isEditing" class="flex flex-col gap-1">
-                                                                                                    <input type="time" x-model="startTime"
-                                                                                                        class="h-6 px-2 py-1 text-sm border rounded-md"
-                                                                                                        style="width: 90px">
-                                                                                                    <input type="time" x-model="endTime"
-                                                                                                        class="h-6 px-2 py-1 text-sm border rounded-md"
-                                                                                                        style="width: 90px">
-                                                                                                </div>
-
-
-                                                                                                <!-- Botón Guardar -->
-                                                                                                <button type="button"
-                                                                                                    @click="isEditing = !isEditing; if (!isEditing) saveSchedule()"
-                                                                                                    class="mt-2 text-blue-500 hover:text-blue-700 transition-all flex items-center gap-2">
-                                                                                                    <svg x-show="!isEditing" xmlns="http://www.w3.org/2000/svg"
-                                                                                                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                                                                                        class="w-5 h-5">
-                                                                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                                                                            stroke-width="2"
-                                                                                                            d="M12 20h9M16.5 3.5a2.121 2.121 0 113 3L7 19H4v-3L16.5 3.5z" />
-                                                                                                    </svg>
-                                                                                                    <svg x-show="isEditing" xmlns="http://www.w3.org/2000/svg"
-                                                                                                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                                                                                        class="w-5 h-5">
-                                                                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                                                                            stroke-width="2" d="M5 13l4 4L19 7" />
-                                                                                                    </svg>
-                                                                                                </button>
-                                                                                            </div>
-                                                                                        </td>
+                                                        <!-- Modo edición -->
+                                                        @if(Auth::user()->role_id != 1)
+                                                            <div x-show="isEditing" class="flex flex-col gap-1">
+                                                                <input type="time" x-model="startTime"
+                                                                    class="h-6 px-2 py-1 text-sm border rounded-md"
+                                                                    style="width: 90px">
+                                                                <input type="time" x-model="endTime"
+                                                                    class="h-6 px-2 py-1 text-sm border rounded-md"
+                                                                    style="width: 90px">
+                                                            </div>
+                                                            <!-- Botón Guardar -->
+                                                            <button type="button"
+                                                                @click="isEditing = !isEditing; if (!isEditing) saveSchedule()"
+                                                                class="mt-2 text-blue-500 hover:text-blue-700 transition-all flex items-center gap-2">
+                                                                <svg x-show="!isEditing" xmlns="http://www.w3.org/2000/svg"
+                                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                                    class="w-5 h-5">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2"
+                                                                        d="M12 20h9M16.5 3.5a2.121 2.121 0 113 3L7 19H4v-3L16.5 3.5z" />
+                                                                </svg>
+                                                                <svg x-show="isEditing" xmlns="http://www.w3.org/2000/svg"
+                                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                                    class="w-5 h-5">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2" d="M5 13l4 4L19 7" />
+                                                                </svg>
+                                                            </button>
+                                                        @endif
+                                                    </div>
+                                                </td>
                                             @endforeach
                                         </tr>
                                     </tbody>
-
                                 </table>
-
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="flex justify-between mt-2">
-                    <button type="button" @click="isEditing = !isEditing; if (!isEditing) $refs.form.submit()"
-                        class="flex items-center gap-2 px-4 py-2 rounded-md" :class="isEditing ? 'bg-gray-200 text-gray-700' : 'bg-red-500 text-white'">
+                    @if(Auth::check() && Auth::user()->role_id == 2)
+                        <button type="button" @click="isEditing = !isEditing; if (!isEditing) $refs.form.submit()"
+                            class="flex items-center gap-2 px-4 py-2 rounded-md" :class="isEditing ? 'bg-gray-200 text-gray-700' : 'bg-red-500 text-white'">
 
-                        <svg x-show="!isEditing" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                            stroke-width="2" stroke="currentColor" class="w-5 h-5">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M16.862 3.487a2.25 2.25 0 113.182 3.182L7.5 19.313 3 21l1.687-4.5 12.175-12.175z" />
-                        </svg>
+                            <svg x-show="!isEditing" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M16.862 3.487a2.25 2.25 0 113.182 3.182L7.5 19.313 3 21l1.687-4.5 12.175-12.175z" />
+                            </svg>
 
-                        <span x-text="isEditing ? 'Aceptar' : 'Modificar'"></span>
-                    </button>
+                            <span x-text="isEditing ? 'Aceptar' : 'Modificar'"></span>
+                        </button>
+                    @endif
 
-                    <a href="{{ route('staff.list') }}"
-                        class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md text-center">
-                        Volver
-                    </a>   
+                    @php
+                        $staff = \DB::table('staff')->where('file_number', Auth::user()->file_number)->first();
+                    @endphp
+
+                    @if($staff)
+                        <a href="{{ route('staff.administration_panel', ['id' => $staff->id]) }}"
+                            class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md text-center">
+                            Volver
+                        </a>
+                    @endif
+                </div>
+
             </form>
         </div>
     </div>
