@@ -40,3 +40,7 @@
         </div>
     </form>
 </x-guest-layout>
+
+<script>
+    localStorage.removeItem('page_loaded');
+</script>
