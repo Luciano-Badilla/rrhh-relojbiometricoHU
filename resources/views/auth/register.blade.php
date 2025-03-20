@@ -9,14 +9,21 @@
             <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" />
             <x-input-error :messages="$errors->get('name')" class="mt-2" />
         </div>
-
+        
         <!-- Email Address -->
         <div class="mt-4">
             <x-input-label for="email" :value="__('Email')" />
             <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" />
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
-
+        
+        <!-- File Number -->
+        <div class="mt-4">
+            <x-input-label for="file_number" :value="__('Legajo')" />
+            <x-text-input id="file_number" class="block mt-1 w-full" type="number" name="file_number" :value="old('file_number')" required autofocus autocomplete="file_number" />
+            <x-input-error :messages="$errors->get('file_number')" class="mt-2" />
+        </div>
+        
         <!-- Password -->
         <div class="mt-4">
             <x-input-label for="password" :value="__('Contraseña')" />

@@ -16,22 +16,26 @@
                 </div>
 
                 <!-- Navigation Links -->
-                <div class="hidden sm:flex sm:items-center sm:ms-6">
-                    <div class="dropdown">
-                        <button
-                            class="inline-flex items-center px-3 py-2 text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150 dropdown-toggle"
-                            type="button" data-toggle="dropdown" aria-expanded="false">
-                            {{ __('Gestión de Personal') }}
-                        </button>
-                        <ul class="dropdown-menu rounded-lg border-gray-300">
-                            <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                                <x-nav-link :href="route('staff.list')" class="-ml-5 mt-1 mb-2" :active="request()->routeIs('staff.list')">
-                                    {{ __('Lista del Personal') }}
-                                </x-nav-link>
-                            </div>
-                        </ul>
+                @if(Auth::check() && Auth::user()->role_id == 2)
+                    <div class="hidden sm:flex sm:items-center sm:ms-6">
+                        <div class="dropdown">
+                            <button
+                                class="inline-flex items-center px-3 py-2 text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150 dropdown-toggle"
+                                type="button" data-toggle="dropdown" aria-expanded="false">
+                                {{ __('Gestión de Personal') }}
+                            </button>
+                            <ul class="dropdown-menu rounded-lg border-gray-300">
+                                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                                    <x-nav-link :href="route('staff.list')" class="-ml-5 mt-1 mb-2"
+                                        :active="request()->routeIs('staff.list')">
+                                        {{ __('Lista del Personal') }}
+                                    </x-nav-link>
+                                </div>
+                            </ul>
+                        </div>
                     </div>
-                </div>
+                @endif
+
             </div>
 
             <!-- Settings Dropdown -->
