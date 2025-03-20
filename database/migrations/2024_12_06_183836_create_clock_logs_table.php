@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();                // Crea la columna 'id' auto-incremental
             $table->string('file_number'); // Crea la columna 'file_number'
             $table->timestamp('timestamp'); // Crea la columna 'timestamp'
-            $table->unsignedBigInteger('device_id'); // Crea la columna 'type_id' como clave foránea      // Crea las columnas 'created_at' y 'updated_at'
+            $table->unsignedBigInteger('device_id')->nullable(); // Crea la columna 'type_id' como clave foránea      // Crea las columnas 'created_at' y 'updated_at'
            
             $table->foreign('device_id')
                 ->references('id')        
