@@ -37,11 +37,46 @@
                     </div>
                 </div>
             </div>
-            <div class="flex flex-col px-3 mb-3">
+            <div class="flex flex-col px-[7%] mb-3">
                 <label for="observations" class="block text-sm font-medium text-gray-700">Observaciones:</label>
-                <x-text-input id="observations" name="observations" type="text" class="w-100" required />
+                <x-text-input id="observations" name="observations" value="Ingreso manual" type="text" class="w-100" required />
             </div>
             <div class="flex justify-end px-3">
+                <button type="submit" class="btn btn-success rounded-xl" id="add_attendance_btn">Agregar
+                </button>
+            </div>
+        </form>
+    </x-modal-custom>
+    <x-modal-custom id="add_manual_attendance_modal" title="Agregar marca de asistencia"
+        subtitle="Esta acción agregará una marca de asistencia para esta persona, si hay una inasistencia este día sera eliminada">
+        <form action="{{ route('attendance.add_manual') }}" method="POST" id="add_attendance_manual_form">
+            @csrf
+            <div class="px-3 mt-1 flex flex-col gap-3 justify-center items-center">
+                <div class="flex gap-3">
+                    <div class="flex flex-col">
+                        <label for="attendance_date" class="block text-sm font-medium text-gray-700">Fecha:</label>
+                        <x-text-input id="attendance_date" name="attendance_date" type="date" class="h-10" required/>
+                    </div>
+                    <x-text-input id="staff_id" name="staff_id" type="text" class="hidden"
+                        value="{{ $staff->id }}" />
+                    <div class="flex flex-col">
+                        <label for="entryTime" class="block text-sm font-medium text-gray-700">Entrada:</label>
+                        <x-text-input id="entryTime" name="entryTime" type="time" step="1" required />
+                    </div>
+                    <div class="flex flex-col">
+                        <label for="departureTime" class="block text-sm font-medium text-gray-700">Salida:</label>
+                        <x-text-input id="departureTime" name="departureTime" type="time" step="1" required/>
+                    </div>
+                </div>
+            </div>
+            <div class="flex flex-col px-[7%] mb-3 mt-2">
+                <label for="observations" class="block text-sm font-medium text-gray-700">Observaciones:</label>
+                <x-text-input id="observations" name="observations" type="text" value="Ingreso manual" required />
+            </div>
+            <div class="flex justify-end px-3 gap-2">
+                <span class="px-1 border-2 text-red-500 cursor-default border-red-500 rounded-xl flex items-center justify-center" id="add_attendance_btn">
+                    Esta acción es irreversible
+                </span>
                 <button type="submit" class="btn btn-success rounded-xl" id="add_attendance_btn">Agregar
                 </button>
             </div>
@@ -93,6 +128,16 @@
     <div class="flex items-center justify-center py-6">
         <div class="bg-white rounded-xl w-full lg:w-2/4">
             <div id="loading-overlay" class="hidden">
+                @if (session('success'))
+                    <div class="alert-success rounded-t-xl p-0.5 text-center mb-1">
+                        {{ session('success') }}
+                    </div>
+                @endif
+                @if (session('error'))
+                    <div class="alert-danger rounded-t-xl p-0.5 text-center mb-1">
+                        {{ session('error') }}
+                    </div>
+                @endif
                 <!-- Verifica si no hay tickets -->
                 <div class="text-center max-w-md" id="no_alerts" style="margin: 0 auto;">
                     <div class="p-6 rounded-lg mt-3">
@@ -112,6 +157,11 @@
                 @if (session('success'))
                     <div class="alert-success rounded-t-xl p-0.5 text-center mb-1">
                         {{ session('success') }}
+                    </div>
+                @endif
+                @if (session('error'))
+                    <div class="alert-danger rounded-t-xl p-0.5 text-center mb-1">
+                        {{ session('error') }}
                     </div>
                 @endif
                 <div class="alert-success rounded-t-xl p-0.5 text-center mb-1 hidden" id="success-alert">
@@ -198,53 +248,10 @@
 
                 <div class="flex">
                     <div class="flex flex-row gap-3 justify-left w-full px-3">
-                        <div
-                            class="estado relative block overflow-hidden bg-white border border-black rounded-xl p-3 hover:text-black w-25 shadow-sm">
-                            <div class="flex flex-row items-center justify-between pb-2">
-                                <h2 class="text-md font-bold">Días completados:</h2>
-                                <i class="fa-solid fa-calendar-check h-4 w-4 text-gray-500"></i>
-                            </div>
-                            <div>
-                                <div class="text-md font-semibold text-gray-500">
-                                    {{ $days }}
-                                </div>
-                            </div>
-                        </div>
-                        <div
-                            class="estado relative block overflow-hidden bg-white border border-black rounded-xl p-3 hover:text-black w-25 shadow-sm">
-                            <div class="flex flex-row items-center justify-between pb-2">
-                                <h2 class="text-md font-bold">Horas:</h2>
-                                <i class="fa-solid fa-clock h-4 w-4 text-gray-500"></i>
-                            </div>
-                            <div>
-                                <div class="text-md font-semibold text-gray-500">
-                                    {{ $totalHours }}
-                                </div>
-                            </div>
-                        </div>
-                        <div
-                            class="estado relative block overflow-hidden bg-white border border-black rounded-xl p-3 hover:text-black w-25 shadow-sm">
-                            <div class="flex flex-row items-center justify-between pb-2">
-                                <h2 class="text-md font-bold whitespace-nowrap">Promedio de horas:</h2>
-                                <i class="fa-solid fa-chart-pie h-4 w-4 text-gray-500"></i>
-                            </div>
-                            <div>
-                                <div class="text-md font-semibold text-gray-500">
-                                    {{ $hoursAverage }}
-                                </div>
-                            </div>
-                        </div>
-                        <div
-                            class="estado relative block overflow-hidden bg-white border border-black rounded-xl p-3 hover:text-black w-25 shadow-sm">
-                            <div class="flex flex-row items-center justify-between pb-2">
-                                <h2 class="text-md font-bold">Horas extra:</h2>
-                                <i class="fa-solid fa-clock-rotate-left h-4 w-4 text-gray-500"></i>
-                            </div>
-                            <div>
-                                <div class="text-md font-semibold text-gray-500">{{ $totalExtraHours }}
-                                </div>
-                            </div>
-                        </div>
+                        <x-card title="Días completados:" icon="fa-solid fa-calendar-check" :content="$days" :clickeable="false" class="cursor-default" />
+                        <x-card title="Horas:" icon="fa-solid fa-calendar-check" :content="$totalHours" :clickeable="false" class="cursor-default" />
+                        <x-card title="Promedio de horas:" icon="fa-chart-pie" :content="$hoursAverage" :clickeable="false" class="cursor-default" />
+                        <x-card title="Horas adicionales:" icon="fa-solid fa-clock-rotate-left" :content="$totalExtraHours" :clickeable="false" class="cursor-default" />
                     </div>
                 </div>
                 <div class="m-3">
@@ -336,8 +343,19 @@
                                 @endif
 
                                 @if ($attendance->isNotEmpty())
-                                    <div class="flex gap-1 justify-end mb-3">
-                                        <x-button :button="[
+                                    <div class="flex gap-1 justify-between mb-3">
+                                        <div>
+                                            <x-button :button="[
+                                                'id' => 'add_manual_attendance',
+                                                'classes' => 'btn btn-dark rounded-xl custom-tooltip add_nonattendance_btn h-10',
+                                                'icon' => '<i class=\'fa-solid fa-plus\'></i>',
+                                                'tooltip_text' => 'Agregar marca de asistencia manual',
+                                                'modal_id' => 'add_manual_attendance_modal'
+                                            ]" />
+                                            
+                                        </div>
+                                        <div>
+                                            <x-button :button="[
                                             'id' => 'report_individual_hours_btn',
                                             'classes' => 'btn btn-success rounded-xl custom-tooltip add_nonattendance_btn h-10',
                                             'icon' => '<i class=\'fa-solid fa-stopwatch\'></i>',
@@ -351,6 +369,8 @@
                                             
                                             'tooltip_text' => 'Reporte de asistencias'
                                         ]" />
+                                        </div>
+                                        
                                     </div>
                                     <x-table id="attendance-list" clas :headers="[
                                         'Dia',
@@ -358,7 +378,7 @@
                                         'Entrada',
                                         'Salida',
                                         'Horas cumplidas',
-                                        'Horas extra',
+                                        'Horas adicionales',
                                         'Observaciones',
                                     ]" :fields="[
                                         'day',
@@ -374,9 +394,7 @@
                                                 'id' => 'edit_btn',
                                                 'classes' => 'btn btn-dark rounded-xl custom-tooltip edit_btn h-10',
                                                 'icon' => '<i class=\'fas fa-fingerprint\'></i>',
-                                                
                                                 'tooltip_text' => 'Agregar marca de asistencia',
-                                                
                                                 'modal_id' => 'add_attendance_modal',
                                                 'data-entryTime' => true,
                                                 'data-departureTime' => true,
@@ -497,6 +515,7 @@
                     url + "/" + id; // Ajusta esta ruta según tus necesidades
             });
         });
+
 
         document.querySelectorAll('.add_nonattendance_btn').forEach(button => {
             button.addEventListener('click', function() {

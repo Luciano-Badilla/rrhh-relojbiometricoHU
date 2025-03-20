@@ -25,10 +25,10 @@
             <div class="hidden" id="content">
                 <div class="flex gap-2">
                     <x-card title="Mantenimiento" content="Consulta y gestiona la información del personal"
-                        route="{{ route('staff.management', ['id' => $staff->id]) }}" icon="fas fa-user-pen" />
+                        route="{{ route('staff.management', ['id' => $staff->id]) }}" icon="fas fa-user-pen" :clickeable="true" />
                     <x-card title="Asistencias e Inasistencias"
                         content="Consulta y gestiona el registro de asistencias e inasistencias del personal."
-                        route="{{ route('staff.attendance', ['id' => $staff->id]) }}" icon="fas fa-calendar-days" />
+                        route="{{ route('staff.attendance', ['id' => $staff->id]) }}" icon="fas fa-calendar-days" :clickeable="true" />
                 </div>
             </div>
 
