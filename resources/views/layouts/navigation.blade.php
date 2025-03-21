@@ -44,7 +44,7 @@
                     <button
                         class="inline-flex items-center px-3 py-2 text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150 dropdown-toggle"
                         type="button" data-toggle="dropdown" aria-expanded="false">
-                        {{ Auth::user()->name }}
+                        {{ Auth::user()->name . ' - ' . Auth::user()->role->name }}
                     </button>
                     <ul class="dropdown-menu rounded-lg border-gray-300">
                         <x-dropdown-link :href="route('profile.edit')"

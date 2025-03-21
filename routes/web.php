@@ -29,6 +29,7 @@ Route::middleware(['auth', 'verified', CheckRole::class . ':2'])->group(function
     Route::post('/schedule', [ScheduleController::class, 'store'])->name('schedule.store');
 
     Route::post('/attendance/add/{id?}', [attendanceController::class, 'add'])->name('attendance.add');
+    Route::post('/non_attendance/add_manual', [attendanceController::class, 'add_many_nonattendance'])->name('non_attendance.add_manual');
     Route::post('/attendance/add_manual', [attendanceController::class, 'add_manual'])->name('attendance.add_manual');
     Route::post('/absereason/add/{nonattendance_id?}', [attendanceController::class, 'add_absereason'])->name('absereason.add');
     Route::get('/clockLogs/backup', [clockLogsController::class, 'backup'])->name('clockLogs.backup');
