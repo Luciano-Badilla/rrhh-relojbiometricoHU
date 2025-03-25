@@ -82,6 +82,23 @@
                 </div>
 
                 <div class="mb-4">
+                    <label for="area-select" class="block font-medium text-sm text-gray-700 mb-1">
+                        Áreas
+                    </label>
+                    <select id="area-select" name="areas[]" multiple
+                        class="p-2 h-10 mt-1 block w-full border-gray-300 rounded-md shadow-sm select2-custom"
+                        x-bind:disabled="!isEditing">
+                        @foreach ($areas as $id => $name)
+                            <option value="{{ $id }}" {{ in_array($id, $assigned_areas) ? 'selected' : '' }}>
+                                {{ $name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+
+
+                <div class="mb-4">
                     <x-input-label for="email" value="Email" />
                     <x-text-input type="email" id="email" name="email" value="{{$staff->email}}"
                         placeholder="correo@ejemplo.com" class="mt-1 block w-full" x-bind:disabled="!isEditing" />
@@ -105,6 +122,7 @@
                         value="{{ $annual_vacation_days->days ?? '' }}" x-bind:disabled="!isEditing" type="number"
                         class="border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:border-indigo-500">
                 </div>
+
 
 
                 <div class="container mt-8">
@@ -149,10 +167,7 @@
                             </div>
                         </div>
 
-
-
                         <!-- Contenido de la pestaña Horarios -->
-
                         <div class="tab-pane fade" id="horarios" role="tabpanel" aria-labelledby="horarios-tab">
                             <div class="">
                                 <table class="min-w-full">
@@ -178,77 +193,77 @@
                                     <tbody class="divide-y divide-gray-200 bg-white">
                                         <tr>
                                             @foreach ([1, 2, 3, 4, 5, 6, 7] as $day)
-                                                @php
-                                                    $schedule = $schedules->firstWhere('day_id', $day);
-                                                    $shift = $schedule ? shift::find($schedule->shift_id) : null;
-                                                    $startTime = $shift ? \Carbon\Carbon::parse($shift->startTime)->format('H:i') : '';
-                                                    $endTime = $shift ? \Carbon\Carbon::parse($shift->endTime)->format('H:i') : '';
-                                                @endphp
-                                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                                    <div
-                                                        x-data="{
-                                            isEditing: false, 
-                                            startTime: '{{ $startTime }}', 
-                                            endTime: '{{ $endTime }}',
-                                            saveSchedule() {
-                                                axios.post('{{route('schedule.store')}}', {
-                                                    staff_id: {{ $staff['id'] }},
-                                                    day_id: {{ $day }},
-                                                    start_time: this.startTime,
-                                                    end_time: this.endTime
-                                                })
-                                                .then(response => {
-                                                    console.log('Horario guardado:', response.data);
-                                                })
-                                                .catch(error => {
-                                                    console.error('Error al guardar el horario:', error);
-                                                });
-                                            }
-                                        }">
-                                                        <!-- Modo vista -->
-                                                        <div x-show="!isEditing">
-                                                            <div class="font-medium text-gray-900">
-                                                                <template x-if="startTime && endTime">
-                                                                    <span><span x-text="startTime"></span> a <span
-                                                                            x-text="endTime"></span></span>
-                                                                </template>
-                                                                <template x-if="!startTime || !endTime">
-                                                                    <span class="text-gray-500">Sin horario</span>
-                                                                </template>
-                                                            </div>
-                                                        </div>
+                                                                                        @php
+                                                                                            $schedule = $schedules->firstWhere('day_id', $day);
+                                                                                            $shift = $schedule ? shift::find($schedule->shift_id) : null;
+                                                                                            $startTime = $shift ? \Carbon\Carbon::parse($shift->startTime)->format('H:i') : '';
+                                                                                            $endTime = $shift ? \Carbon\Carbon::parse($shift->endTime)->format('H:i') : '';
+                                                                                        @endphp
+                                                                                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                                                                            <div
+                                                                                                x-data="{
+                                                                                                            isEditing: false, 
+                                                                                                            startTime: '{{ $startTime }}', 
+                                                                                                            endTime: '{{ $endTime }}',
+                                                                                                            saveSchedule() {
+                                                                                                                axios.post('{{route('schedule.store')}}', {
+                                                                                                                    staff_id: {{ $staff['id'] }},
+                                                                                                                    day_id: {{ $day }},
+                                                                                                                    start_time: this.startTime,
+                                                                                                                    end_time: this.endTime
+                                                                                                                })
+                                                                                                                .then(response => {
+                                                                                                                    console.log('Horario guardado:', response.data);
+                                                                                                                })
+                                                                                                                .catch(error => {
+                                                                                                                    console.error('Error al guardar el horario:', error);
+                                                                                                                });
+                                                                                                            }
+                                                                                                        }">
+                                                                                                <!-- Modo vista -->
+                                                                                                <div x-show="!isEditing">
+                                                                                                    <div class="font-medium text-gray-900">
+                                                                                                        <template x-if="startTime && endTime">
+                                                                                                            <span><span x-text="startTime"></span> a <span
+                                                                                                                    x-text="endTime"></span></span>
+                                                                                                        </template>
+                                                                                                        <template x-if="!startTime || !endTime">
+                                                                                                            <span class="text-gray-500">Sin horario</span>
+                                                                                                        </template>
+                                                                                                    </div>
+                                                                                                </div>
 
-                                                        <!-- Modo edición -->
-                                                        @if(Auth::user()->role_id != 1)
-                                                            <div x-show="isEditing" class="flex flex-col gap-1">
-                                                                <input type="time" x-model="startTime"
-                                                                    class="h-6 px-2 py-1 text-sm border rounded-md"
-                                                                    style="width: 90px">
-                                                                <input type="time" x-model="endTime"
-                                                                    class="h-6 px-2 py-1 text-sm border rounded-md"
-                                                                    style="width: 90px">
-                                                            </div>
-                                                            <!-- Botón Guardar -->
-                                                            <button type="button"
-                                                                @click="isEditing = !isEditing; if (!isEditing) saveSchedule()"
-                                                                class="mt-2 text-blue-500 hover:text-blue-700 transition-all flex items-center gap-2">
-                                                                <svg x-show="!isEditing" xmlns="http://www.w3.org/2000/svg"
-                                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                                                    class="w-5 h-5">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                                        stroke-width="2"
-                                                                        d="M12 20h9M16.5 3.5a2.121 2.121 0 113 3L7 19H4v-3L16.5 3.5z" />
-                                                                </svg>
-                                                                <svg x-show="isEditing" xmlns="http://www.w3.org/2000/svg"
-                                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                                                    class="w-5 h-5">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                                        stroke-width="2" d="M5 13l4 4L19 7" />
-                                                                </svg>
-                                                            </button>
-                                                        @endif
-                                                    </div>
-                                                </td>
+                                                                                                <!-- Modo edición -->
+                                                                                                @if(Auth::user()->role_id != 1)
+                                                                                                    <div x-show="isEditing" class="flex flex-col gap-1">
+                                                                                                        <input type="time" x-model="startTime"
+                                                                                                            class="h-6 px-2 py-1 text-sm border rounded-md"
+                                                                                                            style="width: 90px">
+                                                                                                        <input type="time" x-model="endTime"
+                                                                                                            class="h-6 px-2 py-1 text-sm border rounded-md"
+                                                                                                            style="width: 90px">
+                                                                                                    </div>
+                                                                                                    <!-- Botón Guardar -->
+                                                                                                    <button type="button"
+                                                                                                        @click="isEditing = !isEditing; if (!isEditing) saveSchedule()"
+                                                                                                        class="mt-2 text-blue-500 hover:text-blue-700 transition-all flex items-center gap-2">
+                                                                                                        <svg x-show="!isEditing" xmlns="http://www.w3.org/2000/svg"
+                                                                                                            fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                                                                            class="w-5 h-5">
+                                                                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                                                                stroke-width="2"
+                                                                                                                d="M12 20h9M16.5 3.5a2.121 2.121 0 113 3L7 19H4v-3L16.5 3.5z" />
+                                                                                                        </svg>
+                                                                                                        <svg x-show="isEditing" xmlns="http://www.w3.org/2000/svg"
+                                                                                                            fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                                                                            class="w-5 h-5">
+                                                                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                                                                stroke-width="2" d="M5 13l4 4L19 7" />
+                                                                                                        </svg>
+                                                                                                    </button>
+                                                                                                @endif
+                                                                                            </div>
+                                                                                        </td>
                                             @endforeach
                                         </tr>
                                     </tbody>
@@ -288,13 +303,43 @@
         </div>
     </div>
 
-    <script>
-
-    </script>
 
     <!-- Asegúrate de cargar Alpine.js -->
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
 </x-app-layout>
+
+<!-- Agregar el CDN de Select2 si no lo tienes -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+
+<script>
+    $(document).ready(function () {
+        function initializeSelect2() {
+            $('#area-select').select2({
+                placeholder: "Selecciona áreas",
+                allowClear: true,
+                width: '100%',  // Hace que el select ocupe el ancho completo
+                minimumResultsForSearch: Infinity  // Oculta el buscador para que se vea como los otros selects
+            }).next('.select2-container').addClass('select2-custom');  // Aplica estilos personalizados
+        }
+
+        initializeSelect2(); // Inicializa al cargar la página
+
+        // Si se edita el formulario, activamos o desactivamos el select correctamente
+        document.addEventListener('alpine:init', () => {
+            Alpine.effect(() => {
+                if (Alpine.store('isEditing')) {
+                    $('#area-select').prop('disabled', false);
+                } else {
+                    $('#area-select').prop('disabled', true);
+                }
+            });
+        });
+    });
+
+</script>
+
 
 <style>
     /* Estilos para el título */
@@ -326,5 +371,35 @@
 
     .table-auto tbody tr:nth-child(even) {
         background-color: #f9f9f9;
+    }
+
+    .select2-container--default .select2-selection--multiple {
+        background-color: #fff !important;
+        /* Blanco como los otros selects */
+        border: 1px solid #d1d5db !important;
+        /* Borde gris como los otros selects */
+        border-radius: 6px !important;
+        /* Bordes redondeados */
+        height: 38px !important;
+        /* Altura similar a los otros selects */
+        display: flex;
+        align-items: center;
+        padding: 4px;
+    }
+
+    .select2-container--default .select2-selection--multiple .select2-selection__rendered {
+        display: flex;
+        align-items: center;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+    }
+
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+        background-color: #e5e7eb !important;
+        /* Color gris claro como los otros selects */
+        border: none !important;
+        border-radius: 4px !important;
+        padding: 2px 6px;
+        font-size: 14px;
     }
 </style>

@@ -31,4 +31,10 @@ class staff extends Model
     {
         return $this->belongsToMany(Schedule::class, 'schedule_staff', 'staff_id', 'schedule_id');
     }
+
+    public function areas()
+    {
+        return $this->belongsToMany(Area::class, 'staff_area', 'staff_id', 'area_id');
+    }
+
 }
