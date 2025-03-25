@@ -182,62 +182,59 @@ class clockLogsController extends Controller
         $departureTime = $exitLog ? date('H:i:s', strtotime($exitLog->timestamp)) : null;
 
         // Buscar el horario del día correspondiente
-        $staff = staff::where('file_number', $entryLog->file_number)->first();
+        $staff = Staff::where('file_number', $entryLog->file_number)->first();
         $lastChecked = $staff->last_checked;
         $dayName = ucfirst(Carbon::parse($date)->locale('es')->translatedFormat('l'));
-        $schedule = $staff->schedules->firstWhere('day_id', day::where('name', $dayName)->value('id'));
+        $schedule = $staff->schedules->firstWhere('day_id', Day::where('name', $dayName)->value('id'));
 
         // Definir valores iniciales
         $hoursCompleted = '00:00:00';
         $extraHours = '00:00:00';
 
         // Obtener todas las asistencias del día
-        $attendances = attendance::where('file_number', $entryLog->file_number)
+        $attendances = Attendance::where('file_number', $entryLog->file_number)
             ->where('date', $date)
             ->get();
 
-        // Calcular las horas totales trabajadas hasta el momento
+        // Calcular el total de horas trabajadas hasta el momento
         $totalWorkedSeconds = 0;
         foreach ($attendances as $attendance) {
             $totalWorkedSeconds += Carbon::createFromFormat('H:i:s', $attendance->hoursCompleted)->diffInSeconds('00:00:00');
         }
 
-
-
         if ($schedule && $departureTime) {
-            // Calcular horas trabajadas en este registro
-            $workedHours = $this->calculateWorkedHours($entryTime, $departureTime);
-            $workedSeconds = Carbon::createFromFormat('H:i:s', $workedHours)->diffInSeconds('00:00:00');
-
-            $hoursCompleted = gmdate('H:i:s', $workedSeconds);
-
-            // Obtener el total de registros
-            $totalRecords = ClockLogs::where('file_number', $entryLog->file_number)
-                ->whereDate('timestamp', $date)
-                ->count();
-
-            $attendanceCount = max(1, ceil($totalRecords / 2));
-
-            // Obtener las horas requeridas por el turno
-            $shift = shift::find($schedule->shift_id);
+            // Obtener el turno
+            $shift = Shift::find($schedule->shift_id);
             if ($shift) {
                 $startTime = Carbon::createFromFormat('H:i:s', $shift->startTime);
                 $endTime = Carbon::createFromFormat('H:i:s', $shift->endTime);
                 $hoursRequiredInSeconds = $startTime->diffInSeconds($endTime);
 
-                if ($totalWorkedSeconds > $hoursRequiredInSeconds) {
-                    $requiredPerRecord = $hoursRequiredInSeconds / $attendanceCount;
-                } else {
-                    $requiredPerRecord = $hoursRequiredInSeconds;
+                // Asegurar que la entrada no sea antes del turno
+                $adjustedEntryTime = Carbon::createFromFormat('H:i:s', $entryTime);
+                if ($adjustedEntryTime->lessThan($startTime)) {
+                    $adjustedEntryTime = $startTime;
                 }
-                
-                // Si este registro supera su parte correspondiente, calcular horas extra
-                if ($workedSeconds > $requiredPerRecord) {
-                    $extraSeconds = $workedSeconds - $requiredPerRecord;
+
+                // Calcular horas trabajadas desde la hora ajustada
+                $workedSeconds = $adjustedEntryTime->diffInSeconds(Carbon::createFromFormat('H:i:s', $departureTime));
+                $hoursCompleted = gmdate('H:i:s', $workedSeconds);
+
+                // Obtener el total de registros (pares de entrada y salida)
+                $totalRecords = ClockLogs::where('file_number', $entryLog->file_number)
+                    ->whereDate('timestamp', $date)
+                    ->count();
+                $attendanceCount = max(1, ceil($totalRecords / 2));
+
+                // Calcular las horas requeridas por registro
+                $requiredPerRecord = $hoursRequiredInSeconds / $attendanceCount;
+
+                // Si se superan las horas requeridas, calcular horas extra
+                if ($totalWorkedSeconds + $workedSeconds > $hoursRequiredInSeconds) {
+                    $extraSeconds = ($totalWorkedSeconds + $workedSeconds) - $hoursRequiredInSeconds;
 
                     // Ajustar las horas extras en bloques de 15 minutos (900 segundos)
                     $adjustedExtraSeconds = floor($extraSeconds / 900) * 900;
-
                     $extraHours = gmdate('H:i:s', $adjustedExtraSeconds);
                 }
             }
@@ -248,7 +245,7 @@ class clockLogsController extends Controller
 
         if ($existingAttendance) {
             if ($existingAttendance->date >= $lastChecked) {
-                // Actualizar si ya existe un registro con la misma entrada
+                // Actualizar el registro existente
                 $existingAttendance->update([
                     'departureTime' => $departureTime ?? $existingAttendance->departureTime,
                     'hoursCompleted' => $hoursCompleted,
@@ -257,7 +254,7 @@ class clockLogsController extends Controller
             }
         } else {
             // Crear un nuevo registro si no existe uno igual
-            attendance::create([
+            Attendance::create([
                 'file_number' => $entryLog->file_number,
                 'date' => $date,
                 'entryTime' => $entryTime,
@@ -269,6 +266,7 @@ class clockLogsController extends Controller
             ]);
         }
     }
+
 
 
     private function createNonAttendance($file_number)

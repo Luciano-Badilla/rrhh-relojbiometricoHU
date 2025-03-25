@@ -244,76 +244,74 @@ class attendanceController extends Controller
         $absenceReason = $request->input('absenceReason');
         $observations = $request->input('observations');
 
-        // Verificar si la fecha de inicio es mayor que la fecha de fin
         if ($attendance_date_from > $attendance_date_to) {
             return redirect()->back()->with('error', 'La fecha desde: ' . $attendance_date_from->format('d/m/y') . ' no puede ser mayor a la fecha hasta: ' . $attendance_date_to->format('d/m/y'));
         }
 
-        // Generar años entre la fecha de inicio y fin
-        $years = range($attendance_date_from->year, $attendance_date_to->year);
-
-        // Generar meses entre la fecha de inicio y fin
-        $months = [];
-        foreach ($years as $year) {
-            $startMonth = ($year == $attendance_date_from->year) ? $attendance_date_from->month : 1;
-            $endMonth = ($year == $attendance_date_to->year) ? $attendance_date_to->month : 12;
-            $months[$year] = range($startMonth, $endMonth);
+        $allDates = [];
+        $currentDate = clone $attendance_date_from;
+        while ($currentDate->lte($attendance_date_to)) {
+            $allDates[] = $currentDate->copy()->format('Y-m-d');
+            $currentDate->addDay();
         }
 
-        $missingDates = []; // Fechas donde NO se pudo registrar una inasistencia
+        $missingDates = [];
+        $workingDays = [];
+        foreach ($allDates as $date) {
+            $parsedDate = Carbon::parse($date);
+            $month = $parsedDate->month;
+            $year = $parsedDate->year;
 
-        foreach ($years as $year) {
-            foreach ($months[$year] as $month) {
-                // Obtener los días laborales para el mes y año actuales
-                $workingDays = $this->getWorkingDays($staff->id, $month, $year);
+            if (!isset($workingDays[$year][$month])) {
+                $workingDays[$year][$month] = $this->getWorkingDays($staff->id, $month, $year);
+            }
 
-                foreach ($workingDays as $workingDay) {
-                    $workingDay = Carbon::parse($workingDay);
+            if (!in_array($date, $workingDays[$year][$month])) {
+                $missingDates[] = Carbon::parse($date)->format('d/m/y');
+                continue;
+            }
 
-                    // Verificar si el día laboral está dentro del rango de fechas
-                    if ($workingDay->between($attendance_date_from, $attendance_date_to, true)) {
-                        $workingDayFormatted = $workingDay->format('Y-m-d');
+            $attendances = clockLogs::where('file_number', $staff->file_number)
+                ->whereMonth('timestamp', $month)
+                ->whereYear('timestamp', $year)
+                ->pluck('timestamp')
+                ->map(fn($timestamp) => Carbon::parse($timestamp)->toDateString())
+                ->toArray();
 
-                        // Obtener todas las asistencias del mes para el staff
-                        $attendances = clockLogs::where('file_number', $staff->file_number)
-                            ->whereMonth('timestamp', $month)
-                            ->whereYear('timestamp', $year)
-                            ->pluck('timestamp')
-                            ->map(fn($timestamp) => Carbon::parse($timestamp)->toDateString())
-                            ->toArray();
+            $attendanceExists = in_array($date, $attendances);
+            $existingNonAttendance = NonAttendance::where([
+                ['file_number', '=', $staff->file_number],
+                ['date', '=', $date]
+            ])->first();
 
-                        // Verificar si ya existe una asistencia o una inasistencia para este día
-                        $attendanceExists = in_array($workingDayFormatted, $attendances);
-                        $nonAttendanceExist = NonAttendance::where([
-                            ['file_number', '=', $staff->file_number],
-                            ['date', '=', $workingDayFormatted]
-                        ])->exists();
+            if ($attendanceExists) {
+                $missingDates[] = Carbon::parse($date)->format('d/m/y');
+            } elseif ($existingNonAttendance) {
+                if (is_null($existingNonAttendance->absenceReason_id)) {
+                    $existingNonAttendance->update(['absenceReason_id' => $absenceReason]);
+                }
+            } else {
+                $created = NonAttendance::create([
+                    'file_number' => $staff->file_number,
+                    'date' => $date,
+                    'absenceReason_id' => $absenceReason,
+                    'observations' => $observations,
+                ]);
 
-                        if ($attendanceExists || $nonAttendanceExist) {
-                            // Si ya existe una asistencia o inasistencia, agregar la fecha a las faltantes
-                            $missingDates[] = $workingDayFormatted;
-                        } else {
-                            // Si no existe, registrar la inasistencia
-                            NonAttendance::create([
-                                'file_number' => $staff->file_number,
-                                'date' => $workingDayFormatted,
-                                'absenceReason_id' => $absenceReason,
-                                'observations' => $observations,
-                            ]);
-                        }
-                    }
+                if (!$created) {
+                    $missingDates[] = Carbon::parse($date)->format('d/m/y');
                 }
             }
         }
 
-        // Mostrar las fechas donde no se pudo registrar la inasistencia
         if (!empty($missingDates)) {
             $missingDatesStr = implode(', ', $missingDates);
-            return redirect()->back()->with('warning', 'Algunas fechas no pudieron ser registradas porque ya existían: ' . $missingDatesStr);
+            return redirect()->back()->with('warning', 'Algunas fechas no fueron registradas porque no eran días laborales o existe una asistencia entre las fechas: ' . $missingDatesStr);
         } else {
             return redirect()->back()->with('success', 'Inasistencias guardadas correctamente. Todas las fechas fueron registradas.');
         }
     }
+
 
 
     public function getWorkingDays($staffId, $month, $year)

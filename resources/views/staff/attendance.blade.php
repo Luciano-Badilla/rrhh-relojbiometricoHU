@@ -175,6 +175,11 @@
                         {{ session('success') }}
                     </div>
                 @endif
+                @if (session('warning'))
+                    <div class="alert-warning rounded-t-xl p-0.5 text-center mb-1">
+                        {{ session('warning') }}
+                    </div>
+                @endif
                 @if (session('error'))
                     <div class="alert-danger rounded-t-xl p-0.5 text-center mb-1">
                         {{ session('error') }}
@@ -199,6 +204,11 @@
                 @if (session('success'))
                     <div class="alert-success rounded-t-xl p-0.5 text-center mb-1">
                         {{ session('success') }}
+                    </div>
+                @endif
+                @if (session('warning'))
+                    <div class="alert-warning rounded-t-xl p-0.5 text-center mb-1">
+                        {{ session('warning') }}
                     </div>
                 @endif
                 @if (session('error'))
@@ -397,6 +407,7 @@
                                             
                                         </div>
                                         <div>
+                                            <!--
                                             <x-button :button="[
                                             'id' => 'report_individual_hours_btn',
                                             'classes' => 'btn btn-success rounded-xl custom-tooltip add_nonattendance_btn h-10',
@@ -410,7 +421,7 @@
                                             'icon' => '<i class=\'fa-solid fa-table\'></i>',
                                             'role' => 2,
                                             'tooltip_text' => 'Reporte de asistencias'
-                                        ]" />
+                                        ]" />-->
                                         </div>
                                         
                                     </div>
