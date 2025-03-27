@@ -5,7 +5,7 @@
         </h2>
     </x-slot>
     <div class="flex items-center justify-center py-6">
-        <div class="bg-white rounded-xl w-full lg:w-2/4 p-4">
+        <div class="bg-white rounded-xl w-full lg:w-2/4 p-2">
             <div id="loading-overlay" class="hidden">
                 <!-- Verifica si no hay tickets -->
                 <div class="text-center max-w-md" id="no_alerts" style="margin: 0 auto;">

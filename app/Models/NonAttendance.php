@@ -17,6 +17,7 @@ class NonAttendance extends Model
         'file_number',
         'date',
         'absenceReason_id',
+        'observations'
     ];
 
     // Definir la relación con el modelo AbsenceReason

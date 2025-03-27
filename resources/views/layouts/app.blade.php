@@ -82,6 +82,33 @@
         tbody tr:last-child td:last-child {
             border-bottom-right-radius: 0.75rem; /* Esquina inferior derecha */
         }
+
+        .select_modal {
+            width: 441px !important;
+        }
+
+        .select_modal_2 {
+            width: 100% !important;
+        }
+
+        .bootstrap-select .dropdown-toggle {
+            width: 100% !important; /* Asegurar que el botón del select también lo respete */
+            background-color: white !important;
+            border-color: rgb(209 213 219 / var(--tw-border-opacity, 1));
+            border-radius: 0.75rem;
+            --tw-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --tw-shadow-colored: 0 1px 2px 0 var(--tw-shadow-color);
+            box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+        }
+
+        .bootstrap-select .dropdown-menu {
+            border-radius: 0.75rem !important;
+        }
+
+        .bootstrap-select .bs-searchbox input {
+            border-radius: 0.75rem !important;
+            padding: 0.5rem; /* Opcional: mejora la apariencia */
+        }
         </style>
 </head>
 

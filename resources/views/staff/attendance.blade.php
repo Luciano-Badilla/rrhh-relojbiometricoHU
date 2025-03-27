@@ -74,9 +74,51 @@
                 <x-text-input id="observations" name="observations" type="text" value="Ingreso manual" required />
             </div>
             <div class="flex justify-end px-3 gap-2">
-                <span class="px-1 border-2 text-red-500 cursor-default border-red-500 rounded-xl flex items-center justify-center" id="add_attendance_btn">
-                    Esta acción es irreversible
-                </span>
+                <button type="submit" class="btn btn-success rounded-xl" id="add_attendance_btn">Agregar
+                </button>
+            </div>
+        </form>
+    </x-modal-custom>
+    <x-modal-custom id="add_many_nonattendance_modal" title="Agregar inasistencias"
+        subtitle="Esta acción agregará inasistencias para esta persona, si hay una asistencia en alguna de las fechas, la inasistencia no se creara">
+        <form action="{{ route('non_attendance.add_manual') }}" method="POST">
+            @csrf
+            <div class="px-3 mt-1 flex flex-col gap-3 justify-center items-center">
+                <div class="flex flex-col gap-3 w-full justify-center items-center">
+                    <div class="flex flex-row gap-3">
+                        <div>
+                            <label for="attendance_date" class="block text-sm font-medium text-gray-700">Desde:</label>
+                            <x-text-input id="attendance_date1" name="attendance_date_from" type="date" class="h-10" required/>
+                        </div>
+                        <div>
+                            <label for="attendance_date" class="block text-sm font-medium text-gray-700">Hasta:</label>
+                            <x-text-input id="attendance_date2" name="attendance_date_to" type="date" class="h-10" required/>
+                        </div>
+                    </div>
+                    <x-text-input id="staff_id" name="staff_id" type="text" class="hidden"
+                        value="{{ $staff->id }}" />
+                    <div class="flex flex-col mb-3">
+                        <label for="observations" class="block text-sm font-medium text-gray-700">Justificaciones:</label>
+                        <div class="border-gray-300">
+                            <select id="absenceReason_select"
+                                name="absenceReason" 
+                                class="selectpicker select_modal border-gray-300 rounded-xl shadow-sm" 
+                                data-live-search="true" 
+                                data-width="100%">
+                            @foreach ($absenceReasons as $absenceReason)
+                                <option value="{{ $absenceReason->id }}">{{ $absenceReason->name }}</option>
+                            @endforeach
+                        </select>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex flex-col px-[6%] mb-3 mt-1">
+                <label for="observations" class="block text-sm font-medium text-gray-700">Observaciones:</label>
+                <x-text-input id="observations" name="observations" type="text" value="Ingreso manual" required />
+            </div>
+            <div class="flex justify-end px-3 gap-2">
                 <button type="submit" class="btn btn-success rounded-xl" id="add_attendance_btn">Agregar
                 </button>
             </div>
@@ -89,7 +131,7 @@
             <div class="flex flex-col px-3 mb-3 w-full">
                 <x-text-input id="nonattendance_id" name="nonattendance_id" type="text" class="hidden" />
                 <label for="observations" class="block text-sm font-medium text-gray-700">Justificaciones:</label>
-                <select id="absenceReason_select" name="absenceReason" class="selectpicker w-full" data-live-search="true" data-width="100%">
+                <select id="absenceReason_select" name="absenceReason" class="selectpicker select_modal_2" data-live-search="true" data-width="100%">
                     @foreach ($absenceReasons as $absenceReason)
                         <option value="{{ $absenceReason->id }}">{{ $absenceReason->name }}</option>
                     @endforeach
@@ -133,6 +175,11 @@
                         {{ session('success') }}
                     </div>
                 @endif
+                @if (session('warning'))
+                    <div class="alert-warning rounded-t-xl p-0.5 text-center mb-1">
+                        {{ session('warning') }}
+                    </div>
+                @endif
                 @if (session('error'))
                     <div class="alert-danger rounded-t-xl p-0.5 text-center mb-1">
                         {{ session('error') }}
@@ -157,6 +204,11 @@
                 @if (session('success'))
                     <div class="alert-success rounded-t-xl p-0.5 text-center mb-1">
                         {{ session('success') }}
+                    </div>
+                @endif
+                @if (session('warning'))
+                    <div class="alert-warning rounded-t-xl p-0.5 text-center mb-1">
+                        {{ session('warning') }}
                     </div>
                 @endif
                 @if (session('error'))
@@ -227,7 +279,6 @@
                                     'type' => 'submit',
                                     'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
                                     'icon' => '<i class=\'fa-solid fa-magnifying-glass\'></i>',
-                                    
                                     'tooltip_text' => 'Buscar asistencias',
                                     'loading' => true
                                 ]" />
@@ -290,10 +341,10 @@
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                         @if ($schedule)
                                             <div class="font-medium text-gray-900">
-                                                {{ \Carbon\Carbon::parse(shift::find($schedule->shift_id)->startTime)->format('H:i') . ' a ' . \Carbon\Carbon::parse(shift::find($schedule->shift_id)->endTime)->format('H:i') }}
+                                                {{ Carbon::parse(shift::find($schedule->shift_id)->startTime)->format('H:i') . ' a ' . Carbon::parse(shift::find($schedule->shift_id)->endTime)->format('H:i') }}
                                             </div>
                                             <div class="text-gray-500">
-                                                {{ \Carbon\Carbon::parse(shift::find($schedule->shift_id)->startTime)->diffInHours(\Carbon\Carbon::parse(shift::find($schedule->shift_id)->endTime)->format('H:i')) }}
+                                                {{ Carbon::parse(shift::find($schedule->shift_id)->startTime)->diffInHours(Carbon::parse(shift::find($schedule->shift_id)->endTime)->format('H:i')) }}
                                                 horas
                                             </div>
                                         @else
@@ -350,25 +401,27 @@
                                                 'classes' => 'btn btn-dark rounded-xl custom-tooltip add_nonattendance_btn h-10',
                                                 'icon' => '<i class=\'fa-solid fa-plus\'></i>',
                                                 'tooltip_text' => 'Agregar marca de asistencia manual',
-                                                'modal_id' => 'add_manual_attendance_modal'
+                                                'modal_id' => 'add_manual_attendance_modal',
+                                                'role' => 2
                                             ]" />
                                             
                                         </div>
                                         <div>
+                                            <!--
                                             <x-button :button="[
                                             'id' => 'report_individual_hours_btn',
                                             'classes' => 'btn btn-success rounded-xl custom-tooltip add_nonattendance_btn h-10',
                                             'icon' => '<i class=\'fa-solid fa-stopwatch\'></i>',
-                                            
+                                            'role' => 2,
                                             'tooltip_text' => 'Reporte de horas'
                                         ]" />
                                         <x-button :button="[
                                             'id' => 'report_individual_hours_btn',
                                             'classes' => 'btn btn-success rounded-xl custom-tooltip add_nonattendance_btn h-10',
                                             'icon' => '<i class=\'fa-solid fa-table\'></i>',
-                                            
+                                            'role' => 2,
                                             'tooltip_text' => 'Reporte de asistencias'
-                                        ]" />
+                                        ]" />-->
                                         </div>
                                         
                                     </div>
@@ -397,6 +450,7 @@
                                                 'tooltip_text' => 'Agregar marca de asistencia',
                                                 'modal_id' => 'add_attendance_modal',
                                                 'data-entryTime' => true,
+                                                'role' => 2,
                                                 'data-departureTime' => true,
                                                 'condition' => fn($record) => $record->entryTime ===
                                                     $record->departureTime &&
@@ -412,6 +466,17 @@
                             aria-labelledby="inasistencias-tab">
                             <div class="mt-3 text-center">
                                 @if ($nonAttendance->isEmpty())
+                                <div class="flex flex-col justify-start mb-3">
+                                    <div class="flex w-full justify-between">
+                                        <x-button :button="[
+                                            'id' => 'add_many_nonattendance_btn',
+                                            'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
+                                            'icon' => '<i class=\'fa-solid fa-plus\'></i>',
+                                            'tooltip_text' => 'Justificador de inasistencias',
+                                            'modal_id' => 'add_many_nonattendance_modal'
+                                        ]" />
+                                    
+                                    </div>
                                     <!-- Verifica si no hay tickets -->
                                     <div class="text-center max-w-md" id="no_assistances" style="margin: 0 auto;">
                                         <div class="p-6 rounded-lg mt-3">
@@ -429,13 +494,24 @@
 
                                 @if ($nonAttendance->isNotEmpty())
                                 <div class="flex justify-start mb-3">
-                                    <x-button :button="[
-                                        'id' => 'view_nonattendance_btn',
-                                        'classes' => 'btn btn-dark rounded-xl custom-tooltip add_nonattendance_btn h-10',
-                                        'icon' => '<i class=\'fa-solid fa-clipboard-list\'></i>',
-                                        'tooltip_text' => 'Ver cantidad de justificaciones',
-                                        'modal_id' => 'view_absenseReason_modal'
-                                    ]" />
+                                    <div class="flex w-full justify-between">
+                                        <x-button :button="[
+                                            'id' => 'add_many_nonattendance_btn',
+                                            'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
+                                            'icon' => '<i class=\'fa-solid fa-plus\'></i>',
+                                            'tooltip_text' => 'Justificador de inasistencias',
+                                            'modal_id' => 'add_many_nonattendance_modal',
+                                            'role' => 2
+                                        ]" />
+                                        <x-button :button="[
+                                            'id' => 'view_nonattendance_btn',
+                                            'classes' => 'btn btn-success rounded-xl custom-tooltip h-10',
+                                            'icon' => '<i class=\'fa-solid fa-clipboard-list\'></i>',
+                                            'tooltip_text' => 'Ver cantidad de justificaciones usadas',
+                                            'modal_id' => 'view_absenseReason_modal'
+                                        ]" />
+                                    </div>
+                                    
                                 </div>
                                     <x-table id="non_attendance-list" :headers="['Día', 'Fecha', 'Motivo']" :fields="['day', 'date', 'absenceReason']"
                                         :data="$nonAttendance" :buttons="[
@@ -445,6 +521,7 @@
                                                 'icon' => '<i class=\'fas fa-plus\'></i>',
                                                 'tooltip_text' => 'Agregar justificaciones de ausencia',
                                                 'modal_id' => 'add_nonattendance_modal',
+                                                'role' => 2,
                                                 'data-id' => true,
                                                 'condition' => fn($record) => $record->absenceReason === null || $record->absenceReason === ''
                                             ],
@@ -540,7 +617,5 @@
             const encodedData = encodeURIComponent(JSON.stringify(dataToExport));
             window.location.href = "{{ route('report.individual_hours') }}?data=" + encodedData;
         });
-
-
     });
 </script>
