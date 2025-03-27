@@ -9,7 +9,7 @@ use App\Models\NonAttendance;
 use App\Models\category;
 use App\Models\schedule_staff;
 use App\Models\shift;
-
+use App\Models\area;
 use App\Models\staff;
 use App\Models\schedule;
 use App\Models\scale;
@@ -37,6 +37,7 @@ class staffController extends Controller
             'staff' => $staff
         ]);
     }
+
     public function management($id)
     {
         $staff = Staff::find($id); // Encuentra el registro del staff
@@ -48,10 +49,14 @@ class staffController extends Controller
         $annual_vacation_days = annual_vacation_days::where('staff_id', $staff->file_number)
             ->first();
 
-        // Obtén los coordinadores con los nombres del staff
         $coordinators = Coordinator::with('staff')
             ->get()
             ->pluck('staff.name_surname', 'id');
+        // Todas las áreas
+        $areas = Area::all()->pluck('name', 'id')->toArray(); // Array asociativo
+
+        // Áreas asignadas al staff
+        $assigned_areas = $staff->areas->pluck('id')->toArray(); // IDs seleccionados
 
         // Pasa las variables a la vista
         return view('staff.management', [
@@ -63,8 +68,13 @@ class staffController extends Controller
             'vacations' => $vacations,
             'schedules' => $schedules,
             'annual_vacation_days' => $annual_vacation_days,
+            'areas' => $areas, // Todas las áreas
+            'assigned_areas' => $assigned_areas, // Áreas asignadas
         ]);
     }
+
+
+
 
 
     public function attendance($id, Request $request)
@@ -106,7 +116,7 @@ class staffController extends Controller
             ->get()
             ->map(function ($item) {
                 // Formatear las fechas en formato dd/mm/yy
-
+    
                 $item->date_formated = \Carbon\Carbon::parse($item->date)->format('d/m/y');
                 $item->hoursCompleted = $this->calculateWorkedHours($item->entryTime, $item->departureTime) ?? gmdate('H:i:s', 0);
 
@@ -269,16 +279,16 @@ class staffController extends Controller
             'secretary' => 'nullable|integer',
             'name_surname' => 'required|string|max:255',
             'category' => 'nullable|integer',
-            'email' => 'required|email|max:255',
+            'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
             'date_of_entry' => 'nullable',
         ]);
-
-        // Busca el registro en la base de datos
+        $areas = $request->input('areas', []); 
+        
         $staff = Staff::findOrFail($id);
+        $staff->areas()->sync($areas);
 
-        // Actualiza los campos
         $staff->file_number = $request->input('file_number');
         $staff->coordinator_id = $request->input('coordinator');
         $staff->secretary_id = $request->input('secretary');
