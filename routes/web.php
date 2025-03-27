@@ -1,7 +1,10 @@
 <?php
 
+use App\Http\Controllers\absenceController;
 use App\Http\Controllers\attendanceController;
 use App\Http\Controllers\clockLogsController;
+use App\Http\Controllers\areaCoordinatorsController;
+use App\Http\Controllers\categoryController;
 use App\Http\Controllers\staffController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ScheduleController;
@@ -9,12 +12,11 @@ use App\Http\Controllers\reports;
 use App\Http\Middleware\CheckRole;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('dashboard');
-})->name('dashboard');
-
 
 Route::middleware(['auth', 'verified', CheckRole::class . ':1,2'])->group(function () {
+    Route::get('/', function () {
+        return route('staff.list');
+    })->name('dashboard');
     Route::get('/staff/administration_panel/{id}', [staffController::class, 'administration_panel'])->name('staff.administration_panel');
     Route::get('/staff/management/{id}', [staffController::class, 'management'])->name('staff.management');
     Route::get('/staff/attendance/{id}', [staffController::class, 'attendance'])->name('staff.attendance');
@@ -33,6 +35,18 @@ Route::middleware(['auth', 'verified', CheckRole::class . ':2'])->group(function
     Route::post('/attendance/add_manual', [attendanceController::class, 'add_manual'])->name('attendance.add_manual');
     Route::post('/absereason/add/{nonattendance_id?}', [attendanceController::class, 'add_absereason'])->name('absereason.add');
     Route::get('/clockLogs/backup', [clockLogsController::class, 'backup'])->name('clockLogs.backup');
+
+    Route::get('/absencereason/list', [absenceController::class, 'list'])->name('absenceReason.list');
+    Route::post('/absencereason/add', [absenceController::class, 'add'])->name('absenceReason.add');
+    Route::post('/absencereason/edit', [absenceController::class, 'edit'])->name('absenceReason.edit');
+
+    Route::get('/areaCoordinators/list', [areaCoordinatorsController::class, 'list'])->name('areaCoordinators.list');
+    Route::post('/areaCoordinators/add', [areaCoordinatorsController::class, 'add'])->name('areaCoordinators.add');
+    Route::post('/areaCoordinators/edit', [areaCoordinatorsController::class, 'edit'])->name('areaCoordinators.edit');
+
+    Route::get('/category/list', [categoryController::class, 'list'])->name('category.list');
+    Route::post('/category/add', [categoryController::class, 'add'])->name('category.add');
+    Route::post('/category/edit', [categoryController::class, 'edit'])->name('category.edit');
 
     Route::get('/individual_hours_report', [reports::class, 'individual_hours'])->name('report.individual_hours');
 

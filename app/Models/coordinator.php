@@ -10,14 +10,16 @@ class coordinator extends Model
     use HasFactory;
 
     protected $table = 'coordinator'; // Nombre de la tabla
-    public function create()
-    {
-        $coordinators = Coordinator::all()->pluck('name', 'id'); // 'id' como valor y 'name' como texto
-        return view('form', compact('coordinators'));
-    }
+
+    protected $fillable = ['office_id', 'staff_id'];
 
     public function staff()
     {
         return $this->belongsTo(Staff::class, 'staff_id');
+    }
+
+    public function area()
+    {
+        return $this->belongsTo(office::class, 'office_id');
     }
 }
