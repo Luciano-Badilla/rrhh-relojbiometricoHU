@@ -56,7 +56,7 @@
                     </div>
                     <div>
                         <x-input-label for="Ingreso" value="Ingreso" />
-                        <x-text-input id="date_of_entry" type="text" name="date_of_entry" placeholder="Nombre completo"
+                        <x-text-input id="date_of_entry" type="text" name="date_of_entry" placeholder="Fecha de ingreso"
                             value="{{$staff->date_of_entry}}" class="mt-1 block w-full" x-bind:disabled="!isEditing" />
                     </div>
                     <div x-data="{ 

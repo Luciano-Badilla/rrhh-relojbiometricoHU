@@ -235,7 +235,7 @@ class staffController extends Controller
             'schedules' => $schedules,
             'totalExtraHours' => $totalExtraHoursFormatted,
             'nonAttendance' => $nonAttendance->sortBy('date'),
-            'absenceReasons' => $absenceReasons,
+            'absenceReasons' => $absenceReasons->sortBy('name'),
             'absenceReasonCount' => $absenceReasonCount,
             'dataToExport' => $dataToExport
         ]);

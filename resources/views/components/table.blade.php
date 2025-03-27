@@ -35,18 +35,26 @@
                             @foreach ($buttons as $button)
                                 @php
                                     $showButton = $button['condition'] ?? true;
+
                                     if (is_callable($showButton)) {
                                         $showButton = $showButton($record);
                                     }
+
+                                    // Verificar el rol si está definido
+                                    if (isset($button['role'])) {
+                                        $showButton =
+                                            $showButton && optional(auth()->user()->role)->id === $button['role'];
+                                    }
                                 @endphp
+
                                 @if ($showButton)
                                     <button id="{{ $button['id'] }}" type="button" data-id="{{ $record->id }}"
                                         @isset($button['tooltip_text']) data-tooltip_text="{{ $button['tooltip_text'] }}" @endisset
                                         @isset($button['modal_id']) data-toggle="modal" data-target="#{{ $button['modal_id'] }}" @endisset
                                         @foreach ($button as $attr => $value)
-                                            @if (Str::startsWith($attr, 'data-') && $value === true)
-                                                {{ $attr }}="{{ $record->{Str::after($attr, 'data-')} }}"
-                                            @endif @endforeach
+                                    @if (Str::startsWith($attr, 'data-') && $value === true)
+                                        {{ $attr }}="{{ $record->{Str::after($attr, 'data-')} }}"
+                                    @endif @endforeach
                                         class="{{ $button['classes'] }}">
                                         {!! $button['icon'] !!}
                                     </button>
