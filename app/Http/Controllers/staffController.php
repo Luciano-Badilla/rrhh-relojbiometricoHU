@@ -27,6 +27,50 @@ use Illuminate\Support\Facades\Log;
 
 class staffController extends Controller
 {
+    public function create()
+    {
+        $areas = Area::all(); // Obtiene todas las áreas
+        $coordinators = Coordinator::with('staff')->get()->pluck('staff.name_surname', 'id');
+        $secretaries = Secretary::all()->pluck('name', 'id');
+        $categories = Category::all()->pluck('name', 'id');
+
+        return view('staff.create', compact('areas', 'coordinators', 'secretaries', 'categories'));
+    }
+
+    public function store(Request $request)
+    {
+        // Validación de datos
+        $validatedData = $request->validate([
+            'name_surname' => 'required|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'file_number' => 'nullable|string|max:255',
+            'category_id' => 'nullable|integer',
+            'coordinator_id' => 'nullable|integer',
+            'secretary_id' => 'nullable|integer',
+            'date_of_entry' => 'nullable|string',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:255',
+            'worker_status' => 'nullable|string',
+            'area_id' => 'nullable|integer',
+        ]);
+
+        // Convertir la fecha de dd/mm/yyyy a yyyy-mm-dd si existe
+        if ($request->filled('date_of_entry')) {
+            $dateParts = explode('/', $request->input('date_of_entry'));
+            if (count($dateParts) === 3) {
+                $validatedData['date_of_entry'] = "{$dateParts[2]}-{$dateParts[1]}-{$dateParts[0]}"; // yyyy-mm-dd
+            }
+        }
+
+        // Crear nuevo staff
+        $staff = Staff::create($validatedData);
+        $areas = $request->input('areas', []);
+        $staff->areas()->sync($areas);
+
+        return redirect()->route('staff.management', ['id' => $staff->id])->with('success', 'Staff creado exitosamente.');
+    }
+
+
 
     public function administration_panel($id)
     {
@@ -282,10 +326,12 @@ class staffController extends Controller
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
-            'date_of_entry' => 'nullable',
+            'date_of_entry' => 'nullable|string',
+            'worker_status' => 'nullable',
         ]);
-        $areas = $request->input('areas', []); 
-        
+
+        $areas = $request->input('areas', []);
+
         $staff = Staff::findOrFail($id);
         $staff->areas()->sync($areas);
 
@@ -297,7 +343,18 @@ class staffController extends Controller
         $staff->email = $request->input('email');
         $staff->phone = $request->input('phone');
         $staff->address = $request->input('address');
-        $staff->date_of_entry = $request->input('date_of_entry');
+
+        // Convertir la fecha de dd/mm/yyyy a yyyy-mm-dd antes de guardarla
+        $dateOfEntry = $request->input('date_of_entry');
+        if ($dateOfEntry) {
+            $dateParts = explode('/', $dateOfEntry); // Divide la fecha en partes
+            if (count($dateParts) === 3) {
+                $formattedDate = "{$dateParts[2]}-{$dateParts[1]}-{$dateParts[0]}"; // Reorganiza como yyyy-mm-dd
+                $staff->date_of_entry = $formattedDate;
+            }
+        }
+
+        $staff->worker_status = $request->input('worker_status');
 
         // Guarda los cambios en la base de datos
         $staff->save();
@@ -305,6 +362,7 @@ class staffController extends Controller
         // Redirige con un mensaje de éxito
         return redirect()->back()->with('success', 'Datos actualizados correctamente.');
     }
+
 
     public function getWorkingDays($staffId, $month, $year)
     {

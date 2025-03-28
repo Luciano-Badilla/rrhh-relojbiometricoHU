@@ -17,6 +17,7 @@ class staff extends Model
         'phone',
         'email',
         'address',
+        'date_of_entry',
         'coordinator_id',
         'category_id',
         'secretary_id',

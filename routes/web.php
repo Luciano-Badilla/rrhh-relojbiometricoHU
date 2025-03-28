@@ -26,6 +26,8 @@ Route::middleware(['auth', 'verified', CheckRole::class . ':1,2'])->group(functi
 Route::middleware(['auth', 'verified', CheckRole::class . ':2'])->group(function () {
 
     Route::get('/staff/list', [staffController::class, 'list'])->name('staff.list');
+    Route::get('/staff/add', [staffController::class, 'create'])->name('staff.create');
+    Route::post('/staff', [StaffController::class, 'store'])->name('staff.store');
     Route::post('/staff/update/{id}', [StaffController::class, 'update'])->name('staff.update');
 
     Route::post('/schedule', [ScheduleController::class, 'store'])->name('schedule.store');
