@@ -54,6 +54,8 @@ class staffController extends Controller
             'area_id' => 'nullable|integer',
         ]);
 
+        //dd($request->all());
+
         // Convertir la fecha de dd/mm/yyyy a yyyy-mm-dd si existe
         if ($request->filled('date_of_entry')) {
             $dateParts = explode('/', $request->input('date_of_entry'));
@@ -102,6 +104,7 @@ class staffController extends Controller
         // Áreas asignadas al staff
         $assigned_areas = $staff->areas->pluck('id')->toArray(); // IDs seleccionados
 
+        //dd($staff->id);
         // Pasa las variables a la vista
         return view('staff.management', [
             'staff' => $staff,
@@ -327,7 +330,9 @@ class staffController extends Controller
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
             'date_of_entry' => 'nullable|string',
-            'worker_status' => 'nullable',
+            'worker_status' => 'nullable|string',
+            'inactive' => 'nullable|boolean',
+            'marking' => 'nullable|boolean',
         ]);
 
         $areas = $request->input('areas', []);
@@ -345,16 +350,24 @@ class staffController extends Controller
         $staff->address = $request->input('address');
 
         // Convertir la fecha de dd/mm/yyyy a yyyy-mm-dd antes de guardarla
-        $dateOfEntry = $request->input('date_of_entry');
-        if ($dateOfEntry) {
-            $dateParts = explode('/', $dateOfEntry); // Divide la fecha en partes
+        if ($request->filled('date_of_entry')) {
+            $dateParts = explode('/', $request->input('date_of_entry'));
             if (count($dateParts) === 3) {
-                $formattedDate = "{$dateParts[2]}-{$dateParts[1]}-{$dateParts[0]}"; // Reorganiza como yyyy-mm-dd
-                $staff->date_of_entry = $formattedDate;
+                $staff->date_of_entry = "{$dateParts[2]}-{$dateParts[1]}-{$dateParts[0]}";
             }
         }
 
         $staff->worker_status = $request->input('worker_status');
+
+        // Si "Baja" está marcado, guardamos la fecha actual en "inactive_since"
+        if ($request->input('inactive')) {
+            $staff->inactive_since = now()->format('Y-m-d'); // Guarda la fecha actual en formato yyyy-mm-dd
+        } else {
+            $staff->inactive_since = null; // Si no está marcado, deja el campo vacío
+        }
+
+        // Si "Marca" está marcado, guarda "1", si no, guarda "0"
+        $staff->marking = $request->input('marking', 0);
 
         // Guarda los cambios en la base de datos
         $staff->save();
@@ -362,6 +375,7 @@ class staffController extends Controller
         // Redirige con un mensaje de éxito
         return redirect()->back()->with('success', 'Datos actualizados correctamente.');
     }
+
 
 
     public function getWorkingDays($staffId, $month, $year)

@@ -18,7 +18,7 @@
                     </div>
 
                     <div>
-                        <x-select id="coordinator" name="coordinator" :options="$coordinators"
+                        <x-select id="coordinator_id" name="coordinator_id" :options="$coordinators"
                             placeholder="Seleccionar Coordinador" required>
                             Coordinador
                         </x-select>
