@@ -45,6 +45,21 @@
                             </ul>
                         </div>
                     </div>
+                    <div class="hidden sm:flex sm:items-center sm:ms-6">
+                        <div class="dropdown">
+                            <button
+                                class="inline-flex items-center px-3 py-2 text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150 dropdown-toggle"
+                                type="button" data-toggle="dropdown" aria-expanded="false">
+                                Reportes
+                            </button>
+                            <ul class="dropdown-menu rounded-lg border-gray-300">
+                                <x-dropdown-link :href="route('reportView.nonAttendance')" :active="request()->routeIs('reportView.nonAttendance')"
+                                    class="no-underline block px-4 py-1 text-sm text-gray-700 hover:bg-gray-100">
+                                    Inasistencias
+                                </x-dropdown-link>
+                            </ul>
+                        </div>
+                    </div>
                 @endif
 
             </div>
@@ -57,7 +72,7 @@
                         type="button" data-toggle="dropdown" aria-expanded="false">
                         {{ Auth::user()->name . ' - ' . Auth::user()->role->name }}
                     </button>
-                    <ul class="dropdown-menu rounded-lg border-gray-300">
+                    <ul class="dropdown-menu rounded-lg w-full border-gray-300">
                         <x-dropdown-link :href="route('profile.edit')"
                             class="no-underline block px-4 py-1 text-sm text-gray-700 hover:bg-gray-100">
                             Perfil

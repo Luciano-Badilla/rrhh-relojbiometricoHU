@@ -25,4 +25,9 @@ class NonAttendance extends Model
     {
         return $this->belongsTo(AbsenceReason::class, 'absenceReason_id');
     }
+
+    public function staff()
+    {
+        return $this->belongsTo(Staff::class, 'file_number', 'file_number');
+    }
 }
