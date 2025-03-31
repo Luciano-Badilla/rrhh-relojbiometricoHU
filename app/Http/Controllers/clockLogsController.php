@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\devices;
 use Rats\Zkteco\Lib\ZKTeco;
 use Illuminate\Http\Request;
 use App\Models\clockLogs;
@@ -21,15 +22,12 @@ class clockLogsController extends Controller
     public function backup()
     {
         // Datos de los dispositivos ZKTeco
-        $devices = [
-            ['ip' => '172.22.112.220', 'port' => 4370, 'device_id' => 1], // Hall Principal
-            ['ip' => '172.22.112.221', 'port' => 4370, 'device_id' => 2]  // Subsuelo
-        ];
+        $devices = devices::all();
 
         foreach ($devices as $device) {
             try {
                 // Crear instancia de ZKTeco
-                $zk = new ZKTeco($device['ip'], $device['port']);
+                $zk = new ZKTeco($device->ip, $device->port);
 
                 // Conectar al dispositivo
                 if ($zk->connect()) {
@@ -47,7 +45,7 @@ class clockLogsController extends Controller
                                 'uid' => $log['uid'],
                                 'file_number' => $log['id'],
                                 'timestamp' => $log['timestamp'],
-                                'device_id' => $device['device_id']
+                                'device_id' => $device->id
                             ]);
                         }
                     }
@@ -55,11 +53,11 @@ class clockLogsController extends Controller
                     // Desconectar del dispositivo
                     $zk->disconnect();
                 } else {
-                    Log::error("No se pudo conectar al dispositivo con IP: {$device['ip']}");
-                    return response()->json(['error' => "No se pudo conectar al dispositivo con IP: {$device['ip']}"], 500);
+                    Log::error("No se pudo conectar al dispositivo con IP: {$device->ip}");
+                    return response()->json(['error' => "No se pudo conectar al dispositivo con IP: {$device->ip}"], 500);
                 }
             } catch (\Exception $e) {
-                Log::error("Error al procesar el dispositivo con IP: {$device['ip']} - Error: {$e->getMessage()}");
+                Log::error("Error al procesar el dispositivo con IP: {$device->ip} - Error: {$e->getMessage()}");
                 return response()->json(['error' => 'Hubo un problema al obtener los datos del dispositivo.'], 500);
             }
         }
@@ -70,14 +68,11 @@ class clockLogsController extends Controller
     public function update_attendance($file_number = null)
     {
 
-        $devices = [
-            ['ip' => '172.22.112.220', 'port' => 4370, 'device_id' => 1],
-            ['ip' => '172.22.112.221', 'port' => 4370, 'device_id' => 2]
-        ];
+        $devices = devices::all();
 
         foreach ($devices as $device) {
             try {
-                $zk = new ZKTeco($device['ip'], $device['port']);
+                $zk = new ZKTeco($device->ip, $device->port);
 
                 if ($zk->connect()) {
                     $logs = $zk->getAttendance();
@@ -98,18 +93,18 @@ class clockLogsController extends Controller
                                 'uid' => $log['uid'],
                                 'file_number' => $log['id'],
                                 'timestamp' => $log['timestamp'],
-                                'device_id' => $device['device_id']
+                                'device_id' => $device->id
                             ]);
                         }
                     }
 
                     $zk->disconnect();
                 } else {
-                    Log::error("No se pudo conectar al dispositivo con IP: {$device['ip']}");
-                    return response()->json(['error' => "No se pudo conectar al dispositivo con IP: {$device['ip']}"], 500);
+                    Log::error("No se pudo conectar al dispositivo con IP: {$device->ip}");
+                    return response()->json(['error' => "No se pudo conectar al dispositivo con IP: {$device->ip}"], 500);
                 }
             } catch (\Exception $e) {
-                Log::error("Error al procesar el dispositivo con IP: {$device['ip']} - Error: {$e->getMessage()}");
+                Log::error("Error al procesar el dispositivo con IP: {$device->ip} - Error: {$e->getMessage()}");
                 return response()->json(['error' => 'Hubo un problema al obtener los datos del dispositivo.'], 500);
             }
         }

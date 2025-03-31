@@ -9,6 +9,7 @@ use App\Http\Controllers\staffController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\reports;
+use App\Http\Controllers\reportsController;
 use App\Http\Middleware\CheckRole;
 use Illuminate\Support\Facades\Route;
 
@@ -49,6 +50,10 @@ Route::middleware(['auth', 'verified', CheckRole::class . ':2'])->group(function
     Route::get('/category/list', [categoryController::class, 'list'])->name('category.list');
     Route::post('/category/add', [categoryController::class, 'add'])->name('category.add');
     Route::post('/category/edit', [categoryController::class, 'edit'])->name('category.edit');
+
+    Route::get('/reports/nonAttendance', [reportsController::class, 'nonAttendanceIndex'])->name('reportView.nonAttendance');
+    Route::get('/reports/nonAttendance/search', [reportsController::class, 'nonAttendanceSearch'])->name('reportSearch.nonAttendance');
+
 
     Route::get('/individual_hours_report', [reports::class, 'individual_hours'])->name('report.individual_hours');
 
