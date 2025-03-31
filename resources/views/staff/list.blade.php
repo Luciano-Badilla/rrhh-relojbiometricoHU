@@ -12,41 +12,58 @@
                     {{ session('success') }}
                 </div>
             @endif
-            <div class="flex justify-between p-3">
-                <!-- Campo de búsqueda -->
-                <div class="relative">
-                    <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                        <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true"
-                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
-                        </svg>
-                    </div>
-                    <x-text-input id="table-search" type="text" placeholder="Buscar..." class="ps-10" autofocus />
-                </div>
-                <x-button :button="[
-                    'id' => 'backup-btn',
-                    'type' => 'button',
-                    'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
-                    'icon' => '<i class=\'fa-solid fa-rotate\'></i>',
-                    'tooltip' => true,
-                    'tooltip_text' => 'Backup de marcadas',
-                    'loading' => true,
-                ]" />
+            <div class="flex justify-between items-center p-3">
+    <!-- Contenedor del buscador y botón de agregar staff -->
+    <div class="flex items-center space-x-3">
+        <!-- Campo de búsqueda -->
+        <div class="relative">
+            <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
+                </svg>
             </div>
+            <x-text-input id="table-search" type="text" placeholder="Buscar..." class="ps-10" autofocus />
+        </div>
+
+        <!-- Botón de agregar staff -->
+        <x-button :button="[
+            'id' => 'add-staff-btn',
+            'type' => 'button',
+            'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
+            'icon' => '<i class=\'fa-solid fa-plus\'></i>',
+            'tooltip' => true,
+            'tooltip_text' => 'Nuevo personal',
+        ]" />
+    </div>
+
+    <!-- Botón de backup (se mantiene en la misma posición) -->
+    <x-button :button="[
+        'id' => 'backup-btn',
+        'type' => 'button',
+        'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
+        'icon' => '<i class=\'fa-solid fa-rotate\'></i>',
+        'tooltip' => true,
+        'tooltip_text' => 'Backup de marcadas',
+        'loading' => true,
+    ]" />
+</div>
+
 
             <div class="m-3">
                 <!-- Tabla -->
-                <x-table id="staff-list" :headers="['Legajo', 'Nombre']" :fields="['file_number', 'name_surname']" :data="$staff" :links="[
-                    [
-                        'id' => 'administration_panel_btn',
-                        'route' => 'staff.administration_panel',
-                        'classes' => 'btn btn-dark rounded-xl custom-tooltip administration_panel_btn',
-                        'icon' => '<i class=\'fas fa-bars\'></i>',
-                        'tooltip' => true,
-                        'tooltip_text' => 'Panel administrativo',
-                    ]
-                ]" />
+                <x-table id="staff-list" :headers="['Legajo', 'Nombre']" :fields="['file_number', 'name_surname']"
+                    :data="$staff" :links="[
+        [
+            'id' => 'administration_panel_btn',
+            'route' => 'staff.administration_panel',
+            'classes' => 'btn btn-dark rounded-xl custom-tooltip administration_panel_btn',
+            'icon' => '<i class=\'fas fa-bars\'></i>',
+            'tooltip' => true,
+            'tooltip_text' => 'Panel administrativo',
+        ]
+    ]" />
             </div>
         </div>
     </div>
@@ -70,26 +87,31 @@
             });
         });
 
-        $('.administration_panel_btn').click(function() {
+        $('.administration_panel_btn').click(function () {
             localStorage.removeItem('page_loaded');
         });
 
-        $('#backup-btn').click(function() {
+        $('#backup-btn').click(function () {
             $.ajax({
                 url: "{{ route('clockLogs.backup') }}",
                 type: 'GET',
                 data: {
                     _token: '{{ csrf_token() }}'
                 },
-                success: function(response) {
+                success: function (response) {
                     custom_alert(response.message, 'success');
                     window.location.reload();
                 },
-                error: function(xhr, status, error) {
+                error: function (xhr, status, error) {
                     custom_alert(error, 'error');
                 }
             });
 
         });
+
+        $('#add-staff-btn').click(function () {
+            window.location.href = "{{ route('staff.create') }}";
+        });
+
     });
 </script>

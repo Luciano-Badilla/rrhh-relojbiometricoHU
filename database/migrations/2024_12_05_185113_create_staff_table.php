@@ -19,13 +19,13 @@ class CreateStaffTable extends Migration
             $table->string('name_surname'); // Nombre y apellido del personal
             $table->string('email'); // Email del personal
             $table->string('phone'); // Teléfono del personal
+
             $table->string('address'); // Dirección del personal
             $table->timestamp('last_checked');
             $table->date('date_of_entry'); // Fecha de ingreso al hospital
             $table->date('antiquity'); // Fecha de antiguedad
+            $table->enum('worker_status', ['contratado, planta']); // Contratado o planta
 
-
-            // Agregar claves foráneas
             $table->unsignedBigInteger('coordinator_id'); // Relación con la tabla coordinator
             $table->unsignedBigInteger('category_id');    // Relación con la tabla category
             $table->unsignedBigInteger('secretary_id');   // Relación con la tabla secretary
