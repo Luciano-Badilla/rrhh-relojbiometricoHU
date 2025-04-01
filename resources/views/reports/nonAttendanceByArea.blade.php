@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Reporte de Inasistencias') }}
+            {{ __('Reporte de Ausencia por área') }}
         </h2>
     </x-slot>
 
@@ -35,11 +35,10 @@
                                 </div>
                             </div>
                             <div class="flex">
-                                <x-text-input id="date_range_checkbox_control" name="date_range_checkbox" type="hidden"
-                                    value="0" />
-                                <x-text-input id="date_range_checkbox" name="date_range_checkbox" type="checkbox"
-                                    class="mt-2 ml-1" value="1"
-                                    {{ old('date_range_checkbox') ? 'checked' : '' }} />
+                                <input id="date_range_checkbox" name="date_range_checkbox" type="checkbox"
+                                    class="mt-2 ml-1 border-gray-300 rounded-xl shadow-sm" value="1"
+                                    @if (old('date_range_checkbox', request('date_range_checkbox', 0)) == '1') checked @endif />
+
                                 <label for="date_range_checkbox"
                                     class="block text-sm font-medium text-gray-700 mt-1.5 ml-2">Rango</label>
                             </div>
@@ -63,7 +62,6 @@
                             'classes' => 'btn btn-dark rounded-xl custom-tooltip h-[2.40rem] mt-[1.75rem]',
                             'icon' => '<i class=\'fa-solid fa-magnifying-glass\'></i>',
                             'tooltip_text' => 'Buscar',
-                            'loading' => true,
                         ]" />
                     </div>
                 </form>
@@ -99,15 +97,56 @@
                     </div>
                 </div>
             </div>
-            <div id="content" class="p-3">
-                @isset($nonAttendances)
+            <div id="content" class="px-3">
+                @if (!empty($nonAttendances) && !$nonAttendances->isEmpty())
+                    <form id="export-form" action="{{ route('reportExport.nonAttendanceByArea') }}" method="POST"
+                        class="-mt-8">
+                        @csrf
+                        <input type="hidden" name="file_name" value="Reporte de inasistencias">
+                        <input type="hidden" name="nonAttendances" id="nonAttendances">
+                        <input type="hidden" name="staffs" id="staffs">
+                        <input type="hidden" name="area_selected" value="{{ $area_selected }}">
+                        <input type="hidden" name="dates" value="{{ $dates }}">
+                        <x-button :button="[
+                            'id' => 'export-btn',
+                            'classes' => 'btn btn-danger rounded-xl custom-tooltip h-[2.40rem] mt-[1.75rem]',
+                            'icon' => '<i class=\'fa-solid fa-file-pdf\'></i>',
+                            'tooltip_text' => 'Exportar a PDF',
+                            'type' => 'submit',
+                            'loading' => true,
+                        ]" />
+                    </form>
                     @foreach ($staffs as $staff)
                         @if ($nonAttendances->where('file_number', $staff->file_number)->count() > 0)
-                            <p>{{ $staff->name_surname }}</p>
-                            <x-table id="non_attendance-list" :headers="['Día', 'Fecha', 'Motivo']" :fields="['day', 'date', 'absenceReason']" :data="$nonAttendances->where('file_number', $staff->file_number)" />
+                            <div class="p-3 border border-gray-300 rounded-xl mt-2 shadow-sm">
+                                <div class="flex gap-3 justify-between">
+                                    <h2 class="font-semibold text-md text-gray-800 leading-tight mb-2">
+                                        {{ $staff->name_surname }}
+                                    </h2>
+                                    <p
+                                        class="font-semibold text-md text-gray-800 leading-tight px-2 rounded-full mb-2.5">
+                                        {{ $nonAttendances->where('file_number', $staff->file_number)->count() == 1 ? $nonAttendances->where('file_number', $staff->file_number)->count() . ' inasistencia' : $nonAttendances->where('file_number', $staff->file_number)->count() . ' inasistencias' }}
+                                    </p>
+                                </div>
+                                <x-table class="rounded-none" id="non_attendance-list" :headers="['Día', 'Fecha', 'Motivo']"
+                                    :fields="['day', 'date', 'absenceReason']" :data="$nonAttendances->where('file_number', $staff->file_number)" />
+                            </div>
                         @endif
                     @endforeach
-                @endisset()
+                @else
+                    <div class="text-center max-w-md" id="no_assistances" style="margin: 0 auto;">
+                        <div class="p-6 rounded-lg mt-3">
+                            <div
+                                class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fa-solid fa-clipboard-user text-3xl"></i>
+                            </div>
+                            <h2 class="text-2xl font-bold text-gray-900 mb-2">No hay inasistencias</h2>
+                            <p class="text-gray-600 mb-6">
+                                No se encontraron inasistencias según los filtros aplicados.
+                            </p>
+                        </div>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
@@ -117,6 +156,7 @@
         const date_div = $('#date_div');
         const date_range_div = $('#date_range_div');
         const date_range_checkbox = $('#date_range_checkbox');
+        const date_range_checkbox_control = $('#date_range_checkbox_control');
         const date = $('#date');
         const date_from = $('#date_from');
         const date_to = $('#date_to');
@@ -125,21 +165,31 @@
         const loading_overlay = $('#loading-overlay');
         const search_form = $('#search_form');
 
-        // Si ya hay un área seleccionada después de recargar la página, mantenerla
+        // Mantener el área seleccionada después de la recarga
         if ("{{ old('area_id') }}") {
             area_select.val("{{ old('area_id') }}");
         }
 
-        // Si el checkbox estaba marcado antes de la recarga, mantener la visibilidad de los elementos
-        if (date_range_checkbox.is(':checked')) {
+        // Verificar si el checkbox estaba marcado antes de la recarga y actualizar la UI
+        if (date_range_checkbox.prop('checked')) {
             date_range_div.removeClass('hidden');
             date_from.attr('required', true);
             date_to.attr('required', true);
             date.removeAttr('required');
             date_div.addClass('hidden');
+        } else {
+            date_div.removeClass('hidden');
+            date_range_div.addClass('hidden');
+            date_from.removeAttr('required');
+            date_to.removeAttr('required');
+            date.attr('required', true);
         }
 
-        date_range_checkbox.click(function() {
+        // Evento al hacer clic en el checkbox
+        date_range_checkbox.change(function() {
+            date.val(null);
+            date_from.val(null);
+            date_to.val(null);
             if ($(this).prop('checked')) {
                 date_range_div.removeClass('hidden');
                 date_from.attr('required', true);
@@ -155,9 +205,23 @@
             }
         });
 
+        date_range_checkbox_control.prop('checked', false);
+
+        // Manejo de carga mientras se envía el formulario
         search_form.on("submit", function(event) {
             content.hide();
             loading_overlay.show();
+        });
+
+        $('#export-btn').click(function(e) {
+            e.preventDefault(); // Evita la recarga de la página
+
+            // Asigna los valores de PHP a los campos ocultos
+            $('#nonAttendances').val(JSON.stringify(@json($nonAttendances)));
+            $('#staffs').val(JSON.stringify(@json($staffs)));
+
+            // Enviar el formulario
+            $('#export-form').submit();
         });
     });
 </script>

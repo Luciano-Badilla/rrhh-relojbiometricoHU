@@ -6,45 +6,54 @@ use App\Models\area;
 use App\Models\clockLogs;
 use App\Models\devices;
 use App\Models\NonAttendance;
+use App\Models\staff;
 use App\Models\staff_area;
+use Barryvdh\DomPDF\PDF;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Rats\Zkteco\Lib\ZKTeco;
+use Illuminate\Support\Facades\DB;
+
 
 class reportsController extends Controller
 {
-    public function nonAttendanceIndex()
+    public function nonAttendanceByAreaIndex(Request $request)
     {
         $areas = area::all();
 
-        return view('reports.nonAttendance', [
-            'areas' => $areas
+        return view('reports.nonAttendanceByArea', [
+            'areas' => $areas,
+            'nonAttendances' => session('nonAttendances'),  // Pasar la variable desde la sesión si es necesario
+            'staffs' => session('staffs') ? collect(session('staffs'))->sortBy('name_surname') : collect(), // Recuperar staffs
+            'area_selected' => session('area_selected') ?? null,
+            'dates' =>  session('dates') ?? null,
         ]);
     }
 
-    public function nonAttendanceSearch(Request $request)
+    public function nonAttendanceByAreaSearch (Request $request)
     {
         $clockLogsController = new clockLogsController();
         $date_range_checkbox = $request->input('date_range_checkbox');
         $area_id = $request->input('area_id');
+        $area = area::find($area_id);
         $staffs = staff_area::where('area_id', $area_id)->with('staff')->get()->pluck('staff');
         $file_numbers = $staffs->pluck('file_number');
         $devices = devices::all();
         $areas = area::all();
 
 
-        // $devicesLogs = $this->getDeviceLogs($devices);
+        $devicesLogs = $this->getDeviceLogs($devices);
 
-        // foreach ($file_numbers as $file_number) {
-        //     $this->processClockLogs($devicesLogs, $file_number);
-        //     $clockLogsController->updateAttendanceFromClockLogs($file_number); //Crea las asistencias y las inasistencias
-        // }
+        foreach ($file_numbers as $file_number) {
+            $this->processClockLogs($devicesLogs, $file_number);
+            $clockLogsController->updateAttendanceFromClockLogs($file_number); //Crea las asistencias y las inasistencias
+        }
         if ($date_range_checkbox) {
             $date_from = Carbon::parse($request->input('date_from'));
             $date_to = Carbon::parse($request->input('date_to'));
 
-            $clockLogs = clockLogs::whereDate('timestamp', '>=', $date_from)->whereDate('timestamp', '<=', $date_to)->get();
+            //$clockLogs = clockLogs::whereDate('timestamp', '>=', $date_from)->whereDate('timestamp', '<=', $date_to)->get();
 
             $nonAttendances = NonAttendance::where('date', '>=', $date_from)->where('date', '<=', $date_to)->whereIn('file_number', $file_numbers)->with('staff')->get()->map(function ($item) {
                 // Formatear las fechas en formato dd/mm/yy
@@ -58,7 +67,7 @@ class reportsController extends Controller
         } else {
             $date = $request->input('date');
 
-            $clockLogs = clockLogs::whereDate('timestamp', '>=', $date)->get();
+            //$clockLogs = clockLogs::whereDate('timestamp', '>=', $date)->get();
 
             $nonAttendances = NonAttendance::where('date', $date)->whereIn('file_number', $file_numbers)->get()->map(function ($item) {
                 // Formatear las fechas en formato dd/mm/yy
@@ -72,14 +81,32 @@ class reportsController extends Controller
         }
 
 
-        return view('reports.nonAttendance', [
-            'nonAttendances' => $nonAttendances,
-            'areas' => $areas,
-            'staffs' => $staffs->sortBy('name_surname')
-        ]);
+        return redirect()->route('reportView.nonAttendance')
+            ->withInput()
+            ->with([
+                'nonAttendances' => $nonAttendances->sortBy('date'),
+                'areas' => $areas,
+                'staffs' => $staffs->sortBy('name_surname'),
+                'area_selected' => $area->name,
+                'dates' => $date_range_checkbox ? 'Desde el ' . $date_from->format('d/m/y') . ' Hasta el ' . $date_to->format('d/m/y') : Carbon::parse($date)->format('d/m/y')
+            ]);
     }
 
-    private function getDeviceLogs($devices)
+    public function nonAttendanceByAreaExport(PDF $pdf, Request $request)
+    {
+        $data = $request->all();
+
+        // Habilitar el soporte para procesamiento de PHP en DomPDF
+        $pdf->set_option('isPhpEnabled', true);
+
+        // Cargar la vista y generar el PDF
+        $pdfInstance = $pdf->loadView('pdf.nonAttendanceByArea', $data);
+
+        return $pdfInstance->stream($request->file_name . '.pdf');
+    }
+
+
+    public function getDeviceLogs($devices)
     {
         $allLogs = [];
 
@@ -108,25 +135,163 @@ class reportsController extends Controller
         return $allLogs;
     }
 
-    private function processClockLogs(array $logs, $file_number = null)
+    public function processClockLogs(array $logs, $file_number = null)
     {
         if ($file_number !== null) {
-            $logs = array_filter($logs, function ($log) use ($file_number) {
-                return isset($log['id']) && $log['id'] == $file_number;
-            });
+            $logs = array_filter($logs, fn($log) => isset($log['id']) && $log['id'] == $file_number);
         }
 
-        foreach ($logs as $log) {
-            $exists = clockLogs::where('uid', $log['uid'])->exists();
+        if (empty($logs)) {
+            return; // No hay logs que procesar
+        }
 
-            if (!$exists) {
-                clockLogs::create([
-                    'uid' => $log['uid'],
-                    'file_number' => $log['id'],
-                    'timestamp' => $log['timestamp'],
-                    'device_id' => $log['device_id']
-                ]);
+        // Obtener los UIDs existentes en un solo query
+        $existingUids = clockLogs::whereIn('uid', array_column($logs, 'uid'))->pluck('uid')->toArray();
+
+        // Filtrar solo los logs que no existen
+        $newLogs = array_filter($logs, fn($log) => !in_array($log['uid'], $existingUids));
+
+        if (!empty($newLogs)) {
+            // Preparar datos para inserción masiva
+            $insertData = array_map(fn($log) => [
+                'uid' => $log['uid'],
+                'file_number' => $log['id'],
+                'timestamp' => $log['timestamp'],
+                'device_id' => $log['device_id'],
+                'created_at' => now(),
+                'updated_at' => now()
+            ], $newLogs);
+
+            // Insertar todos los nuevos registros de una sola vez
+            clockLogs::insert($insertData);
+        }
+    }
+
+
+    public function updateAttendanceFromClockLogs($logsQuery = null)
+    {
+        try {
+            $clockLogsController = new clockLogsController();
+
+            $logsGroupedByUser = $logsQuery->groupBy('file_number');
+
+            foreach ($logsGroupedByUser as $fileNumber => $logs) {
+                $logsGroupedByDate = $logs->groupBy(function ($log) {
+                    return date('Y-m-d', strtotime($log->timestamp));
+                });
+
+                foreach ($logsGroupedByDate as $date => $logsForDay) {
+                    $logsForDay = $logsForDay->sortBy('timestamp')->values();
+
+                    $entries = [];
+                    $exits = [];
+
+                    // Separar entradas y salidas
+                    for ($i = 0; $i < $logsForDay->count(); $i++) {
+                        if ($i % 2 == 0) {
+                            $entries[] = $logsForDay[$i];
+                        } else {
+                            $exits[] = $logsForDay[$i];
+                        }
+                    }
+
+                    // Asegurar que cada entrada tenga una salida correspondiente
+                    for ($i = 0; $i < count($entries); $i++) {
+                        $entry = $entries[$i] ?? null;
+                        $exit = $exits[$i] ?? null;
+
+                        if ($entry && $exit) {
+                            // Registrar asistencia con entrada y salida
+                            $clockLogsController->createOrUpdateAttendance($entry, $exit);
+                        } elseif ($entry && !$exit) {
+                            // Si hay una entrada sin salida, registrar con la misma hora
+                            $clockLogsController->createOrUpdateAttendance($entry, $entry);
+                        }
+                    }
+                }
             }
+        } catch (\Exception $e) {
+            Log::error("Error al actualizar la asistencia: {$e->getMessage()}");
+            throw new \Exception("Hubo un problema al procesar los registros de asistencia.");
+        }
+    }
+
+
+    public function createNonAttendance($file_number, $date_from = null, $date_to = null, $specific_dates = [])
+    {
+        $clockLogsController = new clockLogsController();
+        $staff = Staff::where('file_number', $file_number)->first();
+        $lastChecked = $staff->last_checked;
+
+        // Si se proporcionan fechas específicas, se usan esas
+        if (!empty($specific_dates)) {
+            // Filtrar las asistencias por las fechas específicas
+            $attendances = clockLogs::where('file_number', $file_number)
+                ->whereIn(DB::raw('DATE(timestamp)'), $specific_dates)
+                ->pluck('timestamp')
+                ->map(fn($t) => Carbon::parse($t)->format('Y-m-d'))
+                ->toArray();
+
+            // Determinar los años y meses relevantes de las fechas específicas
+            $years = collect($specific_dates)->map(fn($d) => Carbon::parse($d)->year)->unique()->toArray();
+            $months = collect($specific_dates)->map(fn($d) => Carbon::parse($d)->month)->unique()->toArray();
+        } elseif ($date_from && $date_to) {
+            // Si se proporciona un rango de fechas, se usan esas fechas
+            $attendances = clockLogs::where('file_number', $file_number)
+                ->whereBetween(DB::raw('DATE(timestamp)'), [$date_from, $date_to])
+                ->pluck('timestamp')
+                ->map(fn($t) => Carbon::parse($t)->format('Y-m-d'))
+                ->toArray();
+
+            // Determinar los años y meses relevantes del rango
+            $years = range(Carbon::parse($date_from)->year, Carbon::parse($date_to)->year);
+            $months = range(Carbon::parse($date_from)->month, Carbon::parse($date_to)->month);
+        }
+
+        // Obtener inasistencias ya registradas
+        $nonAttendances = NonAttendance::where('file_number', $staff->file_number)
+            ->pluck('date')
+            ->toArray();
+
+        // Inicializamos el array para las inasistencias a insertar
+        $bulkInsert = [];
+        Log::info($years, $months);
+        // Obtener los días que debería trabajar el empleado según los horarios y otros criterios
+        foreach ($years as $year) {
+            foreach ($months as $month) {
+                // Usamos getWorkingDays solo para los meses y años relevantes
+                $workingDays = collect($clockLogsController->getWorkingDays($staff->id, $month, $year))
+                    ->map(fn($d) => Carbon::parse($d)->format('Y-m-d'));
+
+                foreach ($workingDays as $workingDayFormatted) {
+                    // Si hay una fecha de última verificación, no procesamos fechas anteriores
+                    if ($lastChecked && $workingDayFormatted <= $lastChecked) {
+                        continue;
+                    }
+
+                    // Si la fecha ya está registrada como asistencia o inasistencia, no la procesamos
+                    if (in_array($workingDayFormatted, $attendances) || in_array($workingDayFormatted, $nonAttendances)) {
+                        continue; // Si es asistencia o ya es una inasistencia, la omitimos
+                    }
+
+                    $actualDate = Carbon::now()->format('Y-m-d');
+
+                    // Solo marcamos como inasistencia si no es el día actual y la fecha es válida
+                    if ($workingDayFormatted != $actualDate && $actualDate >= $workingDayFormatted) {
+                        $bulkInsert[] = [
+                            'file_number' => $staff->file_number,
+                            'date' => $workingDayFormatted,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    }
+                }
+            }
+        }
+
+        // Insertar todas las inasistencias de una sola vez
+        if (!empty($bulkInsert)) {
+            NonAttendance::insert($bulkInsert);
         }
     }
 }
