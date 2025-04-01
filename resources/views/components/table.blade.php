@@ -13,8 +13,9 @@
         </tr>
     </thead>
     <tbody class="text-gray-600 text-sm font-light">
-        @foreach ($data as $record)
-            <tr class="border-b border-gray-200 hover:bg-gray-100">
+    @foreach ($data as $record)
+        <tr class="border-b border-gray-200 hover:bg-gray-100 {{ $record->inactive_since ? 'bg-red-50 hover:bg-red-100' : '' }}">
+
                 @foreach ($fields as $field)
                     <td class="py-3 px-6 text-left text-md block sm:table-cell font-semibold">
                         {{ $record->$field }}

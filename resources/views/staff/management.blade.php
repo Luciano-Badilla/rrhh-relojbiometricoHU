@@ -43,7 +43,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                     <div>
-                        <x-input-label for="ID" value="ID" />
+                        <x-input-label for="ID" value="Legajo" />
                         <x-text-input id="file_number" type="text" name="file_number" value="{{$staff->file_number}}"
                             placeholder="file_number" x-bind:disabled="!isEditing" />
                     </div>
@@ -54,23 +54,58 @@
                             Categoría
                         </x-select>
                     </div>
-                    <div>
-                        <x-input-label for="Ingreso" value="Ingreso" />
-                        <x-text-input id="date_of_entry" type="text" name="date_of_entry" placeholder="Fecha de ingreso"
-                            value="{{$staff->date_of_entry}}" class="mt-1 block w-full" x-bind:disabled="!isEditing" />
-                    </div>
                     <div x-data="{ 
-        entryDate: '{{$staff->date_of_entry}}', 
-        yearsOfService: null, 
-        calculateYears() { 
-            if (this.entryDate) { 
-                let entry = new Date(this.entryDate);
-                let today = new Date();
-                this.yearsOfService = today.getFullYear() - entry.getFullYear() - 1;
-            } 
-        } 
-    }" x-init="calculateYears()">
+    entryDate: '{{$staff->date_of_entry}}', 
+    formattedEntryDate: '', 
+    yearsOfService: 0, 
+    formatEntryDate() {
+        if (this.entryDate) {
+            let [year, month, day] = this.entryDate.split('-'); // Asumiendo que viene en formato yyyy-mm-dd
+            this.formattedEntryDate = `${day}/${month}/${year}`;
+        }
+    },
+    calculateYears() { 
+        if (this.entryDate) { 
+            let [year, month, day] = this.entryDate.split('-');
+            let entry = new Date(year, month - 1, day); // Meses en JS van de 0 a 11
+            let today = new Date();
+            
+            let years = today.getFullYear() - entry.getFullYear();
+            
+            let hasAnniversaryPassed = (today.getMonth() > entry.getMonth()) || 
+                                       (today.getMonth() === entry.getMonth() && today.getDate() >= entry.getDate());
 
+            this.yearsOfService = hasAnniversaryPassed ? years : years - 1;
+        } 
+    } 
+}" x-init="formatEntryDate(); calculateYears()">
+
+                        <!-- Input para fecha con formato dd/mm/yyyy -->
+                        <x-input-label for="Ingreso" value="Ingreso" />
+                        <x-text-input id="date_of_entry" type="text" name="date_of_entry" x-model="formattedEntryDate"
+                            placeholder="dd/mm/yyyy" class="mt-1 block w-full" x-bind:disabled="!isEditing" />
+
+                    </div>
+
+                    <div x-data="{ 
+                                    entryDate: '{{$staff->date_of_entry}}', 
+                                    yearsOfService: 0, 
+                                    calculateYears() { 
+                                        if (this.entryDate) { 
+                                            let entry = new Date(this.entryDate);
+                                            let today = new Date();
+                                            
+                                            let years = today.getFullYear() - entry.getFullYear();
+                                            
+                                            // Verifica si el aniversario de ingreso ya ocurrió este año
+                                            let hasAnniversaryPassed = (today.getMonth() > entry.getMonth()) || 
+                                                                    (today.getMonth() === entry.getMonth() && today.getDate() >= entry.getDate());
+
+                                            // Si aún no ha pasado el aniversario en este año, restamos 1
+                                            this.yearsOfService = hasAnniversaryPassed ? years : years - 1;
+                                        } 
+                                    } 
+                                }" x-init="calculateYears()">
 
                         <!-- Antigüedad calculada -->
                         <x-input-label for="Antiguedad" value="Antigüedad" />
@@ -81,20 +116,68 @@
 
                 </div>
 
-                <div class="mb-4">
-                    <label for="area-select" class="block font-medium text-sm text-gray-700 mb-1">
-                        Áreas
-                    </label>
-                    <select id="area-select" name="areas[]" multiple
-                        class="p-2 h-10 mt-1 block w-full border-gray-300 rounded-md shadow-sm select2-custom"
-                        x-bind:disabled="!isEditing">
-                        @foreach ($areas as $id => $name)
-                            <option value="{{ $id }}" {{ in_array($id, $assigned_areas) ? 'selected' : '' }}>
-                                {{ $name }}
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <!-- Select de Áreas (2/4) -->
+                    <div class="md:col-span-2">
+                        <label for="area-select" class="block font-medium text-sm text-gray-700 mb-1">
+                            Áreas
+                        </label>
+                        <select id="area-select" name="areas[]" multiple
+                            class="p-2 h-10 mt-1 block w-full border-gray-300 rounded-md select2-custom"
+                            x-bind:disabled="!isEditing">
+                            @foreach ($areas as $id => $name)
+                                <option value="{{ $id }}" {{ in_array($id, $assigned_areas) ? 'selected' : '' }}>
+                                    {{ $name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- Select de Estado (1/4) -->
+                    <div class="md:col-span-1">
+                        <label for="worker-status-select" class="block font-medium text-sm text-gray-700 mb-1">
+                            Estado
+                        </label>
+                        <select id="worker-status-select" name="worker_status"
+                            class="p-2 h-10 mt-1 block w-full border-gray-300 rounded-md select2-custom"
+                            x-bind:disabled="!isEditing">
+                            <option value="contratado" {{ $staff->worker_status == 'contratado' ? 'selected' : '' }}>
+                                Contratado
                             </option>
-                        @endforeach
-                    </select>
+                            <option value="planta" {{ $staff->worker_status == 'planta' ? 'selected' : '' }}>
+                                Planta
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- Checkboxes de Baja y Marca (1/4) -->
+                    <div class="md:col-span-1 flex flex-col justify-center">
+                        <div class="flex items-center space-x-4">
+                            <!-- Baja -->
+                            <div class="flex items-center">
+                                <x-text-input id="inactive" name="inactive" type="hidden" value="0" />
+                                <input id="inactive" name="inactive" type="checkbox" class="border-gray-300 rounded-xl shadow-sm mr-2" value="1"
+                                    x-bind:disabled="!isEditing" {{ $staff->inactive_since ? 'checked' : '' }} />
+                                <label for="inactive" class="text-sm font-medium text-gray-700">Baja</label>
+                            </div>
+
+                            
+
+                            <!-- Marca -->
+                            <div class="flex items-center">
+                                <x-text-input id="marking" name="marking" type="hidden" value="0" />
+                                <input id="marking" name="marking" type="checkbox" class="border-gray-300 rounded-xl shadow-sm mr-2" value="1"
+                                    x-bind:disabled="!isEditing" {{ $staff->marking == 1 ? 'checked' : '' }} />
+                                <label for="marking" class="text-sm font-medium text-gray-700">Marca</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+
                 </div>
+
+
+
 
 
 
@@ -202,24 +285,24 @@
                                                                                         <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                                                                             <div
                                                                                                 x-data="{
-                                                                                                            isEditing: false, 
-                                                                                                            startTime: '{{ $startTime }}', 
-                                                                                                            endTime: '{{ $endTime }}',
-                                                                                                            saveSchedule() {
-                                                                                                                axios.post('{{route('schedule.store')}}', {
-                                                                                                                    staff_id: {{ $staff['id'] }},
-                                                                                                                    day_id: {{ $day }},
-                                                                                                                    start_time: this.startTime,
-                                                                                                                    end_time: this.endTime
-                                                                                                                })
-                                                                                                                .then(response => {
-                                                                                                                    console.log('Horario guardado:', response.data);
-                                                                                                                })
-                                                                                                                .catch(error => {
-                                                                                                                    console.error('Error al guardar el horario:', error);
-                                                                                                                });
-                                                                                                            }
-                                                                                                        }">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    isEditing: false, 
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    startTime: '{{ $startTime }}', 
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    endTime: '{{ $endTime }}',
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    saveSchedule() {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        axios.post('{{route('schedule.store')}}', {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            staff_id: {{ $staff['id'] }},
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            day_id: {{ $day }},
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            start_time: this.startTime,
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            end_time: this.endTime
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        })
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        .then(response => {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            console.log('Horario guardado:', response.data);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        })
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        .catch(error => {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            console.error('Error al guardar el horario:', error);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        });
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                }">
                                                                                                 <!-- Modo vista -->
                                                                                                 <div x-show="!isEditing">
                                                                                                     <div class="font-medium text-gray-900">
@@ -287,16 +370,14 @@
                         </button>
                     @endif
 
-                    @php
-                        $staff = \DB::table('staff')->where('file_number', Auth::user()->file_number)->first();
-                    @endphp
+                        @if($staff)
+                            
+                            <a href="{{ route('staff.administration_panel', ['id' => $staff->id]) }}"
+                                class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md text-center">
+                                Volver
+                            </a>
+                        @endif
 
-                    @if($staff)
-                        <a href="{{ route('staff.administration_panel', ['id' => $staff->id]) }}"
-                            class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md text-center">
-                            Volver
-                        </a>
-                    @endif
                 </div>
 
             </form>
@@ -338,10 +419,19 @@
         });
     });
 
+    document.addEventListener("DOMContentLoaded", function () {
+        $('#worker-status-select').select2({
+            placeholder: "",
+            allowClear: true,
+            width: '100%',  // Hace que el select ocupe el ancho completo
+            minimumResultsForSearch: Infinity  // Oculta el buscador para que se vea como los otros selects
+        }).next('.select2-container').addClass('select2-custom');;
+    });
 </script>
 
 
 <style>
+    
     /* Estilos para el título */
     .text-indigo-700 {
         color: #4c51bf;
@@ -385,6 +475,26 @@
         display: flex;
         align-items: center;
         padding: 4px;
+        --tw-shadow: 0 4px 4px 0 rgb(0 0 0 / 0.08);
+        --tw-shadow-colored: 0 3px 2px 0 var(--tw-shadow-color);
+        box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+    }
+
+    .select2-container--default .select2-selection {
+        background-color: #fff !important;
+        /* Blanco como los otros selects */
+        border: 1px solid #d1d5db !important;
+        /* Borde gris como los otros selects */
+        border-radius: 6px !important;
+        /* Bordes redondeados */
+        height: 38px !important;
+        /* Altura similar a los otros selects */
+        display: flex;
+        align-items: center;
+        padding: 4px;
+        --tw-shadow: 0 4px 4px 0 rgb(0 0 0 / 0.08);
+        --tw-shadow-colored: 0 3px 2px 0 var(--tw-shadow-color);
+        box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
     }
 
     .select2-container--default .select2-selection--multiple .select2-selection__rendered {
