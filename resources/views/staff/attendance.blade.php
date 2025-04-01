@@ -477,7 +477,6 @@
                                         ]" />
                                     
                                     </div>
-                                    <!-- Verifica si no hay tickets -->
                                     <div class="text-center max-w-md" id="no_assistances" style="margin: 0 auto;">
                                         <div class="p-6 rounded-lg mt-3">
                                             <div
