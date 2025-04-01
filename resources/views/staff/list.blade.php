@@ -53,8 +53,12 @@
 
             <div class="m-3">
                 <!-- Tabla -->
-                <x-table id="staff-list" :headers="['Legajo', 'Nombre']" :fields="['file_number', 'name_surname']"
-                    :data="$staff" :links="[
+                <x-table id="staff-list" 
+    :headers="['Legajo', 'Nombre']" 
+    :fields="['file_number', 'name_surname']"
+    :data="$staff"
+    :row-classes="fn($row) => $row->inactive_since ? 'bg-red-100' : ''"
+    :links="[
         [
             'id' => 'administration_panel_btn',
             'route' => 'staff.administration_panel',
@@ -63,7 +67,9 @@
             'tooltip' => true,
             'tooltip_text' => 'Panel administrativo',
         ]
-    ]" />
+    ]" 
+/>
+
             </div>
         </div>
     </div>

@@ -116,8 +116,9 @@
 
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <!-- Select de Áreas (2/4) -->
+                    <div class="md:col-span-2">
                         <label for="area-select" class="block font-medium text-sm text-gray-700 mb-1">
                             Áreas
                         </label>
@@ -131,7 +132,9 @@
                             @endforeach
                         </select>
                     </div>
-                    <div>
+
+                    <!-- Select de Estado (1/4) -->
+                    <div class="md:col-span-1">
                         <label for="worker-status-select" class="block font-medium text-sm text-gray-700 mb-1">
                             Estado
                         </label>
@@ -139,12 +142,42 @@
                             class="p-2 h-10 mt-1 block w-full border-gray-300 rounded-md select2-custom"
                             x-bind:disabled="!isEditing">
                             <option value="contratado" {{ $staff->worker_status == 'contratado' ? 'selected' : '' }}>
-                                Contratado</option>
-                            <option value="planta" {{ $staff->worker_status == 'planta' ? 'selected' : '' }}>Planta
+                                Contratado
+                            </option>
+                            <option value="planta" {{ $staff->worker_status == 'planta' ? 'selected' : '' }}>
+                                Planta
                             </option>
                         </select>
                     </div>
+
+                    <!-- Checkboxes de Baja y Marca (1/4) -->
+                    <div class="md:col-span-1 flex flex-col justify-center">
+                        <div class="flex items-center space-x-4">
+                            <!-- Baja -->
+                            <div class="flex items-center">
+                                <x-text-input id="inactive" name="inactive" type="hidden" value="0" />
+                                <input id="inactive" name="inactive" type="checkbox" class="border-gray-300 rounded-xl shadow-sm mr-2" value="1"
+                                    x-bind:disabled="!isEditing" {{ $staff->inactive_since ? 'checked' : '' }} />
+                                <label for="inactive" class="text-sm font-medium text-gray-700">Baja</label>
+                            </div>
+
+                            
+
+                            <!-- Marca -->
+                            <div class="flex items-center">
+                                <x-text-input id="marking" name="marking" type="hidden" value="0" />
+                                <input id="marking" name="marking" type="checkbox" class="border-gray-300 rounded-xl shadow-sm mr-2" value="1"
+                                    x-bind:disabled="!isEditing" {{ $staff->marking == 1 ? 'checked' : '' }} />
+                                <label for="marking" class="text-sm font-medium text-gray-700">Marca</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+
                 </div>
+
+
+
 
 
 
@@ -252,24 +285,24 @@
                                                                                         <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                                                                             <div
                                                                                                 x-data="{
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        isEditing: false, 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        startTime: '{{ $startTime }}', 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        endTime: '{{ $endTime }}',
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        saveSchedule() {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            axios.post('{{route('schedule.store')}}', {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                staff_id: {{ $staff['id'] }},
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                day_id: {{ $day }},
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                start_time: this.startTime,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                end_time: this.endTime
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            })
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            .then(response => {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                console.log('Horario guardado:', response.data);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            })
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            .catch(error => {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                console.error('Error al guardar el horario:', error);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            });
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    isEditing: false, 
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    startTime: '{{ $startTime }}', 
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    endTime: '{{ $endTime }}',
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    saveSchedule() {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        axios.post('{{route('schedule.store')}}', {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            staff_id: {{ $staff['id'] }},
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            day_id: {{ $day }},
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            start_time: this.startTime,
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            end_time: this.endTime
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        })
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        .then(response => {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            console.log('Horario guardado:', response.data);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        })
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        .catch(error => {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            console.error('Error al guardar el horario:', error);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        });
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                }">
                                                                                                 <!-- Modo vista -->
                                                                                                 <div x-show="!isEditing">
                                                                                                     <div class="font-medium text-gray-900">
@@ -337,16 +370,14 @@
                         </button>
                     @endif
 
-                    @php
-                        $staff = \DB::table('staff')->where('file_number', Auth::user()->file_number)->first();
-                    @endphp
+                        @if($staff)
+                            
+                            <a href="{{ route('staff.administration_panel', ['id' => $staff->id]) }}"
+                                class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md text-center">
+                                Volver
+                            </a>
+                        @endif
 
-                    @if($staff)
-                        <a href="{{ route('staff.administration_panel', ['id' => $staff->id]) }}"
-                            class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md text-center">
-                            Volver
-                        </a>
-                    @endif
                 </div>
 
             </form>
@@ -400,6 +431,7 @@
 
 
 <style>
+    
     /* Estilos para el título */
     .text-indigo-700 {
         color: #4c51bf;
