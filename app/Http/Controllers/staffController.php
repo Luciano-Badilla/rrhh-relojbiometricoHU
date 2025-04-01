@@ -300,7 +300,7 @@ class staffController extends Controller
     }
 
 
-    private function calculateWorkedHours($entryTime, $exitTime)
+    public function calculateWorkedHours($entryTime, $exitTime)
     {
         $entryTimestamp = strtotime($entryTime);
         $exitTimestamp = strtotime($exitTime);

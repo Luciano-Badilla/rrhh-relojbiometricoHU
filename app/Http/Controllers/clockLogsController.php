@@ -170,7 +170,7 @@ class clockLogsController extends Controller
 
 
 
-    private function createOrUpdateAttendance($entryLog, $exitLog = null)
+    public function createOrUpdateAttendance($entryLog, $exitLog = null)
     {
         $date = date('Y-m-d', strtotime($entryLog->timestamp));
         $entryTime = date('H:i:s', strtotime($entryLog->timestamp));
@@ -264,7 +264,7 @@ class clockLogsController extends Controller
 
 
 
-    private function createNonAttendance($file_number)
+    public function createNonAttendance($file_number)
     {
         $staff = Staff::where('file_number', $file_number)->first();
         $years = ClockLogs::all()->pluck('timestamp')->map(fn($timestamp) => Carbon::parse($timestamp)->year)->unique()->sortDesc()->values();

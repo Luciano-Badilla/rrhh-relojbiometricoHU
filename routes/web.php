@@ -51,8 +51,9 @@ Route::middleware(['auth', 'verified', CheckRole::class . ':2'])->group(function
     Route::post('/category/add', [categoryController::class, 'add'])->name('category.add');
     Route::post('/category/edit', [categoryController::class, 'edit'])->name('category.edit');
 
-    Route::get('/reports/nonAttendance', [reportsController::class, 'nonAttendanceIndex'])->name('reportView.nonAttendance');
-    Route::get('/reports/nonAttendance/search', [reportsController::class, 'nonAttendanceSearch'])->name('reportSearch.nonAttendance');
+    Route::get('/reports/nonAttendanceByArea', [reportsController::class, 'nonAttendanceByAreaIndex'])->name('reportView.nonAttendance');
+    Route::get('/reports/nonAttendanceByArea/search', [reportsController::class, 'nonAttendanceByAreaSearch'])->name('reportSearch.nonAttendance');
+    Route::post('/reports/nonAttendanceByArea/export', [reportsController::class, 'nonAttendanceByAreaExport'])->name('reportExport.nonAttendanceByArea');
 
 
     Route::get('/individual_hours_report', [reports::class, 'individual_hours'])->name('report.individual_hours');

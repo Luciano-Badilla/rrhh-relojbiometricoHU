@@ -55,7 +55,7 @@
                             <ul class="dropdown-menu rounded-lg border-gray-300">
                                 <x-dropdown-link :href="route('reportView.nonAttendance')" :active="request()->routeIs('reportView.nonAttendance')"
                                     class="no-underline block px-4 py-1 text-sm text-gray-700 hover:bg-gray-100">
-                                    Inasistencias
+                                    Ausentismo
                                 </x-dropdown-link>
                             </ul>
                         </div>
