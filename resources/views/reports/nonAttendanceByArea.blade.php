@@ -56,6 +56,23 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div class="w-1/4">
+                            <label for="absenceReason"
+                                class="block text-sm font-medium text-gray-700">Motivo/Justificación:</label>
+                            <select id="absenceReason_select" name="absenceReason_id" title="Seleccione un motivo"
+                                class="selectpicker border-gray-300 rounded-xl shadow-sm" data-live-search="true"
+                                data-width="100%">
+                                <option value="">
+                                    Seleccione un motivo
+                                </option>
+                                @foreach ($absenceReasons as $absenceReason)
+                                    <option value="{{ $absenceReason->id }}"
+                                        {{ old('absenceReason_id') == $absenceReason->id ? 'selected' : '' }}>
+                                        {{ $absenceReason->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
                         <x-button :button="[
                             'id' => 'search-btn',
                             'type' => 'submit',
@@ -121,15 +138,15 @@
                             <div class="p-3 border border-gray-300 rounded-xl mt-2 shadow-sm">
                                 <div class="flex gap-3 justify-between">
                                     <h2 class="font-semibold text-md text-gray-800 leading-tight mb-2">
-                                        {{ $staff->name_surname }}
+                                        {{ '#' . $staff->file_number . ' ' . $staff->name_surname }}
                                     </h2>
                                     <p
                                         class="font-semibold text-md text-gray-800 leading-tight px-2 rounded-full mb-2.5">
                                         {{ $nonAttendances->where('file_number', $staff->file_number)->count() == 1 ? $nonAttendances->where('file_number', $staff->file_number)->count() . ' inasistencia' : $nonAttendances->where('file_number', $staff->file_number)->count() . ' inasistencias' }}
                                     </p>
                                 </div>
-                                <x-table class="rounded-none" id="non_attendance-list" :headers="['Día', 'Fecha', 'Motivo']"
-                                    :fields="['day', 'date', 'absenceReason']" :data="$nonAttendances->where('file_number', $staff->file_number)" />
+                                <x-table class="rounded-none" id="non_attendance-list" :headers="['#', 'Día', 'Fecha', 'Motivo/Justificación']"
+                                    :fields="['counter', 'day', 'date_formated', 'absenceReason']" :data="$nonAttendances->where('file_number', $staff->file_number)" />
                             </div>
                         @endif
                     @endforeach
@@ -161,6 +178,7 @@
         const date_from = $('#date_from');
         const date_to = $('#date_to');
         const area_select = $('#area_select');
+        const absenceReason_select = $('#absenceReason_select');
         const content = $('#content');
         const loading_overlay = $('#loading-overlay');
         const search_form = $('#search_form');
@@ -168,6 +186,11 @@
         // Mantener el área seleccionada después de la recarga
         if ("{{ old('area_id') }}") {
             area_select.val("{{ old('area_id') }}");
+        }
+
+        // Mantener el área seleccionada después de la recarga
+        if ("{{ old('absenceReason_id') }}") {
+            area_select.val("{{ old('absenceReason_id') }}");
         }
 
         // Verificar si el checkbox estaba marcado antes de la recarga y actualizar la UI
@@ -187,8 +210,6 @@
 
         // Evento al hacer clic en el checkbox
         date_range_checkbox.change(function() {
-            date.val(null);
-            date_from.val(null);
             date_to.val(null);
             if ($(this).prop('checked')) {
                 date_range_div.removeClass('hidden');
@@ -196,12 +217,15 @@
                 date_to.attr('required', true);
                 date.removeAttr('required');
                 date_div.addClass('hidden');
+                date_from.val(date.val());
             } else {
                 date_div.removeClass('hidden');
                 date_range_div.addClass('hidden');
                 date_from.removeAttr('required');
                 date_to.removeAttr('required');
                 date.attr('required', true);
+                date.val(date_from.val());
+
             }
         });
 

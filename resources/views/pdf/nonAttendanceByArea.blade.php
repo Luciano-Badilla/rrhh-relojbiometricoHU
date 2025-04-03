@@ -77,6 +77,7 @@
                 <table class="table-css">
                     <thead>
                         <tr>
+                            <th>#</th>
                             <th>Día</th>
                             <th>Fecha</th>
                             <th>Motivo/Justificación</th>
@@ -85,8 +86,9 @@
                     <tbody>
                         @foreach ($staffAbsences as $absence)
                             <tr>
+                                <td>{{ $absence['counter'] }}</td>
                                 <td>{{ $absence['day'] }}</td>
-                                <td>{{ $absence['date'] }}</td>
+                                <td>{{ $absence['date_formated'] }}</td>
                                 <td>{{ $absence['absenceReason'] ?? '-' }}</td>
                             </tr>
                         @endforeach
