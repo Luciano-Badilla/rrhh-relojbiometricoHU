@@ -300,7 +300,7 @@
                 <div class="flex">
                     <div class="flex flex-row gap-3 justify-left w-full px-3">
                         <x-card title="Días completados:" icon="fa-solid fa-calendar-check" :content="$days" :clickeable="false" class="cursor-default" />
-                        <x-card title="Horas:" icon="fa-solid fa-calendar-check" :content="$totalHours" :clickeable="false" class="cursor-default" />
+                        <x-card title="Horas totales:" icon="fa-solid fa-calendar-check" :content="$totalHours" :clickeable="false" class="cursor-default" />
                         <x-card title="Promedio de horas:" icon="fa-chart-pie" :content="$hoursAverage" :clickeable="false" class="cursor-default" />
                         <x-card title="Horas adicionales:" icon="fa-solid fa-clock-rotate-left" :content="$totalExtraHours" :clickeable="false" class="cursor-default" />
                     </div>

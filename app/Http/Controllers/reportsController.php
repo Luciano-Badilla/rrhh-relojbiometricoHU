@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\absenceReason;
 use App\Models\area;
 use App\Models\clockLogs;
 use App\Models\devices;
@@ -21,27 +22,31 @@ class reportsController extends Controller
     public function nonAttendanceByAreaIndex(Request $request)
     {
         $areas = area::all();
+        $absenceReasons = absenceReason::all();
 
         return view('reports.nonAttendanceByArea', [
-            'areas' => $areas,
+            'absenceReasons' => $absenceReasons->sortBy('name'),
+            'areas' => $areas->sortBy('name'),
             'nonAttendances' => session('nonAttendances'),  // Pasar la variable desde la sesión si es necesario
             'staffs' => session('staffs') ? collect(session('staffs'))->sortBy('name_surname') : collect(), // Recuperar staffs
             'area_selected' => session('area_selected') ?? null,
+            'absenceReason_selected' => session('absenceReason_selected') ?? null,
             'dates' =>  session('dates') ?? null,
         ]);
     }
 
-    public function nonAttendanceByAreaSearch (Request $request)
+    public function nonAttendanceByAreaSearch(Request $request)
     {
         $clockLogsController = new clockLogsController();
         $date_range_checkbox = $request->input('date_range_checkbox');
         $area_id = $request->input('area_id');
+        $absenceReason_id = $request->input('absenceReason_id');
         $area = area::find($area_id);
         $staffs = staff_area::where('area_id', $area_id)->with('staff')->get()->pluck('staff');
-        $file_numbers = $staffs->pluck('file_number');
+        $file_numbers = $staffs->where('marking', true)->pluck('file_number');
         $devices = devices::all();
         $areas = area::all();
-
+        $absenceReasons = absenceReason::all();
 
         $devicesLogs = $this->getDeviceLogs($devices);
 
@@ -54,25 +59,65 @@ class reportsController extends Controller
             $date_to = Carbon::parse($request->input('date_to'));
 
             //$clockLogs = clockLogs::whereDate('timestamp', '>=', $date_from)->whereDate('timestamp', '<=', $date_to)->get();
+            $counter = 1;
+            $lastFileNumber = null;
 
-            $nonAttendances = NonAttendance::where('date', '>=', $date_from)->where('date', '<=', $date_to)->whereIn('file_number', $file_numbers)->with('staff')->get()->map(function ($item) {
-                // Formatear las fechas en formato dd/mm/yy
-                $item->date = Carbon::parse($item->date)->format('d/m/y');
-                $item->day = Carbon::createFromFormat('d/m/y', $item->date)->locale('es')->translatedFormat('l');
-                $item->day = ucfirst($item->day);
-                $item->absenceReason = $item->absenceReason->name ?? null;
+            $nonAttendances = NonAttendance::where('date', '>=', $date_from)
+                ->where('date', '<=', $date_to)
+                ->whereIn('file_number', $file_numbers)
+                ->when(!is_null($absenceReason_id), function ($query) use ($absenceReason_id) {
+                    return $query->whereIn('absenceReason_id', [$absenceReason_id]);
+                })
+                ->with('staff')
+                ->orderBy('file_number', 'ASC')
+                ->orderBy('date', 'ASC')
+                ->get()
+                ->map(function ($item) use (&$counter, &$lastFileNumber) {
+                    if ($item->file_number !== $lastFileNumber && $lastFileNumber !== null) {
+                        $counter = 1;
+                        $item->counter = 1;
+                        $counter++;
+                    } elseif ($item->file_number === $lastFileNumber) {
+                        $item->counter = $counter;
+                        $counter++;
+                    } else {
+                        $item->counter = 1;
+                        $counter++;
+                    }
+                    $lastFileNumber = $item->file_number;
 
-                return $item;
-            });
+                    $item->date_formated = Carbon::parse($item->date)->format('d/m/y');
+                    $item->day = Carbon::createFromFormat('d/m/y', $item->date_formated)->locale('es')->translatedFormat('l');
+                    $item->day = ucfirst($item->day);
+                    $item->absenceReason = $item->absenceReason->name ?? null;
+
+                    return $item;
+                });
         } else {
+
+            $counter = 1;
+            $lastFileNumber = null;
             $date = $request->input('date');
-
             //$clockLogs = clockLogs::whereDate('timestamp', '>=', $date)->get();
+            $nonAttendances = NonAttendance::where('date', $date)->whereIn('file_number', $file_numbers)->when(!is_null($absenceReason_id), function ($query) use ($absenceReason_id) {
+                return $query->whereIn('absenceReason_id', [$absenceReason_id]);
+            })->orderBy('file_number', 'ASC')->orderBy('date', 'ASC')->get()->map(function ($item) use (&$counter, &$lastFileNumber) {
 
-            $nonAttendances = NonAttendance::where('date', $date)->whereIn('file_number', $file_numbers)->get()->map(function ($item) {
-                // Formatear las fechas en formato dd/mm/yy
-                $item->date = Carbon::parse($item->date)->format('d/m/y');
-                $item->day = Carbon::createFromFormat('d/m/y', $item->date)->locale('es')->translatedFormat('l');
+                if ($item->file_number !== $lastFileNumber && $lastFileNumber !== null) {
+                    $counter = 1;
+                    $item->counter = 1;
+                    $counter++;
+                } elseif ($item->file_number === $lastFileNumber) {
+                    $item->counter = $counter;
+                    $counter++;
+                } else {
+                    $item->counter = 1;
+                    $counter++;
+                }
+                $lastFileNumber = $item->file_number;
+
+                $item->date_formated = Carbon::parse($item->date)->format('d/m/y');
+                $item->day = Carbon::createFromFormat('d/m/y', $item->date_formated)->locale('es')->translatedFormat('l');
                 $item->day = ucfirst($item->day);
                 $item->absenceReason = $item->absenceReason->name ?? null;
 
@@ -84,8 +129,9 @@ class reportsController extends Controller
         return redirect()->route('reportView.nonAttendance')
             ->withInput()
             ->with([
-                'nonAttendances' => $nonAttendances->sortBy('date'),
-                'areas' => $areas,
+                'nonAttendances' => $nonAttendances,
+                'areas' => $areas->sortBy('name'),
+                'absenceReasons' => $absenceReasons->sortBy('name'),
                 'staffs' => $staffs->sortBy('name_surname'),
                 'area_selected' => $area->name,
                 'dates' => $date_range_checkbox ? 'Desde el ' . $date_from->format('d/m/y') . ' Hasta el ' . $date_to->format('d/m/y') : Carbon::parse($date)->format('d/m/y')
