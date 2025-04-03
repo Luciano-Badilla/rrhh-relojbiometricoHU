@@ -1,5 +1,5 @@
 @php
-    $nonAttendances = json_decode($nonAttendances, true);
+    $tardies = json_decode($tardies, true);
     $staffs = json_decode($staffs, true);
 @endphp
 
@@ -8,7 +8,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Reporte de Asistencia</title>
+    <title>Reporte de Tardanzas</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -53,7 +53,7 @@
         /* Fecha */
         th:nth-child(4),
         td:nth-child(4) {
-            width: 20%;
+            width: 25%;
         }
 
         /* Entrada */
@@ -66,6 +66,10 @@
         th:nth-child(6),
         td:nth-child(6) {
             width: 25%;
+        }
+        th:nth-child(7),
+        td:nth-child(7) {
+            width: 30%;
         }
 
         /* Horas cumplidas */
@@ -95,40 +99,45 @@
 <body>
 
     <div class="header">Universidad Nacional de Cuyo - Hospital Universitario</div>
-    <div class="header">Reporte de ausentismo</div>
+    <div class="header">Reporte de tardanzas</div>
     <p><strong>Area:</strong> {{ $area_selected }}</p>
     <p><strong>Fecha:</strong> {{ $dates }}</p>
+    <p><strong>Tolerancia:</strong> {{ $tolerance }} minutos</p>
 
-    @isset($nonAttendances)
+    @isset($tardies)
         @foreach ($staffs as $staff)
             @php
-                $staffAbsences = array_filter($nonAttendances, function ($absence) use ($staff) {
-                    return $absence['file_number'] === $staff['file_number'];
+                $staffTardies = array_filter($tardies, function ($ardies) use ($staff) {
+                    return $ardies['file_number'] === $staff['file_number'];
                 });
             @endphp
 
-            @if (count($staffAbsences) > 0)
+            @if (count($staffTardies) > 0)
                 <p class="sub-header">#{{ $staff['file_number'] . ' ' . $staff['name_surname'] }} -
-                    {{ count($staffAbsences) }}
-                    Inasistencia{{ count($staffAbsences) > 1 ? 's' : '' }}</p>
+                    {{ count($staffTardies) }}
+                    Tardanza{{ count($staffTardies) > 1 ? 's' : '' }}</p>
                 <table class="table-css">
                     <thead>
                         <tr>
                             <th>#</th>
                             <th>Día</th>
                             <th>Fecha</th>
-                            <th>Motivo/Justificación</th>
-                            <th>Observaciones</th>
+                            <th>Horario</th>
+                            <th>Entrada</th>
+                            <th>Salida</th>
+                            <th>Horas cumplidas</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($staffAbsences as $absence)
+                        @foreach ($staffTardies as $tardy)
                             <tr>
-                                <td>{{ $absence['counter'] }}</td>
-                                <td>{{ $absence['day'] }}</td>
-                                <td>{{ $absence['date_formated'] }}</td>
-                                <td>{{ $absence['absenceReason'] ?? '-' }}</td>
-                                <td>{{ $absence['observations'] ?? '-' }}</td>
+                                <td>{{ $tardy['counter'] }}</td>
+                                <td>{{ $tardy['day'] }}</td>
+                                <td>{{ $tardy['date_formated'] }}</td>
+                                <td>{{ $tardy['asssignedSchedule'] ?? '-' }}</td>
+                                <td>{{ $tardy['entryTime'] ?? '-' }}</td>
+                                <td>{{ $tardy['departureTime'] ?? '-' }}</td>
+                                <td>{{ $tardy['hoursCompleted'] ?? '-' }}</td>
                             </tr>
                         @endforeach
                     </tbody>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\absenceReason;
 use App\Models\area;
+use App\Models\attendance;
 use App\Models\clockLogs;
 use App\Models\devices;
 use App\Models\NonAttendance;
@@ -147,6 +148,173 @@ class reportsController extends Controller
 
         // Cargar la vista y generar el PDF
         $pdfInstance = $pdf->loadView('pdf.nonAttendanceByArea', $data);
+
+        return $pdfInstance->stream($request->file_name . '.pdf');
+    }
+
+    public function tardiesByAreaIndex(Request $request)
+    {
+        $areas = area::all();
+
+        return view('reports.tardiesByArea', [
+            'areas' => $areas->sortBy('name'),
+            'tardies' => session('tardies'),  // Pasar la variable desde la sesión si es necesario
+            'staffs' => session('staffs') ? collect(session('staffs'))->sortBy('name_surname') : collect(), // Recuperar staffs
+            'area_selected' => session('area_selected') ?? null,
+            'tolerance' => session('tolerance') ?? null,
+            'dates' =>  session('dates') ?? null,
+        ]);
+    }
+
+    public function tardiesByAreaSearch(Request $request)
+    {
+        $clockLogsController = new clockLogsController();
+        $date_range_checkbox = $request->input('date_range_checkbox');
+        $tolerance = $request->input('tolerance');
+        $area_id = $request->input('area_id');
+        $area = area::find($area_id);
+        $staffs = staff_area::where('area_id', $area_id)->with('staff')->get()->pluck('staff');
+        $file_numbers = $staffs->where('marking', true)->pluck('file_number');
+        $devices = devices::all();
+        $areas = area::all();
+
+        $devicesLogs = $this->getDeviceLogs($devices);
+
+        foreach ($file_numbers as $file_number) {
+            $this->processClockLogs($devicesLogs, $file_number);
+            $clockLogsController->updateAttendanceFromClockLogs($file_number);
+        }
+
+        if ($date_range_checkbox) {
+            $date_from = Carbon::parse($request->input('date_from'));
+            $date_to = Carbon::parse($request->input('date_to'));
+            $counter = 1;
+            $lastFileNumber = null;
+
+            $tardies = Attendance::whereBetween('attendance.date', [$date_from, $date_to])
+                ->whereIn('attendance.file_number', $file_numbers)
+                ->join('staff', 'staff.file_number', '=', 'attendance.file_number')
+                ->join('schedule_staff', 'schedule_staff.staff_id', '=', 'staff.id')
+                ->join('schedule', function ($join) {
+                    $join->on('schedule.id', '=', 'schedule_staff.schedule_id')
+                        ->whereRaw('WEEKDAY(attendance.date) + 1 = schedule.day_id');
+                })
+                ->join('shifts', 'shifts.id', '=', 'schedule.shift_id')
+                ->select('attendance.*', DB::raw('ANY_VALUE(shifts.startTime) as startTime'), DB::raw('ANY_VALUE(shifts.endTime) as endTime')) // ✅ Solución con ANY_VALUE()
+                ->groupBy('attendance.id') // ✅ Corregimos el GROUP BY
+                ->orderBy('attendance.file_number', 'ASC')
+                ->orderBy('attendance.date', 'ASC')
+                ->get()
+                ->filter(function ($item) use ($tolerance) { // 🔹 Pasamos la tolerancia
+                    $startTime = $item->startTime ?? null;
+                    $entryTime = $item->entryTime ?? null;
+
+                    if (!$startTime || !$entryTime) {
+                        return false;
+                    }
+
+                    // ✅ Sumamos la tolerancia a startTime
+                    $allowedEntry = Carbon::parse($startTime)->addMinutes($tolerance);
+
+                    return Carbon::parse($entryTime)->greaterThan($allowedEntry);
+                })
+                ->map(function ($item) use (&$counter, &$lastFileNumber) {
+                    if ($item->file_number !== $lastFileNumber && $lastFileNumber !== null) {
+                        $counter = 1;
+                        $item->counter = 1;
+                        $counter++;
+                    } elseif ($item->file_number === $lastFileNumber) {
+                        $item->counter = $counter;
+                        $counter++;
+                    } else {
+                        $item->counter = 1;
+                        $counter++;
+                    }
+                    $lastFileNumber = $item->file_number;
+
+                    $item->date_formated = Carbon::parse($item->date)->format('d/m/y');
+                    $item->day = Carbon::createFromFormat('d/m/y', $item->date_formated)->locale('es')->translatedFormat('l');
+                    $item->day = ucfirst($item->day);
+                    $item->asssignedSchedule = $item->startTime . ' - ' . $item->endTime;
+
+                    return $item;
+                });
+        } else {
+            $counter = 1;
+            $lastFileNumber = null;
+            $date = $request->input('date');
+            $tardies = Attendance::where('date', $date)
+                ->whereIn('attendance.file_number', $file_numbers)
+                ->join('staff', 'staff.file_number', '=', 'attendance.file_number')
+                ->join('schedule_staff', 'schedule_staff.staff_id', '=', 'staff.id')
+                ->join('schedule', function ($join) {
+                    $join->on('schedule.id', '=', 'schedule_staff.schedule_id')
+                        ->whereRaw('WEEKDAY(attendance.date) + 1 = schedule.day_id');
+                })
+                ->join('shifts', 'shifts.id', '=', 'schedule.shift_id')
+                ->select('attendance.*', DB::raw('ANY_VALUE(shifts.startTime) as startTime', 'ANY_VALUE(shifts.endTime) as endTime')) // ✅ Solución con ANY_VALUE()
+                ->groupBy('attendance.id') // ✅ Corregimos el GROUP BY
+                ->orderBy('attendance.file_number', 'ASC')
+                ->orderBy('attendance.date', 'ASC')
+                ->get()
+                ->filter(function ($item) use ($tolerance) { // 🔹 Pasamos la tolerancia
+                    $startTime = $item->startTime ?? null;
+                    $entryTime = $item->entryTime ?? null;
+
+                    if (!$startTime || !$entryTime) {
+                        return false;
+                    }
+
+                    // ✅ Sumamos la tolerancia a startTime
+                    $allowedEntry = Carbon::parse($startTime)->addMinutes($tolerance);
+
+                    return Carbon::parse($entryTime)->greaterThan($allowedEntry);
+                })
+                ->map(function ($item) use (&$counter, &$lastFileNumber) {
+                    if ($item->file_number !== $lastFileNumber && $lastFileNumber !== null) {
+                        $counter = 1;
+                        $item->counter = 1;
+                        $counter++;
+                    } elseif ($item->file_number === $lastFileNumber) {
+                        $item->counter = $counter;
+                        $counter++;
+                    } else {
+                        $item->counter = 1;
+                        $counter++;
+                    }
+                    $lastFileNumber = $item->file_number;
+
+                    $item->date_formated = Carbon::parse($item->date)->format('d/m/y');
+                    $item->day = Carbon::createFromFormat('d/m/y', $item->date_formated)->locale('es')->translatedFormat('l');
+                    $item->day = ucfirst($item->day);
+                    $item->asssignedSchedule = $item->startTime . ' a ' . $item->endTime;
+
+                    return $item;
+                });
+        }
+
+
+        return redirect()->route('reportView.tardies')
+            ->withInput()
+            ->with([
+                'tardies' => $tardies,
+                'areas' => $areas->sortBy('name'),
+                'staffs' => $staffs->sortBy('name_surname'),
+                'area_selected' => $area->name,
+                'tolerance' => $tolerance,
+                'dates' => $date_range_checkbox ? 'Desde el ' . $date_from->format('d/m/y') . ' Hasta el ' . $date_to->format('d/m/y') : Carbon::parse($date)->format('d/m/y')
+            ]);
+    }
+
+    public function tardiesByAreaExport(PDF $pdf, Request $request)
+    {
+        $data = $request->all();
+
+        // Habilitar el soporte para procesamiento de PHP en DomPDF
+        $pdf->set_option('isPhpEnabled', true);
+
+        // Cargar la vista y generar el PDF
+        $pdfInstance = $pdf->loadView('pdf.tardiesByArea', $data);
 
         return $pdfInstance->stream($request->file_name . '.pdf');
     }
