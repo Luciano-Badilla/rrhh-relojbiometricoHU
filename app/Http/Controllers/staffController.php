@@ -292,10 +292,17 @@ class staffController extends Controller
     public function list()
     {
 
-        $staff = staff::all();
+        $staff = Staff::all()->map(function ($item) {
+            // Agregar una nueva clave con los nombres de las áreas
+            $item->areas_name = $item->areas->pluck('name')->implode(', ') ?: 'Sin área asignada';
+            return $item;
+        });
+
+        $areas = area::all();
 
         return view('staff.list', [
             'staff' => $staff->sortBy('name_surname'),
+            'areas' => $areas
         ]);
     }
 
