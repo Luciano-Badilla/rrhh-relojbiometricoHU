@@ -182,7 +182,7 @@ class reportsController extends Controller
 
         foreach ($file_numbers as $file_number) {
             $this->processClockLogs($devicesLogs, $file_number);
-            $clockLogsController->updateAttendanceFromClockLogs($file_number);
+            //$clockLogsController->updateAttendanceFromClockLogs($file_number);
         }
 
         if ($date_range_checkbox) {
