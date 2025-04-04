@@ -57,6 +57,10 @@
                                     class="no-underline block px-4 py-1 text-sm text-gray-700 hover:bg-gray-100">
                                     Ausentismo
                                 </x-dropdown-link>
+                                <x-dropdown-link :href="route('reportView.tardies')" :active="request()->routeIs('reportView.tardies')"
+                                    class="no-underline block px-4 py-1 text-sm text-gray-700 hover:bg-gray-100">
+                                    Tardanzas
+                                </x-dropdown-link>
                             </ul>
                         </div>
                     </div>
