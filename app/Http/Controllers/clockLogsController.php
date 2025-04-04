@@ -262,8 +262,6 @@ class clockLogsController extends Controller
         }
     }
 
-
-
     public function createNonAttendance($file_number)
     {
         $staff = Staff::where('file_number', $file_number)->first();
