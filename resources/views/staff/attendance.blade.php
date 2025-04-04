@@ -512,7 +512,7 @@
                                     </div>
                                     
                                 </div>
-                                    <x-table id="non_attendance-list" :headers="['Día', 'Fecha', 'Motivo']" :fields="['day', 'date', 'absenceReason']"
+                                    <x-table id="non_attendance-list" :headers="['Día', 'Fecha', 'Motivo', 'Observaciones']" :fields="['day', 'date', 'absenceReason', 'observations']"
                                         :data="$nonAttendance" :buttons="[
                                             [
                                                 'id' => 'add_nonattendance_btn',
