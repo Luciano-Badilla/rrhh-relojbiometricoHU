@@ -13,33 +13,56 @@
                 </div>
             @endif
             <div class="flex justify-between items-center p-3">
-    <!-- Contenedor del buscador y botón de agregar staff -->
-    <div class="flex items-center space-x-3">
-        <!-- Campo de búsqueda -->
-        <div class="relative">
-            <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true"
-                    xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
-                </svg>
-            </div>
-            <x-text-input id="table-search" type="text" placeholder="Buscar..." class="ps-10" autofocus />
-        </div>
+                <!-- Contenedor del buscador y botón de agregar staff -->
+                <div class="flex items-center space-x-3">
+                    <!-- Campo de búsqueda -->
+                    <div class="relative">
+                        <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                            <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                    stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
+                            </svg>
+                        </div>
+                        <x-text-input id="table-search" type="text" placeholder="Buscar..." class="ps-10" autofocus />
+                    </div>
 
-        <!-- Botón de agregar staff -->
+                    <!-- Botón de agregar staff -->
+                    <x-button :button="[
+        'id' => 'add-staff-btn',
+        'type' => 'button',
+        'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
+        'icon' => '<i class=\'fa-solid fa-plus\'></i>',
+        'tooltip' => true,
+        'tooltip_text' => 'Nuevo personal'
+    ]" />
+    <div class="flex items-center space-x-2 w-1/2 h-10">
+        <select id="area-select" name="area_id" required title="Selecciona un área"
+            class="selectpicker border-gray-300 rounded-xl shadow-sm" data-live-search="true"
+            data-width="100%">
+            <option value="">Todas las áreas</option> <!-- Opción por defecto -->
+            @foreach ($areas as $area)
+                <option value="{{ $area->name }}" {{ old('area_id') == $area->id ? 'selected' : '' }}>
+                    {{ $area->name }}
+                </option>
+            @endforeach
+        </select>
+
+        <!-- Botón para limpiar el select -->
         <x-button :button="[
-            'id' => 'add-staff-btn',
-            'type' => 'button',
-            'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
-            'icon' => '<i class=\'fa-solid fa-plus\'></i>',
-            'tooltip' => true,
-            'tooltip_text' => 'Nuevo personal',
-        ]" />
+'id' => 'clear-area-select',
+'type' => 'button',
+'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
+'icon' => '<i class=\'fa-solid fa-filter-circle-xmark\'></i>',
+'tooltip' => true,
+'tooltip_text' => 'Todas las áreas'
+]" />
     </div>
+                </div>
 
-    <!-- Botón de backup (se mantiene en la misma posición) -->
-    <x-button :button="[
+
+                <!-- Botón de backup (se mantiene en la misma posición) -->
+                <x-button :button="[
         'id' => 'backup-btn',
         'type' => 'button',
         'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
@@ -48,17 +71,13 @@
         'tooltip_text' => 'Backup de marcadas',
         'loading' => true,
     ]" />
-</div>
+            </div>
 
 
             <div class="m-3">
                 <!-- Tabla -->
-                <x-table id="staff-list" 
-    :headers="['Legajo', 'Nombre']" 
-    :fields="['file_number', 'name_surname']"
-    :data="$staff"
-    :row-classes="fn($row) => $row->inactive_since ? 'bg-red-100' : ''"
-    :links="[
+                <x-table id="staff-list" :headers="['Legajo', 'Nombre', 'Áreas']" :fields="['file_number', 'name_surname', 'areas_name']"
+                    :data="$staff" :row-classes="fn($row) => $row->inactive_since ? 'bg-red-100' : ''" :links="[
         [
             'id' => 'administration_panel_btn',
             'route' => 'staff.administration_panel',
@@ -67,8 +86,7 @@
             'tooltip' => true,
             'tooltip_text' => 'Panel administrativo',
         ]
-    ]" 
-/>
+    ]" />
 
             </div>
         </div>
@@ -77,21 +95,36 @@
 <script>
     document.addEventListener("DOMContentLoaded", () => {
         const searchInput = document.getElementById("table-search");
+        const searchSelect = document.getElementById("area-select");
         const table = document.getElementById("staff-list");
         const rows = table.querySelectorAll("tbody tr");
 
-        searchInput.addEventListener("input", () => {
-            const filter = searchInput.value.toLowerCase();
+        function filterTable() {
+        const textFilter = searchInput.value.toLowerCase();
+        const areaFilter = searchSelect.value.toLowerCase();
 
-            rows.forEach(row => {
-                const cells = row.querySelectorAll("td");
-                const rowText = Array.from(cells)
-                    .map(cell => cell.textContent.toLowerCase())
-                    .join(" ");
+        rows.forEach(row => {
+            const cells = row.querySelectorAll("td");
+            const rowText = Array.from(cells)
+                .map(cell => cell.textContent.toLowerCase())
+                .join(" ");
 
-                row.style.display = rowText.includes(filter) ? "" : "none";
-            });
+            const matchesText = rowText.includes(textFilter);
+            const matchesArea = !areaFilter || rowText.includes(areaFilter);
+
+            row.style.display = (matchesText && matchesArea) ? "" : "none";
         });
+    }
+
+    // Evento para limpiar el select
+    document.getElementById("clear-area-select").addEventListener("click", () => {
+        searchSelect.value = "";
+        $('.selectpicker').selectpicker('refresh'); // Solo si usas Bootstrap select
+        filterTable();
+    });
+
+        searchInput.addEventListener("input", filterTable);
+        searchSelect.addEventListener("change", filterTable);
 
         $('.administration_panel_btn').click(function () {
             localStorage.removeItem('page_loaded');
@@ -112,12 +145,13 @@
                     custom_alert(error, 'error');
                 }
             });
-
         });
 
         $('#add-staff-btn').click(function () {
             window.location.href = "{{ route('staff.create') }}";
         });
-
     });
+
+    
+
 </script>
