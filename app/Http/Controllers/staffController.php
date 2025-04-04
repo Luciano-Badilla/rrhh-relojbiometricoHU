@@ -9,6 +9,7 @@ use App\Models\NonAttendance;
 use App\Models\category;
 use App\Models\schedule_staff;
 use App\Models\shift;
+use App\Models\collective_agreement;
 use App\Models\area;
 use App\Models\staff;
 use App\Models\schedule;
@@ -43,7 +44,7 @@ class staffController extends Controller
         $validatedData = $request->validate([
             'name_surname' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
-            'file_number' => 'nullable|string|max:255',
+            'file_number' => 'string|max:255',
             'category_id' => 'nullable|integer',
             'coordinator_id' => 'nullable|integer',
             'secretary_id' => 'nullable|integer',
@@ -88,7 +89,7 @@ class staffController extends Controller
     {
         $staff = Staff::find($id); // Encuentra el registro del staff
         $categories = Category::all()->pluck('name', 'id');
-        $scales = Scale::all()->pluck('name', 'id');
+        $collective_agreement = collective_agreement::all();
         $secretaries = Secretary::all()->pluck('name', 'id');
         $schedules = $staff->schedules;
         $vacations = Vacations::where('staff_id', $staff->file_number)->orderBy('year')->get();
@@ -109,7 +110,7 @@ class staffController extends Controller
         return view('staff.management', [
             'staff' => $staff,
             'categories' => $categories,
-            'scales' => $scales,
+            'collective_agreement' => $collective_agreement,
             'secretaries' => $secretaries,
             'coordinators' => $coordinators,
             'vacations' => $vacations,
@@ -326,11 +327,13 @@ class staffController extends Controller
 
     public function update(Request $request, $id)
     {
+        //dd($request->all());
         // Valida los datos del formulario
         $request->validate([
             'file_number' => 'required|string|max:255',
             'coordinator' => 'nullable|integer',
             'secretary' => 'nullable|integer',
+            'collective_agreement_id' => 'nullable|integer',
             'name_surname' => 'required|string|max:255',
             'category' => 'nullable|integer',
             'email' => 'nullable|email|max:255',
@@ -350,6 +353,7 @@ class staffController extends Controller
         $staff->file_number = $request->input('file_number');
         $staff->coordinator_id = $request->input('coordinator');
         $staff->secretary_id = $request->input('secretary');
+        $staff->collective_agreement_id = $request->input('collective_agreement_id');
         $staff->name_surname = $request->input('name_surname');
         $staff->category_id = $request->input('category');
         $staff->email = $request->input('email');
