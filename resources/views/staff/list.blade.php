@@ -4,6 +4,29 @@
             {{ __('Lista del Personal') }}
         </h2>
     </x-slot>
+    <x-modal-custom id="add_staff_modal" title="Nuevo personal" subtitle="">
+        <form action="{{ route('staff.store') }}" method="POST" id="add_attendance_form">
+            @csrf
+            <div class="px-3 flex flex-col gap-3 justify-center items-center">
+                <div class="flex flex-col gap-3 w-full">
+                    <div>
+                        <x-input-label for="name_surname" value="Nombre y Apellido" />
+                        <x-text-input id="name_surname" type="text" name="name_surname" placeholder="Nombre completo"
+                            class="mt-1 block w-full" required />
+                    </div>
+                    <div>
+                        <x-input-label for="file_number" value="Legajo" />
+                        <x-text-input id="file_number" class="w-full" type="text" name="file_number"
+                            placeholder="Número de legajo" required />
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end px-3 mt-3">
+                <button type="submit" class="btn btn-success rounded-xl" >Agregar
+                </button>
+            </div>
+        </form>
+    </x-modal-custom>
 
     <div class="flex items-center justify-center py-6">
         <div class="bg-white rounded-xl w-full lg:w-2/4">
@@ -29,13 +52,14 @@
 
                     <!-- Botón de agregar staff -->
                     <x-button :button="[
-        'id' => 'add-staff-btn',
-        'type' => 'button',
-        'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
-        'icon' => '<i class=\'fa-solid fa-plus\'></i>',
-        'tooltip' => true,
-        'tooltip_text' => 'Nuevo personal'
-    ]" />
+                    'id' => 'add-btn',
+                    'type' => 'button',
+                    'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
+                    'icon' => '<i class=\'fa-solid fa-plus\'></i>',
+                    'tooltip' => true,
+                    'tooltip_text' => 'Crear staff',
+                    'modal_id' => 'add_staff_modal',
+                ]" />
     <div class="flex items-center space-x-2 w-1/2 h-10">
         <select id="area-select" name="area_id" required title="Selecciona un área"
             class="selectpicker border-gray-300 rounded-xl shadow-sm" data-live-search="true"
