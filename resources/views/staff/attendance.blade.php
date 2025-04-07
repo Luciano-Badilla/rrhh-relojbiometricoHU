@@ -38,7 +38,7 @@
                 </div>
             </div>
             <div class="flex flex-col px-[7%] mb-3">
-                <label for="observations" class="block text-sm font-medium text-gray-700">Observaciones:</label>
+                <label for="observations" class="block text-sm font-medium text-gray-700">Observaciones: (Se agregara su nombre despues de la observación)</label>
                 <x-text-input id="observations" name="observations" value="Ingreso manual" type="text" class="w-100" required />
             </div>
             <div class="flex justify-end px-3">
@@ -70,7 +70,7 @@
                 </div>
             </div>
             <div class="flex flex-col px-[7%] mb-3 mt-2">
-                <label for="observations" class="block text-sm font-medium text-gray-700">Observaciones:</label>
+                <label for="observations" class="block text-sm font-medium text-gray-700">Observaciones: (Se agregara su nombre despues de la observación)</label>
                 <x-text-input id="observations" name="observations" type="text" value="Ingreso manual" required />
             </div>
             <div class="flex justify-end px-3 gap-2">
@@ -109,13 +109,14 @@
                                 <option value="{{ $absenceReason->id }}">{{ $absenceReason->name }}</option>
                             @endforeach
                         </select>
+                        <p class="text-muted">Decreto: {{$staff->collective_agreement->name ?? 'No asignado'}}</p>
 
                         </div>
                     </div>
                 </div>
             </div>
             <div class="flex flex-col px-[6%] mb-3 mt-1">
-                <label for="observations" class="block text-sm font-medium text-gray-700">Observaciones:</label>
+                <label for="observations" class="block text-sm font-medium text-gray-700">Observaciones: (Se agregara su nombre despues de la observación)</label>
                 <x-text-input id="observations" name="observations" type="text" value="Ingreso manual" required />
             </div>
             <div class="flex justify-end px-3 gap-2">
@@ -130,12 +131,18 @@
             @csrf
             <div class="flex flex-col px-3 mb-3 w-full">
                 <x-text-input id="nonattendance_id" name="nonattendance_id" type="text" class="hidden" />
-                <label for="observations" class="block text-sm font-medium text-gray-700">Justificaciones:</label>
+                <label for="absenceReason_select" class="block text-sm font-medium text-gray-700">Justificaciones:</label>
                 <select id="absenceReason_select" name="absenceReason" class="selectpicker select_modal_2" data-live-search="true" data-width="100%">
                     @foreach ($absenceReasons as $absenceReason)
                         <option value="{{ $absenceReason->id }}">{{ $absenceReason->name }}</option>
                     @endforeach
                 </select>
+                <p class="text-muted">Decreto: {{$staff->collective_agreement->name ?? 'No asignado'}}</p>
+
+            </div>
+            <div class="flex flex-col px-[3%] mb-3 mt-1 w-full">
+                <label for="observations" class="block text-sm font-medium text-gray-700">Observaciones: (Se agregara su nombre despues de la observación)</label>
+                <x-text-input id="observations" name="observations" class="w-full" type="text" value="Justificado por" required />
             </div>
             
             <div class="flex justify-end px-3">

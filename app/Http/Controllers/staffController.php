@@ -150,8 +150,13 @@ class staffController extends Controller
 
         // Para preservar los índices originales, utiliza sortBy y valores por referencia
         $schedules = $schedules->values();
+        
+        if ($staff->collective_agreement) {
+            $absenceReasons = absenceReason::where('decree', $staff->collective_agreement->name)->get();
+        } else {
+            $absenceReasons = collect(); // Devuelve una colección vacía si no hay convenio colectivo
+        }
 
-        $absenceReasons = absenceReason::all();
 
         // Obtener mes y año actuales por si no están presentes en la solicitud
         $month = $request->input('month') ?? now()->month; // Mes actual si no se proporciona
@@ -164,7 +169,7 @@ class staffController extends Controller
             ->get()
             ->map(function ($item) {
                 // Formatear las fechas en formato dd/mm/yy
-    
+
                 $item->date_formated = \Carbon\Carbon::parse($item->date)->format('d/m/y');
                 $item->hoursCompleted = $this->calculateWorkedHours($item->entryTime, $item->departureTime) ?? gmdate('H:i:s', 0);
 
