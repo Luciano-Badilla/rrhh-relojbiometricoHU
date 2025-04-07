@@ -19,6 +19,8 @@ class clockLogs extends Model
         'file_number',
         'timestamp',
         'type_id',
-        'device_id'
+        'device_id',
+        'marking',
+        'inactive'
     ];
 }

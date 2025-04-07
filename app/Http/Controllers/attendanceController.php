@@ -11,6 +11,7 @@ use App\Models\shift;
 use App\Models\staff;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -21,7 +22,7 @@ class attendanceController extends Controller
         $id = $request->input('attendance_id');
         $entryTime = $request->input('entryTime');
         $departureTime = $request->input('departureTime');
-        $observations = $request->input('observations');
+        $observations = $request->input('observations') .' - '.Auth::user()->name .' '. Carbon::now()->format('d/m/Y H:i');
         $file_number = $request->input('file_number');
 
         $attendance = attendance::find($id);
@@ -63,7 +64,7 @@ class attendanceController extends Controller
     {
         $id = $request->input('attendance_id');
         $attendance_time = $request->input('attendance_time');
-        $observations = $request->input('observations');
+        $observations = $request->input('observations') .' - '.Auth::user()->name .' '. Carbon::now()->format('d/m/Y H:i');
         $file_number = $request->input('file_number');
 
         $attendance = attendance::find($id);
@@ -91,9 +92,11 @@ class attendanceController extends Controller
     {
         $id = $nonattendance_id;
         $absenceReason = $request->input('absenceReason');
+        $observations = $request->input('observations') .' - '.Auth::user()->name .' '. Carbon::now()->format('d/m/Y H:i');
 
         $nonattendance = NonAttendance::find($id);
         $nonattendance->absenceReason_id = $absenceReason;
+        $nonattendance->observations = $observations;
         $nonattendance->update();
 
         return redirect()->back()->with('success', 'Inasistencia justificada correctamente');
@@ -107,7 +110,7 @@ class attendanceController extends Controller
         $date = $request->input('attendance_date');
         $entryTime = $request->input('entryTime');
         $departureTime = $request->input('departureTime');
-        $observations = $request->input('observations');
+        $observations = $request->input('observations') .' - '.Auth::user()->name .' '. Carbon::now()->format('d/m/Y H:i');
 
         if (Carbon::parse($entryTime) > Carbon::parse($departureTime)) {
             return redirect()->back()->with('error', 'La entrada no puede ser despues de la salida');
@@ -242,7 +245,7 @@ class attendanceController extends Controller
         $staff_id = $request->input('staff_id');
         $staff = staff::find($staff_id);
         $absenceReason = $request->input('absenceReason');
-        $observations = $request->input('observations');
+        $observations = $request->input('observations') .' - '.Auth::user()->name .' '. Carbon::now()->format('d/m/Y H:i');
 
         if ($attendance_date_from > $attendance_date_to) {
             return redirect()->back()->with('error', 'La fecha desde: ' . $attendance_date_from->format('d/m/y') . ' no puede ser mayor a la fecha hasta: ' . $attendance_date_to->format('d/m/y'));
