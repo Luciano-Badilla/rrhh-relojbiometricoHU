@@ -22,7 +22,7 @@
                 </div>
             </div>
             <div class="flex justify-end px-3 mt-3">
-                <button type="submit" class="btn btn-success rounded-xl" >Agregar
+                <button type="submit" class="btn btn-success rounded-xl">Agregar
                 </button>
             </div>
         </form>
@@ -47,70 +47,71 @@
                                     stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
                             </svg>
                         </div>
-                        <x-text-input id="table-search" type="text" placeholder="Buscar..." class="ps-10" autofocus />
+                        <x-text-input id="table-search" type="text" placeholder="Buscar..." class="ps-10 h-[2.40rem]"
+                            autofocus />
                     </div>
+                    <div class="flex items-center space-x-2 w-1/2">
+                        <select id="area-select" name="area_id" required title="Selecciona un área"
+                            class="selectpicker border-gray-300 rounded-xl shadow-sm" data-live-search="true">
+                            <option value="">Todas las áreas</option> <!-- Opción por defecto -->
+                            @foreach ($areas as $area)
+                                <option value="{{ $area->name }}" {{ old('area_id') == $area->id ? 'selected' : '' }}>
+                                    {{ $area->name }}
+                                </option>
+                            @endforeach
+                        </select>
 
+                        <!-- Botón para limpiar el select -->
+                        <x-button :button="[
+                            'id' => 'clear-area-select',
+                            'type' => 'button',
+                            'classes' => 'btn btn-dark rounded-xl custom-tooltip h-[2.40rem]',
+                            'icon' => '<i class=\'fa-solid fa-filter-circle-xmark\'></i>',
+                            'tooltip' => true,
+                            'tooltip_text' => 'Todas las áreas',
+                        ]" />
+                    </div>
+                </div>
+                <div>
                     <!-- Botón de agregar staff -->
                     <x-button :button="[
-                    'id' => 'add-btn',
-                    'type' => 'button',
-                    'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
-                    'icon' => '<i class=\'fa-solid fa-plus\'></i>',
-                    'tooltip' => true,
-                    'tooltip_text' => 'Crear staff',
-                    'modal_id' => 'add_staff_modal',
-                ]" />
-    <div class="flex items-center space-x-2 w-1/2 h-10">
-        <select id="area-select" name="area_id" required title="Selecciona un área"
-            class="selectpicker border-gray-300 rounded-xl shadow-sm" data-live-search="true"
-            data-width="100%">
-            <option value="">Todas las áreas</option> <!-- Opción por defecto -->
-            @foreach ($areas as $area)
-                <option value="{{ $area->name }}" {{ old('area_id') == $area->id ? 'selected' : '' }}>
-                    {{ $area->name }}
-                </option>
-            @endforeach
-        </select>
+                        'id' => 'add-btn',
+                        'type' => 'button',
+                        'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
+                        'icon' => '<i class=\'fa-solid fa-plus\'></i>',
+                        'tooltip' => true,
+                        'tooltip_text' => 'Crear staff',
+                        'modal_id' => 'add_staff_modal',
+                    ]" />
 
-        <!-- Botón para limpiar el select -->
-        <x-button :button="[
-'id' => 'clear-area-select',
-'type' => 'button',
-'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
-'icon' => '<i class=\'fa-solid fa-filter-circle-xmark\'></i>',
-'tooltip' => true,
-'tooltip_text' => 'Todas las áreas'
-]" />
-    </div>
+                    <!-- Botón de backup (se mantiene en la misma posición) -->
+                    <x-button :button="[
+                        'id' => 'backup-btn',
+                        'type' => 'button',
+                        'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
+                        'icon' => '<i class=\'fa-solid fa-rotate\'></i>',
+                        'tooltip' => true,
+                        'tooltip_text' => 'Backup de marcadas',
+                        'loading' => true,
+                    ]" />
                 </div>
 
-
-                <!-- Botón de backup (se mantiene en la misma posición) -->
-                <x-button :button="[
-        'id' => 'backup-btn',
-        'type' => 'button',
-        'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
-        'icon' => '<i class=\'fa-solid fa-rotate\'></i>',
-        'tooltip' => true,
-        'tooltip_text' => 'Backup de marcadas',
-        'loading' => true,
-    ]" />
             </div>
 
 
             <div class="m-3">
                 <!-- Tabla -->
-                <x-table id="staff-list" :headers="['Legajo', 'Nombre', 'Áreas']" :fields="['file_number', 'name_surname', 'areas_name']"
-                    :data="$staff" :row-classes="fn($row) => $row->inactive_since ? 'bg-red-100' : ''" :links="[
-        [
-            'id' => 'administration_panel_btn',
-            'route' => 'staff.administration_panel',
-            'classes' => 'btn btn-dark rounded-xl custom-tooltip administration_panel_btn',
-            'icon' => '<i class=\'fas fa-bars\'></i>',
-            'tooltip' => true,
-            'tooltip_text' => 'Panel administrativo',
-        ]
-    ]" />
+                <x-table id="staff-list" :headers="['Legajo', 'Nombre', 'Áreas']" :fields="['file_number', 'name_surname', 'areas_name']" :data="$staff" :row-classes="fn($row) => $row->inactive_since ? 'bg-red-100' : ''"
+                    :links="[
+                        [
+                            'id' => 'administration_panel_btn',
+                            'route' => 'staff.administration_panel',
+                            'classes' => 'btn btn-dark rounded-xl custom-tooltip administration_panel_btn',
+                            'icon' => '<i class=\'fas fa-bars\'></i>',
+                            'tooltip' => true,
+                            'tooltip_text' => 'Panel administrativo',
+                        ],
+                    ]" />
 
             </div>
         </div>
@@ -124,58 +125,55 @@
         const rows = table.querySelectorAll("tbody tr");
 
         function filterTable() {
-        const textFilter = searchInput.value.toLowerCase();
-        const areaFilter = searchSelect.value.toLowerCase();
+            const textFilter = searchInput.value.toLowerCase();
+            const areaFilter = searchSelect.value.toLowerCase();
 
-        rows.forEach(row => {
-            const cells = row.querySelectorAll("td");
-            const rowText = Array.from(cells)
-                .map(cell => cell.textContent.toLowerCase())
-                .join(" ");
+            rows.forEach(row => {
+                const cells = row.querySelectorAll("td");
+                const rowText = Array.from(cells)
+                    .map(cell => cell.textContent.toLowerCase())
+                    .join(" ");
 
-            const matchesText = rowText.includes(textFilter);
-            const matchesArea = !areaFilter || rowText.includes(areaFilter);
+                const matchesText = rowText.includes(textFilter);
+                const matchesArea = !areaFilter || rowText.includes(areaFilter);
 
-            row.style.display = (matchesText && matchesArea) ? "" : "none";
+                row.style.display = (matchesText && matchesArea) ? "" : "none";
+            });
+        }
+
+        // Evento para limpiar el select
+        document.getElementById("clear-area-select").addEventListener("click", () => {
+            searchSelect.value = "";
+            $('.selectpicker').selectpicker('refresh'); // Solo si usas Bootstrap select
+            filterTable();
         });
-    }
-
-    // Evento para limpiar el select
-    document.getElementById("clear-area-select").addEventListener("click", () => {
-        searchSelect.value = "";
-        $('.selectpicker').selectpicker('refresh'); // Solo si usas Bootstrap select
-        filterTable();
-    });
 
         searchInput.addEventListener("input", filterTable);
         searchSelect.addEventListener("change", filterTable);
 
-        $('.administration_panel_btn').click(function () {
+        $('.administration_panel_btn').click(function() {
             localStorage.removeItem('page_loaded');
         });
 
-        $('#backup-btn').click(function () {
+        $('#backup-btn').click(function() {
             $.ajax({
                 url: "{{ route('clockLogs.backup') }}",
                 type: 'GET',
                 data: {
                     _token: '{{ csrf_token() }}'
                 },
-                success: function (response) {
+                success: function(response) {
                     custom_alert(response.message, 'success');
                     window.location.reload();
                 },
-                error: function (xhr, status, error) {
+                error: function(xhr, status, error) {
                     custom_alert(error, 'error');
                 }
             });
         });
 
-        $('#add-staff-btn').click(function () {
+        $('#add-staff-btn').click(function() {
             window.location.href = "{{ route('staff.create') }}";
         });
     });
-
-    
-
 </script>

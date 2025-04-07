@@ -152,7 +152,7 @@ class reportsController extends Controller
                 'absenceReasons' => $absenceReasons->sortBy('name'),
                 'staffs' => $staffs->sortBy('name_surname'),
                 'area_selected' => $area->name,
-                'dates' => $date_range_checkbox ? 'Desde el ' . $date_from->format('d/m/y') . ' Hasta el ' . $date_to->format('d/m/y') : (Carbon::parse($date)->format('d/m/y') == Carbon::now()->format('d/m/y') ? Carbon::now()->format('d/m/y H:i') : Carbon::parse($date)->format('d/m/y'))
+                'dates' => $date_range_checkbox ? 'Desde el ' . $date_from->format('d/m/y') . ' hasta el ' . $date_to->format('d/m/y') : (Carbon::parse($date)->format('d/m/y') == Carbon::now()->format('d/m/y') ? Carbon::now()->format('d/m/y H:i') : Carbon::parse($date)->format('d/m/y'))
             ]);
     }
 
@@ -336,7 +336,7 @@ class reportsController extends Controller
                 'staffs' => $staffs->sortBy('name_surname'),
                 'area_selected' => $area->name,
                 'tolerance' => $tolerance,
-                'dates' => $date_range_checkbox ? 'Desde el ' . $date_from->format('d/m/y') . ' Hasta el ' . $date_to->format('d/m/y') : Carbon::parse($date)->format('d/m/y')
+                'dates' => $date_range_checkbox ? 'Desde el ' . $date_from->format('d/m/y') . ' hasta el ' . $date_to->format('d/m/y') : Carbon::parse($date)->format('d/m/y')
             ]);
     }
 
@@ -350,7 +350,9 @@ class reportsController extends Controller
         // Cargar la vista y generar el PDF
         $pdfInstance = $pdf->loadView('pdf.tardiesByArea', $data);
 
-        return $pdfInstance->stream($request->file_name . '.pdf');
+        $fileName = preg_replace('/[\/\\\\:*?"<>|]/', '-', $request->file_name);
+
+        return $pdfInstance->stream($fileName . '.pdf');
     }
 
 

@@ -38,4 +38,8 @@ class staff extends Model
         return $this->belongsToMany(Area::class, 'staff_area', 'staff_id', 'area_id');
     }
 
+    public function collective_agreement()
+    {
+        return $this->belongsTo(collective_agreement::class);
+    }
 }
