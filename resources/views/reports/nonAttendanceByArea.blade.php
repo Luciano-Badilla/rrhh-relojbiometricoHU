@@ -116,10 +116,10 @@
             </div>
             <div id="content" class="px-3">
                 @if (!empty($nonAttendances) && !$nonAttendances->isEmpty())
-                    <form id="export-form" action="{{ route('reportExport.nonAttendanceByArea') }}" method="POST"
+                    <form id="export-form" action="{{ route('reportExport.nonAttendanceByArea') }}" target="_blank" method="POST"
                         class="-mt-8">
                         @csrf
-                        <input type="hidden" name="file_name" value="Reporte de inasistencias">
+                        <input type="hidden" name="file_name" value="Reporte de inasistencias - {{$area_selected .' '.$dates}}">
                         <input type="hidden" name="nonAttendances" id="nonAttendances">
                         <input type="hidden" name="staffs" id="staffs">
                         <input type="hidden" name="area_selected" value="{{ $area_selected }}">
@@ -129,8 +129,7 @@
                             'classes' => 'btn btn-danger rounded-xl custom-tooltip h-[2.40rem] mt-[1.75rem]',
                             'icon' => '<i class=\'fa-solid fa-file-pdf\'></i>',
                             'tooltip_text' => 'Exportar a PDF',
-                            'type' => 'submit',
-                            'loading' => true,
+                            'type' => 'submit'
                         ]" />
                     </form>
                     @foreach ($staffs as $staff)

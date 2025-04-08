@@ -38,6 +38,7 @@ class clockLogsController extends Controller
 
                         // Verificar si el log ya existe en clockLogs
                         $exists = clockLogs::where('uid', $log['uid'])->exists();
+                        $staff = staff::where('file_number', $log['id'])->first();
 
                         if (!$exists) {
                             // Guardar el log si no existe
@@ -45,7 +46,9 @@ class clockLogsController extends Controller
                                 'uid' => $log['uid'],
                                 'file_number' => $log['id'],
                                 'timestamp' => $log['timestamp'],
-                                'device_id' => $device->id
+                                'device_id' => $device->id,
+                                'marking' => $staff?->marking ? $staff?->marking : true,
+                                'inactive' => $staff?->inactive_since ? true : false
                             ]);
                         }
                     }
@@ -87,13 +90,17 @@ class clockLogsController extends Controller
 
                     foreach ($logs as $log) {
                         $exists = clockLogs::where('uid', $log['uid'])->exists();
+                        $staff = staff::where('file_number', $log['id'])->first();
 
                         if (!$exists) {
+                            // Guardar el log si no existe
                             clockLogs::create([
                                 'uid' => $log['uid'],
                                 'file_number' => $log['id'],
                                 'timestamp' => $log['timestamp'],
-                                'device_id' => $device->id
+                                'device_id' => $device->id,
+                                'marking' => $staff?->marking ? $staff?->marking : true,
+                                'inactive' => $staff?->inactive_since ? true : false
                             ]);
                         }
                     }
@@ -136,9 +143,13 @@ class clockLogsController extends Controller
                     // Separar entradas y salidas
                     for ($i = 0; $i < $logsForDay->count(); $i++) {
                         if ($i % 2 == 0) {
-                            $entries[] = $logsForDay[$i];
+                            if ($logsForDay[$i]['marking'] && $logsForDay[$i]['inactive'] == 0) {
+                                $entries[] = $logsForDay[$i];
+                            }
                         } else {
-                            $exits[] = $logsForDay[$i];
+                            if ($logsForDay[$i]['marking'] && $logsForDay[$i]['inactive'] == 0) {
+                                $exits[] = $logsForDay[$i];
+                            }
                         }
                     }
 
@@ -172,143 +183,145 @@ class clockLogsController extends Controller
 
     public function createOrUpdateAttendance($entryLog, $exitLog = null)
     {
-        $date = date('Y-m-d', strtotime($entryLog->timestamp));
-        $entryTime = date('H:i:s', strtotime($entryLog->timestamp));
-        $departureTime = $exitLog ? date('H:i:s', strtotime($exitLog->timestamp)) : null;
-
-        // Buscar el horario del día correspondiente
         $staff = Staff::where('file_number', $entryLog->file_number)->first();
-        $lastChecked = $staff->last_checked;
-        $dayName = ucfirst(Carbon::parse($date)->locale('es')->translatedFormat('l'));
-        $schedule = $staff->schedules->firstWhere('day_id', Day::where('name', $dayName)->value('id'));
+        if ($staff->marking && $staff->inactive_since == null) {
+            $date = date('Y-m-d', strtotime($entryLog->timestamp));
+            $entryTime = date('H:i:s', strtotime($entryLog->timestamp));
+            $departureTime = $exitLog ? date('H:i:s', strtotime($exitLog->timestamp)) : null;
 
-        // Definir valores iniciales
-        $hoursCompleted = '00:00:00';
-        $extraHours = '00:00:00';
+            // Buscar el horario del día correspondiente
+            $lastChecked = $staff->last_checked;
+            $dayName = ucfirst(Carbon::parse($date)->locale('es')->translatedFormat('l'));
+            $schedule = $staff->schedules->firstWhere('day_id', Day::where('name', $dayName)->value('id'));
 
-        // Obtener todas las asistencias del día
-        $attendances = Attendance::where('file_number', $entryLog->file_number)
-            ->where('date', $date)
-            ->get();
+            // Definir valores iniciales
+            $hoursCompleted = '00:00:00';
+            $extraHours = '00:00:00';
 
-        // Calcular el total de horas trabajadas hasta el momento
-        $totalWorkedSeconds = 0;
-        foreach ($attendances as $attendance) {
-            $totalWorkedSeconds += Carbon::createFromFormat('H:i:s', $attendance->hoursCompleted)->diffInSeconds('00:00:00');
-        }
+            // Obtener todas las asistencias del día
+            $attendances = Attendance::where('file_number', $entryLog->file_number)
+                ->where('date', $date)
+                ->get();
 
-        if ($schedule && $departureTime) {
-            // Obtener el turno
-            $shift = Shift::find($schedule->shift_id);
-            if ($shift) {
-                $startTime = Carbon::createFromFormat('H:i:s', $shift->startTime);
-                $endTime = Carbon::createFromFormat('H:i:s', $shift->endTime);
-                $hoursRequiredInSeconds = $startTime->diffInSeconds($endTime);
+            // Calcular el total de horas trabajadas hasta el momento
+            $totalWorkedSeconds = 0;
+            foreach ($attendances as $attendance) {
+                $totalWorkedSeconds += Carbon::createFromFormat('H:i:s', $attendance->hoursCompleted)->diffInSeconds('00:00:00');
+            }
 
-                // Asegurar que la entrada no sea antes del turno
-                $adjustedEntryTime = Carbon::createFromFormat('H:i:s', $entryTime);
-                if ($adjustedEntryTime->lessThan($startTime)) {
-                    $adjustedEntryTime = $startTime;
-                }
+            if ($schedule && $departureTime) {
+                // Obtener el turno
+                $shift = Shift::find($schedule->shift_id);
+                if ($shift) {
+                    $startTime = Carbon::createFromFormat('H:i:s', $shift->startTime);
+                    $endTime = Carbon::createFromFormat('H:i:s', $shift->endTime);
+                    $hoursRequiredInSeconds = $startTime->diffInSeconds($endTime);
 
-                // Calcular horas trabajadas desde la hora ajustada
-                $workedSeconds = $adjustedEntryTime->diffInSeconds(Carbon::createFromFormat('H:i:s', $departureTime));
-                $hoursCompleted = gmdate('H:i:s', $workedSeconds);
+                    // Asegurar que la entrada no sea antes del turno
+                    $adjustedEntryTime = Carbon::createFromFormat('H:i:s', $entryTime);
+                    if ($adjustedEntryTime->lessThan($startTime)) {
+                        $adjustedEntryTime = $startTime;
+                    }
 
-                // Obtener el total de registros (pares de entrada y salida)
-                $totalRecords = ClockLogs::where('file_number', $entryLog->file_number)
-                    ->whereDate('timestamp', $date)
-                    ->count();
-                $attendanceCount = max(1, ceil($totalRecords / 2));
+                    // Calcular horas trabajadas desde la hora ajustada
+                    $workedSeconds = $adjustedEntryTime->diffInSeconds(Carbon::createFromFormat('H:i:s', $departureTime));
+                    $hoursCompleted = gmdate('H:i:s', $workedSeconds);
 
-                // Calcular las horas requeridas por registro
-                $requiredPerRecord = $hoursRequiredInSeconds / $attendanceCount;
+                    // Obtener el total de registros (pares de entrada y salida)
+                    $totalRecords = ClockLogs::where('file_number', $entryLog->file_number)
+                        ->whereDate('timestamp', $date)
+                        ->count();
+                    $attendanceCount = max(1, ceil($totalRecords / 2));
 
-                // Si se superan las horas requeridas, calcular horas extra
-                if ($totalWorkedSeconds + $workedSeconds > $hoursRequiredInSeconds) {
-                    $extraSeconds = ($totalWorkedSeconds + $workedSeconds) - $hoursRequiredInSeconds;
+                    // Calcular las horas requeridas por registro
+                    $requiredPerRecord = $hoursRequiredInSeconds / $attendanceCount;
 
-                    // Ajustar las horas extras en bloques de 15 minutos (900 segundos)
-                    $adjustedExtraSeconds = floor($extraSeconds / 900) * 900;
-                    $extraHours = gmdate('H:i:s', $adjustedExtraSeconds);
+                    // Si se superan las horas requeridas, calcular horas extra
+                    if ($totalWorkedSeconds + $workedSeconds > $hoursRequiredInSeconds) {
+                        $extraSeconds = ($totalWorkedSeconds + $workedSeconds) - $hoursRequiredInSeconds;
+
+                        // Ajustar las horas extras en bloques de 15 minutos (900 segundos)
+                        $adjustedExtraSeconds = floor($extraSeconds / 900) * 900;
+                        $extraHours = gmdate('H:i:s', $adjustedExtraSeconds);
+                    }
                 }
             }
-        }
 
-        // Verificar si ya existe un registro con la misma entrada
-        $existingAttendance = $attendances->firstWhere('entryTime', $entryTime);
+            // Verificar si ya existe un registro con la misma entrada
+            $existingAttendance = $attendances->firstWhere('entryTime', $entryTime);
 
-        if ($existingAttendance) {
-            if ($existingAttendance->date >= $lastChecked) {
-                // Actualizar el registro existente
-                $existingAttendance->update([
-                    'departureTime' => $departureTime ?? $existingAttendance->departureTime,
+            if ($existingAttendance) {
+                if ($existingAttendance->date >= $lastChecked) {
+                    // Actualizar el registro existente
+                    $existingAttendance->update([
+                        'departureTime' => $departureTime ?? $existingAttendance->departureTime,
+                        'hoursCompleted' => $hoursCompleted,
+                        'extraHours' => $extraHours,
+                    ]);
+                }
+            } else {
+                // Crear un nuevo registro si no existe uno igual
+                Attendance::create([
+                    'file_number' => $entryLog->file_number,
+                    'date' => $date,
+                    'entryTime' => $entryTime,
+                    'departureTime' => $departureTime,
                     'hoursCompleted' => $hoursCompleted,
                     'extraHours' => $extraHours,
+                    'day' => $dayName,
+                    'observations' => null,
                 ]);
             }
-        } else {
-            // Crear un nuevo registro si no existe uno igual
-            Attendance::create([
-                'file_number' => $entryLog->file_number,
-                'date' => $date,
-                'entryTime' => $entryTime,
-                'departureTime' => $departureTime,
-                'hoursCompleted' => $hoursCompleted,
-                'extraHours' => $extraHours,
-                'day' => $dayName,
-                'observations' => null,
-            ]);
         }
     }
-
-
 
     public function createNonAttendance($file_number)
     {
         $staff = Staff::where('file_number', $file_number)->first();
-        $years = ClockLogs::all()->pluck('timestamp')->map(fn($timestamp) => Carbon::parse($timestamp)->year)->unique()->sortDesc()->values();
-        $lastChecked = $staff->last_checked;
-        $months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        if ($staff->marking && $staff->inactive_since == null) {
+            $years = ClockLogs::all()->pluck('timestamp')->map(fn($timestamp) => Carbon::parse($timestamp)->year)->unique()->sortDesc()->values();
+            $lastChecked = $staff->last_checked;
+            $months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
-        foreach ($years as $year) {
-            foreach ($months as $month) {
-                $workingDays = $this->getWorkingDays($staff->id, $month, $year);
+            foreach ($years as $year) {
+                foreach ($months as $month) {
+                    $workingDays = $this->getWorkingDays($staff->id, $month, $year);
 
-                foreach ($workingDays as $workingDay) {
-                    $workingDay = Carbon::parse($workingDay)->format('Y-m-d'); // Formatear el día laboral
+                    foreach ($workingDays as $workingDay) {
+                        $workingDay = Carbon::parse($workingDay)->format('Y-m-d'); // Formatear el día laboral
 
-                    // Si la fecha ya fue revisada, se omite
-                    if ($lastChecked && $workingDay <= $lastChecked) {
-                        continue;
-                    }
+                        // Si la fecha ya fue revisada, se omite
+                        if ($lastChecked && $workingDay <= $lastChecked) {
+                            continue;
+                        }
 
-                    // Obtener todas las asistencias del mes para el staff
-                    $attendances = clockLogs::where('file_number', $file_number)
-                        ->whereMonth('timestamp', $month)
-                        ->whereYear('timestamp', $year)
-                        ->pluck('timestamp') // Solo obtener las fechas
-                        ->map(function ($timestamp) {
-                            return Carbon::parse($timestamp)->toDateString(); // Formato yyyy-mm-dd
-                        })
-                        ->toArray();
+                        // Obtener todas las asistencias del mes para el staff
+                        $attendances = clockLogs::where('file_number', $file_number)
+                            ->whereMonth('timestamp', $month)
+                            ->whereYear('timestamp', $year)
+                            ->pluck('timestamp') // Solo obtener las fechas
+                            ->map(function ($timestamp) {
+                                return Carbon::parse($timestamp)->toDateString(); // Formato yyyy-mm-dd
+                            })
+                            ->toArray();
 
-                    // Verificar si ya existe una asistencia o una inasistencia para este día
-                    $attendanceExists = in_array($workingDay, $attendances);
-                    $nonAttendanceExist = NonAttendance::where([
-                        ['file_number', '=', $staff->file_number],
-                        ['date', '=', $workingDay]
-                    ])->exists();
+                        // Verificar si ya existe una asistencia o una inasistencia para este día
+                        $attendanceExists = in_array($workingDay, $attendances);
+                        $nonAttendanceExist = NonAttendance::where([
+                            ['file_number', '=', $staff->file_number],
+                            ['date', '=', $workingDay]
+                        ])->exists();
 
-                    if (!$attendanceExists && !$nonAttendanceExist) {
-                        $actualDate = Carbon::now()->format('Y-m-d');
-                        $dateToCompare = Carbon::createFromDate($year, $month, Carbon::now()->day)->format('Y-m-d');
+                        if (!$attendanceExists && !$nonAttendanceExist) {
+                            $actualDate = Carbon::now()->format('Y-m-d');
+                            $dateToCompare = Carbon::createFromDate($year, $month, Carbon::now()->day)->format('Y-m-d');
 
-                        if ($workingDay != $actualDate && $actualDate >= $dateToCompare) {
-                            NonAttendance::create([
-                                'file_number' => $staff->file_number,
-                                'date' => $workingDay,
-                            ]);
+                            if ($workingDay != $actualDate && $actualDate >= $dateToCompare) {
+                                NonAttendance::create([
+                                    'file_number' => $staff->file_number,
+                                    'date' => $workingDay,
+                                ]);
+                            }
                         }
                     }
                 }
