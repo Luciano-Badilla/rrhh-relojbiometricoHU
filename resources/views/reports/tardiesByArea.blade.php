@@ -45,9 +45,12 @@
                         </div>
                         <div class="w-1/4">
                             <label for="areas" class="block text-sm font-medium text-gray-700">Área:</label>
-                            <select id="area_select" name="area_id" required title="Selecciona un área"
+                            <select id="area_select" name="area_id" title="Selecciona un área" required
                                 class="selectpicker border-gray-300 rounded-xl shadow-sm" data-live-search="true"
                                 data-width="100%">
+                                <option value="" selected>
+                                    Todas las áreas
+                                </option>
                                 @foreach ($areas as $area)
                                     <option value="{{ $area->id }}"
                                         {{ old('area_id') == $area->id ? 'selected' : '' }}>
@@ -60,8 +63,8 @@
                             <label for="tolerance" class="block text-sm font-medium text-gray-700">Tolerancia: (en
                                 minutos)</label>
                             <x-text-input id="tolerance" name="tolerance" type="number" class="h-[2.40rem]"
-                                max="60" value="15" placeholder="Valor de tolerancia"
-                                value="{{ old('tolerance') }}" required />
+                                max="60" placeholder="Valor de tolerancia" value="{{ old('tolerance') ?? 15 }}"
+                                required />
                         </div>
                         <x-button :button="[
                             'id' => 'search-btn',
@@ -106,10 +109,11 @@
             </div>
             <div id="content" class="px-3">
                 @if (!empty($tardies) && !$tardies->isEmpty())
-                    <form id="export-form" action="{{ route('reportExport.tardiesByArea') }}" target="_blank" method="POST"
-                        class="-mt-8">
+                    <form id="export-form" action="{{ route('reportExport.tardiesByArea') }}" target="_blank"
+                        method="POST" class="-mt-8">
                         @csrf
-                        <input type="hidden" name="file_name" value="Reporte de tardanzas - {{$area_selected .' '.$dates}}">
+                        <input type="hidden" name="file_name"
+                            value="Reporte de tardanzas - {{ $area_selected . ' ' . $dates }}">
                         <input type="hidden" name="tardies" id="tardies">
                         <input type="hidden" name="staffs" id="staffs">
                         <input type="hidden" name="area_selected" value="{{ $area_selected }}">
@@ -120,22 +124,34 @@
                             'classes' => 'btn btn-danger rounded-xl custom-tooltip h-[2.40rem] mt-[1.75rem]',
                             'icon' => '<i class=\'fa-solid fa-file-pdf\'></i>',
                             'tooltip_text' => 'Exportar a PDF',
-                            'type' => 'submit'
+                            'type' => 'submit',
                         ]" />
                     </form>
                     @foreach ($staffs as $staff)
                         @if ($tardies->where('file_number', $staff->file_number)->count() > 0)
                             <div class="p-3 border border-gray-300 rounded-xl mt-2 shadow-sm">
                                 <div class="flex gap-3 justify-between">
-                                    <h2 class="font-semibold text-md text-gray-800 leading-tight mb-2">
-                                        {{ '#' . $staff->file_number . ' ' . $staff->name_surname }}
-                                    </h2>
+                                    <div class="flex gap-2">
+                                        <x-button-link :button="[
+                                            'id' => 'administration_panel_btn',
+                                            'route' => 'staff.administration_panel',
+                                            'data' => $staff->id,
+                                            'classes' =>
+                                                'btn btn-dark rounded-xl custom-tooltip administration_panel_btn -mt-2 mb-2',
+                                            'icon' => '<i class=\'fas fa-bars\'></i>',
+                                            'tooltip' => true,
+                                            'tooltip_text' => 'Panel administrativo de ' . $staff->name_surname,
+                                        ]" />
+                                        <h2 class="font-semibold text-md text-gray-800 leading-tight mb-2">
+                                            {{ '#' . $staff->file_number . ' ' . $staff->name_surname }}
+                                        </h2>
+                                    </div>
                                     <p
                                         class="font-semibold text-md text-gray-800 leading-tight px-2 rounded-full mb-2.5">
                                         {{ $tardies->where('file_number', $staff->file_number)->count() == 1 ? $tardies->where('file_number', $staff->file_number)->count() . ' tardanza' : $tardies->where('file_number', $staff->file_number)->count() . ' tardanzas' }}
                                     </p>
                                 </div>
-                                <x-table class="rounded-none" id="non_attendance-list" :headers="['#', 'Dia', 'Fecha','Horario', 'Entrada', 'Salida', 'Horas cumplidas']"
+                                <x-table class="rounded-none" id="non_attendance-list" :headers="['#', 'Dia', 'Fecha', 'Horario', 'Entrada', 'Salida', 'Horas cumplidas']"
                                     :fields="[
                                         'counter',
                                         'day',

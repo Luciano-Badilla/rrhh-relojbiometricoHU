@@ -47,7 +47,9 @@ class reportsController extends Controller
         $area_id = $request->input('area_id');
         $absenceReason_id = $request->input('absenceReason_id');
         $area = area::find($area_id);
-        $staffs = staff_area::where('area_id', $area_id)->with('staff')->get()->pluck('staff');
+        $staffs = staff_area::when(!is_null($area_id), function ($query) use ($area_id) {
+            return $query->whereIn('area_id', [$area_id]);
+        })->with('staff')->get()->pluck('staff');
         $file_numbers = $staffs->where('marking', true)->pluck('file_number');
         $devices = devices::all();
         $areas = area::all();
@@ -77,7 +79,11 @@ class reportsController extends Controller
                 ->where('date', '<=', $date_to)
                 ->whereIn('file_number', $file_numbers)
                 ->when(!is_null($absenceReason_id), function ($query) use ($absenceReason_id) {
-                    return $query->whereIn('absenceReason_id', [$absenceReason_id]);
+                    if ($absenceReason_id == 00) {
+                        return $query->where('absenceReason_id', null);
+                    } else {
+                        return $query->whereIn('absenceReason_id', [$absenceReason_id]);
+                    }
                 })
                 ->with('staff')
                 ->orderBy('file_number', 'ASC')
@@ -118,7 +124,11 @@ class reportsController extends Controller
             }
 
             $nonAttendances = NonAttendance_reports::where('date', $date)->whereIn('file_number', $file_numbers)->when(!is_null($absenceReason_id), function ($query) use ($absenceReason_id) {
-                return $query->whereIn('absenceReason_id', [$absenceReason_id]);
+                if ($absenceReason_id == 00) {
+                    return $query->where('absenceReason_id', null);
+                } else {
+                    return $query->whereIn('absenceReason_id', [$absenceReason_id]);
+                }
             })->orderBy('file_number', 'ASC')->orderBy('date', 'ASC')->get()->map(function ($item) use (&$counter, &$lastFileNumber) {
 
                 if ($item->file_number !== $lastFileNumber && $lastFileNumber !== null) {
@@ -143,7 +153,6 @@ class reportsController extends Controller
             });
         }
 
-
         return redirect()->route('reportView.nonAttendance')
             ->withInput()
             ->with([
@@ -151,7 +160,7 @@ class reportsController extends Controller
                 'areas' => $areas->sortBy('name'),
                 'absenceReasons' => $absenceReasons->sortBy('name'),
                 'staffs' => $staffs->sortBy('name_surname'),
-                'area_selected' => $area->name,
+                'area_selected' => $area->name ?? 'Todas',
                 'dates' => $date_range_checkbox ? 'Desde el ' . $date_from->format('d/m/y') . ' hasta el ' . $date_to->format('d/m/y') : (Carbon::parse($date)->format('d/m/y') == Carbon::now()->format('d/m/y') ? Carbon::now()->format('d/m/y H:i') : Carbon::parse($date)->format('d/m/y'))
             ]);
     }
@@ -165,8 +174,9 @@ class reportsController extends Controller
 
         // Cargar la vista y generar el PDF
         $pdfInstance = $pdf->loadView('pdf.nonAttendanceByArea', $data);
+        $fileName = preg_replace('/[\/\\\\:*?"<>|]/', '-', $request->file_name);
 
-        return $pdfInstance->stream($request->file_name . '.pdf');
+        return $pdfInstance->stream($fileName . '.pdf');
     }
 
     public function tardiesByAreaIndex(Request $request)
@@ -190,7 +200,9 @@ class reportsController extends Controller
         $tolerance = $request->input('tolerance');
         $area_id = $request->input('area_id');
         $area = area::find($area_id);
-        $staffs = staff_area::where('area_id', $area_id)->with('staff')->get()->pluck('staff');
+        $staffs = staff_area::when(!is_null($area_id), function ($query) use ($area_id) {
+            return $query->whereIn('area_id', [$area_id]);
+        })->with('staff')->get()->pluck('staff');
         $file_numbers = $staffs->where('marking', true)->pluck('file_number');
         $devices = devices::all();
         $areas = area::all();
@@ -266,10 +278,6 @@ class reportsController extends Controller
             $clockLogs = clockLogs::whereDate('timestamp', '=', $date)->get();
 
             $this->updateAttendanceFromClockLogs($clockLogs);
-            foreach ($file_numbers as $file_number) {
-                $this->createNonAttendance($file_number, null, null, [$date]);
-            }
-
 
             $tardies = attendance_reports::where('date', $date)
                 ->whereIn('attendance_reports.file_number', $file_numbers)
@@ -334,7 +342,7 @@ class reportsController extends Controller
                 'tardies' => $tardies,
                 'areas' => $areas->sortBy('name'),
                 'staffs' => $staffs->sortBy('name_surname'),
-                'area_selected' => $area->name,
+                'area_selected' => $area->name ?? null,
                 'tolerance' => $tolerance,
                 'dates' => $date_range_checkbox ? 'Desde el ' . $date_from->format('d/m/y') . ' hasta el ' . $date_to->format('d/m/y') : Carbon::parse($date)->format('d/m/y')
             ]);
@@ -483,25 +491,16 @@ class reportsController extends Controller
             $hoursCompleted = gmdate('H:i:s', $workedSeconds);
         }
 
-        // Verificar si ya existe un registro con la misma entrada
-        $attendances = Attendance::where('file_number', $entryLog->file_number)
-            ->where('date', $date)
-            ->get();
-
-        $existingAttendance = $attendances->firstWhere('entryTime', $entryTime);
-
-        if (!$existingAttendance) {
-            // Crear un nuevo registro
-            attendance_reports::create([
-                'file_number' => $entryLog->file_number,
-                'date' => $date,
-                'entryTime' => $entryTime,
-                'departureTime' => $departureTime,
-                'hoursCompleted' => $hoursCompleted,
-                'day' => $dayName,
-                'observations' => null,
-            ]);
-        }
+        // Crear un nuevo registro
+        attendance_reports::create([
+            'file_number' => $entryLog->file_number,
+            'date' => $date,
+            'entryTime' => $entryTime,
+            'departureTime' => $departureTime,
+            'hoursCompleted' => $hoursCompleted,
+            'day' => $dayName,
+            'observations' => null,
+        ]);
     }
 
     public function createNonAttendance($file_number, $date_from = null, $date_to = null, $specific_dates = [])
@@ -509,59 +508,88 @@ class reportsController extends Controller
         $clockLogsController = new clockLogsController();
         $staff = Staff::where('file_number', $file_number)->first();
 
-        $existingReports = NonAttendance_reports::where('file_number', $staff->file_number)
-            ->pluck('date')
-            ->map(fn($d) => Carbon::parse($d)->format('Y-m-d'))
-            ->toArray();
+        $bulkInsert = [];
+        $addedDates = [];
 
-        // Si se proporcionan fechas específicas, se usan esas
         if (!empty($specific_dates)) {
-            // Filtrar las asistencias por las fechas específicas
+            $specific_dates = collect($specific_dates)
+                ->map(fn($d) => Carbon::parse($d)->format('Y-m-d'))
+                ->unique()
+                ->toArray();
+
             $attendances = clockLogs::where('file_number', $file_number)
                 ->whereIn(DB::raw('DATE(timestamp)'), $specific_dates)
                 ->pluck('timestamp')
                 ->map(fn($t) => Carbon::parse($t)->format('Y-m-d'))
                 ->toArray();
 
-            // Determinar los años y meses relevantes de las fechas específicas
-            $years = collect($specific_dates)->map(fn($d) => Carbon::parse($d)->year)->unique()->toArray();
-            $months = collect($specific_dates)->map(fn($d) => Carbon::parse($d)->month)->unique()->toArray();
+            $nonAttendances = NonAttendance::where('file_number', $staff->file_number)
+                ->whereIn('date', $specific_dates)
+                ->get()
+                ->keyBy(fn($item) => Carbon::parse($item->date)->format('Y-m-d'));
+
+            // Validar que las fechas específicas sean días laborales para ese empleado
+            $validWorkingDays = collect();
+
+            foreach ($specific_dates as $date) {
+                $carbonDate = Carbon::parse($date);
+                $month = $carbonDate->month;
+                $year = $carbonDate->year;
+
+                $workingDays = $clockLogsController->getWorkingDays($staff->id, $month, $year);
+                $formattedWorkingDays = collect($workingDays)
+                    ->map(fn($d) => Carbon::parse($d)->format('Y-m-d'));
+
+                if ($formattedWorkingDays->contains($date)) {
+                    $validWorkingDays->push($date);
+                }
+            }
+
+            foreach ($validWorkingDays as $date) {
+                if (in_array($date, $attendances)) {
+                    continue;
+                }
+
+                $actualDate = Carbon::now()->format('Y-m-d');
+
+                if ($actualDate >= $date && !in_array($date, $addedDates)) {
+                    $bulkInsert[] = [
+                        'file_number' => $staff->file_number,
+                        'date' => $date,
+                        'absenceReason_id' => $nonAttendances[$date]->absenceReason_id ?? null,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                    $addedDates[] = $date;
+                }
+            }
         } elseif ($date_from && $date_to) {
-            // Si se proporciona un rango de fechas, se usan esas fechas
             $attendances = clockLogs::where('file_number', $file_number)
                 ->whereBetween(DB::raw('DATE(timestamp)'), [$date_from, $date_to])
                 ->pluck('timestamp')
                 ->map(fn($t) => Carbon::parse($t)->format('Y-m-d'))
                 ->toArray();
 
-            // Determinar los años y meses relevantes del rango
             $years = range(Carbon::parse($date_from)->year, Carbon::parse($date_to)->year);
             $months = range(Carbon::parse($date_from)->month, Carbon::parse($date_to)->month);
-        }
 
-        // Obtener inasistencias ya registradas con sus datos completos
-        $nonAttendances = NonAttendance::where('file_number', $staff->file_number)
-            ->get()
-            ->keyBy(fn($item) => Carbon::parse($item->date)->format('Y-m-d')); // clave por fecha en formato Y-m-d
+            $nonAttendances = NonAttendance::where('file_number', $staff->file_number)
+                ->get()
+                ->keyBy(fn($item) => Carbon::parse($item->date)->format('Y-m-d'));
 
-        // Inicializamos el array para las inasistencias a insertar
-        $bulkInsert = [];
-        $addedDates = []; // Para controlar duplicados por fecha
+            foreach ($years as $year) {
+                foreach ($months as $month) {
+                    $workingDays = collect($clockLogsController->getWorkingDays($staff->id, $month, $year))
+                        ->map(fn($d) => Carbon::parse($d)->format('Y-m-d'));
 
-        foreach ($years as $year) {
-            foreach ($months as $month) {
-                $workingDays = collect($clockLogsController->getWorkingDays($staff->id, $month, $year))
-                    ->map(fn($d) => Carbon::parse($d)->format('Y-m-d'));
+                    foreach ($workingDays as $workingDayFormatted) {
+                        if (in_array($workingDayFormatted, $attendances)) {
+                            continue;
+                        }
 
-                foreach ($workingDays as $workingDayFormatted) {
-                    if (in_array($workingDayFormatted, $attendances)) {
-                        continue; // No duplicamos si fue asistencia
-                    }
+                        $actualDate = Carbon::now()->format('Y-m-d');
 
-                    $actualDate = Carbon::now()->format('Y-m-d');
-
-                    if ($actualDate >= $workingDayFormatted) {
-                        if (!in_array($workingDayFormatted, $addedDates)) {
+                        if ($actualDate >= $workingDayFormatted && !in_array($workingDayFormatted, $addedDates)) {
                             $bulkInsert[] = [
                                 'file_number' => $staff->file_number,
                                 'date' => $workingDayFormatted,
@@ -569,15 +597,13 @@ class reportsController extends Controller
                                 'created_at' => now(),
                                 'updated_at' => now(),
                             ];
-                            $addedDates[] = $workingDayFormatted; // Marcamos como ya insertada
+                            $addedDates[] = $workingDayFormatted;
                         }
                     }
                 }
             }
         }
 
-
-        // Insertar todas las inasistencias de una sola vez
         if (!empty($bulkInsert)) {
             NonAttendance_reports::insert($bulkInsert);
         }

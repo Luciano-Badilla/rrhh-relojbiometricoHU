@@ -142,7 +142,7 @@
             </div>
             <div class="flex flex-col px-[3%] mb-3 mt-1 w-full">
                 <label for="observations" class="block text-sm font-medium text-gray-700">Observaciones: (Se agregara su nombre despues de la observación)</label>
-                <x-text-input id="observations" name="observations" class="w-full" type="text" value="Justificado por" required />
+                <x-text-input id="observations" name="observations" class="w-full" type="text" value="Ingreso manual" required />
             </div>
             
             <div class="flex justify-end px-3">
