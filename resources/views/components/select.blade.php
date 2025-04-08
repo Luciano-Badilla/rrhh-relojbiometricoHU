@@ -14,7 +14,7 @@
     <select name="{{ $name }}{{ $multiple ? '[]' : '' }}" 
             id="{{ $id }}" 
             {{ $multiple ? 'multiple' : '' }} 
-            {{ $attributes->merge(['class' => 'p-2 h-10 mt-1 block w-full border-gray-300 rounded-md shadow-sm']) }}>
+            {{ $attributes->merge(['class' => 'p-2 h-11 mt-1 block w-full border-gray-300 rounded-xl shadow-sm']) }}>
         @if($placeholder && !$multiple)
             <option value="" {{ empty($selected) ? 'selected' : '' }}>{{ $placeholder }}</option>
         @endif

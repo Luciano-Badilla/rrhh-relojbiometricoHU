@@ -18,7 +18,9 @@
                     <div class="flex flex-row gap-3 justify-between">
                         <div class="flex flex-col w-full">
                             <label for="decree" class="block text-sm font-medium text-gray-700">Decreto:</label>
-                            <x-text-input id="decree" name="decree" type="text" />
+                            <x-select id="decree" name="decree" :options="$allCollectiveAgreements" class="-mt-2"
+                                placeholder="Seleccionar un decreto">
+                            </x-select>
                         </div>
                         <div class="flex flex-col w-full">
                             <label for="article" class="block text-sm font-medium text-gray-700">Articulo:</label>
@@ -66,7 +68,7 @@
                 </div>
             </div>
             <div class="flex justify-end px-3 mt-3">
-                <button type="submit" class="btn btn-success rounded-xl" >Agregar
+                <button type="submit" class="btn btn-success rounded-xl">Agregar
                 </button>
             </div>
         </form>
@@ -86,7 +88,9 @@
                     <div class="flex flex-row gap-3 justify-between">
                         <div class="flex flex-col w-full">
                             <label for="decree" class="block text-sm font-medium text-gray-700">Decreto:</label>
-                            <x-text-input id="decree" name="decree" type="text" />
+                            <x-select id="decree" name="decree" :options="$allCollectiveAgreements" class="-mt-2"
+                                placeholder="Seleccionar un decreto">
+                            </x-select>
                         </div>
                         <div class="flex flex-col w-full">
                             <label for="article" class="block text-sm font-medium text-gray-700">Articulo:</label>
@@ -133,7 +137,7 @@
                 </div>
             </div>
             <div class="flex justify-end px-3 mt-3">
-                <button type="submit" class="btn btn-success rounded-xl" >Editar
+                <button type="submit" class="btn btn-success rounded-xl">Editar
                 </button>
             </div>
         </form>
@@ -234,12 +238,22 @@
     $(document).ready(function() {
 
         $(".edit_btn").on("click", function() {
+            const btn = $(this);
             let modal = $("#edit_absenceReason_modal");
             if (!modal.length) return;
 
             modal.find("#absenceReason").val($(this).data("id"));
             modal.find("#description").val($(this).data("name") || "-");
-            modal.find("#decree").val($(this).data("decree") || "-");
+
+            const opcion = modal.find("#decree").find("option").filter(function() {
+                return $(this).text().trim().toLowerCase() === btn.data("decree").trim()
+                    .toLowerCase();
+            }).first();
+
+            if (opcion.length) {
+                modal.find("#decree").val(opcion.val() || "-"); // seleccionás y activás eventos si hay
+            }
+
             modal.find("#article").val($(this).data("article") || "-");
             modal.find("#subsection").val($(this).data("subsection") || "-");
             modal.find("#item").val($(this).data("item") || "-");

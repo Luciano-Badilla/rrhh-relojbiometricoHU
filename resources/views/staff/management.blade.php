@@ -158,10 +158,12 @@
                             x-bind:disabled="!isEditing">
                             <option value="">Sin convenio</option>
                             @foreach ($collective_agreement as $item)
-                                <option value="{{ $item->id }}"
-                                    {{ $staff->collective_agreement_id == $item->id ? 'selected' : '' }}>
-                                    {{ $item->name }}
-                                </option>
+                                @if ($item->worker_status == $staff->worker_status)
+                                    <option value="{{ $item->id }}"
+                                        {{ $staff->collective_agreement_id == $item->id ? 'selected' : '' }}>
+                                        {{ $item->name }}
+                                    </option>
+                                @endif
                             @endforeach
 
                         </select>
@@ -435,22 +437,52 @@
         });
     });
 
-    document.addEventListener("DOMContentLoaded", function() {
+    const allCollectiveAgreements = @json($collective_agreement);
+
+    $(document).ready(function() {
+        // Inicializar Select2 para ambos selects
         $('#worker-status-select').select2({
             placeholder: "",
             allowClear: true,
-            width: '100%', // Hace que el select ocupe el ancho completo
-            minimumResultsForSearch: Infinity // Oculta el buscador para que se vea como los otros selects
-        }).next('.select2-container').addClass('select2-custom');;
-    });
+            width: '100%',
+            minimumResultsForSearch: Infinity
+        }).next('.select2-container').addClass('select2-custom');
 
-    document.addEventListener("DOMContentLoaded", function() {
         $('#convenio-select').select2({
             placeholder: "",
             allowClear: true,
-            width: '100%', // Hace que el select ocupe el ancho completo
-            minimumResultsForSearch: Infinity // Oculta el buscador para que se vea como los otros selects
-        }).next('.select2-container').addClass('select2-custom');;
+            width: '100%',
+            minimumResultsForSearch: Infinity
+        }).next('.select2-container').addClass('select2-custom');
+
+        // Escuchar cambios en worker status
+        $('#worker-status-select').on('change', function() {
+            updateConvenios($(this).val());
+        });
+
+        // Llamar una vez para iniciar según el estado actual
+        updateConvenios($('#worker-status-select').val());
+
+        function updateConvenios(selectedStatus) {
+            const convenioSelect = $('#convenio-select');
+
+            // Guardar el convenio actual para mantenerlo si corresponde
+            const currentValue = convenioSelect.val();
+
+            // Limpiar opciones actuales y reiniciar con "Sin convenio"
+            convenioSelect.empty().append('<option value="">Sin convenio</option>');
+
+            // Filtrar convenios por estado del trabajador
+            const filtered = allCollectiveAgreements.filter(item => item.worker_status === selectedStatus);
+
+            filtered.forEach(item => {
+                const isSelected = currentValue == item.id ? 'selected' : '';
+                convenioSelect.append(`<option value="${item.id}" ${isSelected}>${item.name}</option>`);
+            });
+
+            // Refrescar select2
+            convenioSelect.trigger('change.select2');
+        }
     });
 </script>
 
