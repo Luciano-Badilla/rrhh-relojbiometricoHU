@@ -17,40 +17,40 @@
                 @csrf
                 @method('POST')
                 <!-- Campos bloqueados por defecto -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div>
-                        <x-input-label for="Nombre y Apellido" value="Nombre y Apellido" />
+                <div class="flex flex-row gap-4 mb-4 w-full">
+                    <div class="w-1/3">
+                        <x-input-label for="ID" value="Legajo" class="w-full" />
+                        <x-text-input id="file_number" type="text" name="file_number" class="w-full"
+                            value="{{ $staff->file_number }}" placeholder="file_number" x-bind:disabled="!isEditing" />
+                    </div>
+                    <div class="w-1/3">
+                        <x-input-label for="Nombre y Apellido" value="Nombre y Apellido" class="w-full" />
                         <x-text-input id="name_surname" type="text" name="name_surname" placeholder="Nombre completo"
                             value="{{ $staff->name_surname }}" class="mt-1 block w-full" x-bind:disabled="!isEditing" />
                     </div>
 
-                    <div>
-                        <x-select id="coordinator" name="coordinator" :options="$coordinators"
+                    <div class="w-1/3">
+                        <x-select id="coordinator" name="coordinator" :options="$coordinators" class="w-full"
                             placeholder="Seleccionar Coordinador" :selected="$staff->coordinator_id" x-bind:disabled="!isEditing">
                             Coordinador
                         </x-select>
                     </div>
-                    <div>
+                </div>
+
+                <div class="flex flex-row gap-4 mb-4 w-full">
+                    <div class="w-1/3">
                         <x-select id="secretary" name="secretary" :options="$secretaries" placeholder="Seleccionar secretaria"
-                            :selected="$staff->secretary_id" x-bind:disabled="!isEditing">
+                            :selected="$staff->secretary_id" x-bind:disabled="!isEditing" class="w-[102%]">
                             Secretaria
                         </x-select>
                     </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                    <div>
-                        <x-input-label for="ID" value="Legajo" />
-                        <x-text-input id="file_number" type="text" name="file_number"
-                            value="{{ $staff->file_number }}" placeholder="file_number" x-bind:disabled="!isEditing" />
-                    </div>
-                    <div>
+                    <div class="w-1/3">
                         <x-select id="category" name="category" :options="$categories" placeholder="Seleccionar categoría"
-                            :selected="$staff->category_id" x-bind:disabled="!isEditing">
+                            :selected="$staff->category_id" x-bind:disabled="!isEditing" class="w-[101%] ml-2">
                             Categoría
                         </x-select>
                     </div>
-                    <div x-data="{
+                    <div class="w-1/3" x-data="{
                         entryDate: '{{ $staff->date_of_entry }}',
                         formattedEntryDate: '',
                         yearsOfService: 0,
@@ -78,67 +78,52 @@
                     calculateYears()">
 
                         <!-- Input para fecha con formato dd/mm/yyyy -->
-                        <x-input-label for="Ingreso" value="Ingreso" />
+                        <x-input-label for="Ingreso" value="Ingreso" class="ml-2.5" />
                         <x-text-input id="date_of_entry" type="text" name="date_of_entry"
-                            x-model="formattedEntryDate" placeholder="dd/mm/yyyy" class="mt-1 block w-full"
+                            x-model="formattedEntryDate" placeholder="dd/mm/yyyy" class="mt-1 ml-2.5 block w-[102%]"
                             x-bind:disabled="!isEditing" />
 
                     </div>
 
-                    <div x-data="{
-                        entryDate: '{{ $staff->date_of_entry }}',
-                        yearsOfService: 0,
-                        calculateYears() {
-                            if (this.entryDate) {
-                                let entry = new Date(this.entryDate);
-                                let today = new Date();
-                    
-                                let years = today.getFullYear() - entry.getFullYear();
-                    
-                                // Verifica si el aniversario de ingreso ya ocurrió este año
-                                let hasAnniversaryPassed = (today.getMonth() > entry.getMonth()) ||
-                                    (today.getMonth() === entry.getMonth() && today.getDate() >= entry.getDate());
-                    
-                                // Si aún no ha pasado el aniversario en este año, restamos 1
-                                this.yearsOfService = hasAnniversaryPassed ? years : years - 1;
-                            }
-                        }
-                    }" x-init="calculateYears()">
-
-                        <!-- Antigüedad calculada -->
-                        <x-input-label for="Antiguedad" value="Antigüedad" />
-                        <x-text-input id="years_of_service" type="text" name="years_of_service"
-                            x-bind:value="yearsOfService + ' años'" class="mt-1 block w-full"
-                            x-bind:disabled="!isEditing" />
-                    </div>
 
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                    <!-- Select de Áreas (2/4) -->
-                    <div class="md:col-span-2">
-                        <label for="area-select" class="block font-medium text-sm text-gray-700 mb-1">
-                            Áreas
-                        </label>
-                        <select id="area-select" name="areas[]" multiple
-                            class="p-2 h-10 mt-1 block w-full border-gray-300 rounded-md select2-custom"
-                            x-bind:disabled="!isEditing">
-                            @foreach ($areas as $id => $name)
-                                <option value="{{ $id }}"
-                                    {{ in_array($id, $assigned_areas) ? 'selected' : '' }}>
-                                    {{ $name }}
-                                </option>
-                            @endforeach
-                        </select>
+                <div class="flex flex-row gap-4 mb-4 w-full">
+                    <div class="w-1/3">
+                        <div x-data="{
+                            entryDate: '{{ $staff->date_of_entry }}',
+                            yearsOfService: 0,
+                            calculateYears() {
+                                if (this.entryDate) {
+                                    let entry = new Date(this.entryDate);
+                                    let today = new Date();
+                        
+                                    let years = today.getFullYear() - entry.getFullYear();
+                        
+                                    // Verifica si el aniversario de ingreso ya ocurrió este año
+                                    let hasAnniversaryPassed = (today.getMonth() > entry.getMonth()) ||
+                                        (today.getMonth() === entry.getMonth() && today.getDate() >= entry.getDate());
+                        
+                                    // Si aún no ha pasado el aniversario en este año, restamos 1
+                                    this.yearsOfService = hasAnniversaryPassed ? years : years - 1;
+                                }
+                            }
+                        }" x-init="calculateYears()">
+                            <!-- Antigüedad calculada -->
+                            <x-input-label for="Antiguedad" value="Antigüedad" />
+                            <x-text-input id="years_of_service" type="text" name="years_of_service"
+                                x-bind:value="yearsOfService + ' años'" class="mt-1 block w-full"
+                                x-bind:disabled="!isEditing" />
+                        </div>
                     </div>
 
                     <!-- Select de Estado (1/4) -->
-                    <div class="md:col-span-1">
+                    <div class="w-1/3">
                         <label for="worker-status-select" class="block font-medium text-sm text-gray-700 mb-1">
                             Estado
                         </label>
                         <select id="worker-status-select" name="worker_status"
-                            class="p-2 h-10 mt-1 block w-full border-gray-300 rounded-md select2-custom"
+                            class="p-2 h-10 block w-full border-gray-300 rounded-xl select2-custom"
                             x-bind:disabled="!isEditing">
                             <option value="contratado" {{ $staff->worker_status == 'contratado' ? 'selected' : '' }}>
                                 Contratado
@@ -148,8 +133,9 @@
                             </option>
                         </select>
                     </div>
+
                     <!-- Select de Convenio (1/4) -->
-                    <div class="md:col-span-1">
+                    <div class="w-1/3">
                         <label for="convenio-select" class="block font-medium text-sm text-gray-700 mb-1">
                             Convenio
                         </label>
@@ -170,16 +156,33 @@
                     </div>
 
                 </div>
-
+                <div>
+                    <!-- Select de Áreas (2/4) -->
+                    <div class="md:col-span-2">
+                        <label for="area-select" class="block font-medium text-sm text-gray-700 mb-1">
+                            Áreas
+                        </label>
+                        <select id="area-select" name="areas[]" multiple
+                            class="p-2 h-10 mt-1 block w-full border-gray-300 rounded-xl select2-custom"
+                            x-bind:disabled="!isEditing">
+                            @foreach ($areas as $id => $name)
+                                <option value="{{ $id }}"
+                                    {{ in_array($id, $assigned_areas) ? 'selected' : '' }}>
+                                    {{ $name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
                 <!-- Checkboxes de Baja y Marca -->
-                <div class="grid grid-cols-2 gap-4 items-center">
+                <div class="flex flex-row gap-4 mb-4 w-full ml-1 mt-4">
                     <!-- Checkbox de Marca -->
                     <div class="flex items-center justify-center">
                         <x-text-input id="marking" name="marking" type="hidden" value="0" />
                         <input id="marking" name="marking" type="checkbox"
                             class="border-gray-300 rounded-xl shadow-sm mr-2" value="1"
                             x-bind:disabled="!isEditing" {{ $staff->marking == 1 ? 'checked' : '' }} />
-                        <label for="marking" class="text-sm font-medium text-gray-700">Marca</label>
+                        <label for="marking" class="text-sm font-medium text-gray-700 mt-1.5">Marca</label>
                     </div>
 
                     <!-- Checkbox de Baja -->
@@ -188,7 +191,7 @@
                         <input id="inactive" name="inactive" type="checkbox"
                             class="border-gray-300 rounded-xl shadow-sm mr-2" value="1"
                             x-bind:disabled="!isEditing" {{ $staff->inactive_since ? 'checked' : '' }} />
-                        <label for="inactive" class="text-sm font-medium text-gray-700">Baja</label>
+                        <label for="inactive" class="text-sm font-medium text-gray-700 mt-1.5">Baja</label>
                     </div>
                 </div>
 
@@ -442,14 +445,14 @@
     $(document).ready(function() {
         // Inicializar Select2 para ambos selects
         $('#worker-status-select').select2({
-            placeholder: "",
+            placeholder: "Seleccione un estado",
             allowClear: true,
             width: '100%',
             minimumResultsForSearch: Infinity
         }).next('.select2-container').addClass('select2-custom');
 
         $('#convenio-select').select2({
-            placeholder: "",
+            placeholder: "Seleccione un convenio",
             allowClear: true,
             width: '100%',
             minimumResultsForSearch: Infinity
@@ -524,9 +527,9 @@
         /* Blanco como los otros selects */
         border: 1px solid #d1d5db !important;
         /* Borde gris como los otros selects */
-        border-radius: 6px !important;
+        border-radius: 0.75rem !important;
         /* Bordes redondeados */
-        height: 38px !important;
+        height: 42px !important;
         /* Altura similar a los otros selects */
         display: flex;
         align-items: center;
@@ -541,9 +544,11 @@
         /* Blanco como los otros selects */
         border: 1px solid #d1d5db !important;
         /* Borde gris como los otros selects */
-        border-radius: 6px !important;
+        border-radius: 0.75rem !important;
+        margin-top: 0.25rem !important;
+
         /* Bordes redondeados */
-        height: 38px !important;
+        height: 42px !important;
         /* Altura similar a los otros selects */
         display: flex;
         align-items: center;

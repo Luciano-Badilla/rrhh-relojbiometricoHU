@@ -6,7 +6,7 @@
     </x-slot>
 
     <div class="flex items-center justify-center py-6">
-        <div class="bg-white rounded-xl w-full lg:w-2/4">
+        <div class="bg-white rounded-xl w-full lg:w-3/4">
             @if (session('success'))
                 <div class="alert-success rounded-t-xl p-0.5 text-center mb-1">
                     {{ session('success') }}
@@ -79,6 +79,37 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div class="w-1/4">
+                            <label for="secretary" class="block text-sm font-medium text-gray-700">Secretaria:</label>
+                            <select id="secretary_select" name="secretary_id" title="Seleccione una secretaria"
+                                class="selectpicker border-gray-300 rounded-xl shadow-sm" data-width="100%">
+                                <option value="">
+                                    Seleccione una secretaria
+                                </option>
+                                @foreach ($secretaries as $secretarie)
+                                    <option value="{{ $secretarie->id }}"
+                                        {{ old('secretary_id') == $secretarie->id ? 'selected' : '' }}>
+                                        {{ $secretarie->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="w-1/4">
+                            <label for="worker_status" class="block text-sm font-medium text-gray-700">Estado:</label>
+                            <select id="worker_status_Select" name="worker_status" title="Seleccione un estado"
+                                class="selectpicker border-gray-300 rounded-xl shadow-sm" data-width="100%">
+                                <option value="">
+                                    Seleccione un estado
+                                </option>
+                                @foreach ($worker_status as $worker_statu)
+                                    <option value="{{ $worker_statu }}"
+                                        {{ old('worker_status') == $worker_statu ? 'selected' : '' }}>
+                                        {{ $worker_statu }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
                         <x-button :button="[
                             'id' => 'search-btn',
                             'type' => 'submit',

@@ -11,11 +11,13 @@ use App\Models\day;
 use App\Models\devices;
 use App\Models\NonAttendance;
 use App\Models\NonAttendance_reports;
+use App\Models\secretary;
 use App\Models\shift;
 use App\Models\staff;
 use App\Models\staff_area;
 use Barryvdh\DomPDF\PDF;
 use Carbon\Carbon;
+use FontLib\Table\Type\name;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Rats\Zkteco\Lib\ZKTeco;
@@ -28,6 +30,8 @@ class reportsController extends Controller
     {
         $areas = area::all();
         $absenceReasons = absenceReason::all();
+        $secretaries = secretary::all();
+        $worker_status = ['Planta', 'Contratado'];
         nonAttendance_reports::truncate();
 
         return view('reports.nonAttendanceByArea', [
@@ -38,6 +42,8 @@ class reportsController extends Controller
             'area_selected' => session('area_selected') ?? null,
             'absenceReason_selected' => session('absenceReason_selected') ?? null,
             'dates' =>  session('dates') ?? null,
+            'secretaries' => $secretaries->sortBy('name'),
+            'worker_status' => $worker_status,
         ]);
     }
 
@@ -46,14 +52,23 @@ class reportsController extends Controller
         $date_range_checkbox = $request->input('date_range_checkbox');
         $area_id = $request->input('area_id');
         $absenceReason_id = $request->input('absenceReason_id');
+        $secretary_id = $request->input('secretary_id');
+        $worker_status = ($request->input('worker_status') != "") ? strtolower($request->input('worker_status')) : null;
         $area = area::find($area_id);
         $staffs = staff_area::when(!is_null($area_id), function ($query) use ($area_id) {
             return $query->whereIn('area_id', [$area_id]);
         })->with('staff')->get()->pluck('staff');
-        $file_numbers = $staffs->where('marking', true)->pluck('file_number');
+        $file_numbers = $staffs->where('marking', true)->when(!is_null($secretary_id), function ($query) use ($secretary_id) {
+            return $query->where('secretary_id', $secretary_id);
+        })->when(!is_null($worker_status), function ($query) use ($worker_status) {
+            return $query->where('worker_status', $worker_status);
+        })->pluck('file_number');
+
         $devices = devices::all();
         $areas = area::all();
         $absenceReasons = absenceReason::all();
+        $secretaries = secretary::all();
+        $worker_status = ['Planta', 'Contratado'];
 
         $devicesLogs = $this->getDeviceLogs($devices);
 
@@ -161,7 +176,9 @@ class reportsController extends Controller
                 'absenceReasons' => $absenceReasons->sortBy('name'),
                 'staffs' => $staffs->sortBy('name_surname'),
                 'area_selected' => $area->name ?? 'Todas',
-                'dates' => $date_range_checkbox ? 'Desde el ' . $date_from->format('d/m/y') . ' hasta el ' . $date_to->format('d/m/y') : (Carbon::parse($date)->format('d/m/y') == Carbon::now()->format('d/m/y') ? Carbon::now()->format('d/m/y H:i') : Carbon::parse($date)->format('d/m/y'))
+                'dates' => $date_range_checkbox ? 'Desde el ' . $date_from->format('d/m/y') . ' hasta el ' . $date_to->format('d/m/y') : (Carbon::parse($date)->format('d/m/y') == Carbon::now()->format('d/m/y') ? Carbon::now()->format('d/m/y H:i') : Carbon::parse($date)->format('d/m/y')),
+                'secretaries' => $secretaries->sortBy('name'),
+                'worker_status' => $worker_status,
             ]);
     }
 
@@ -183,6 +200,8 @@ class reportsController extends Controller
     {
         $areas = area::all();
         attendance_reports::truncate();
+        $secretaries = secretary::all();
+        $worker_status = ['Planta', 'Contratado'];
 
         return view('reports.tardiesByArea', [
             'areas' => $areas->sortBy('name'),
@@ -191,6 +210,8 @@ class reportsController extends Controller
             'area_selected' => session('area_selected') ?? null,
             'tolerance' => session('tolerance') ?? null,
             'dates' =>  session('dates') ?? null,
+            'secretaries' => $secretaries->sortBy('name'),
+            'worker_status' => $worker_status,
         ]);
     }
 
@@ -200,12 +221,21 @@ class reportsController extends Controller
         $tolerance = $request->input('tolerance');
         $area_id = $request->input('area_id');
         $area = area::find($area_id);
+        $secretary_id = $request->input('secretary_id') ?? null;
+        $worker_status = ($request->input('worker_status') != "") ? strtolower($request->input('worker_status')) : null;
         $staffs = staff_area::when(!is_null($area_id), function ($query) use ($area_id) {
             return $query->whereIn('area_id', [$area_id]);
         })->with('staff')->get()->pluck('staff');
-        $file_numbers = $staffs->where('marking', true)->pluck('file_number');
+        $file_numbers = $staffs->where('marking', true)->when(!is_null($secretary_id), function ($query) use ($secretary_id) {
+            return $query->where('secretary_id', $secretary_id);
+        })->when(!is_null($worker_status), function ($query) use ($worker_status) {
+            return $query->where('worker_status', $worker_status);
+        })->pluck('file_number');
+
         $devices = devices::all();
         $areas = area::all();
+        $secretaries = secretary::all();
+        $worker_status = ['Planta', 'Contratado'];
 
         $devicesLogs = $this->getDeviceLogs($devices);
 
@@ -344,7 +374,9 @@ class reportsController extends Controller
                 'staffs' => $staffs->sortBy('name_surname'),
                 'area_selected' => $area->name ?? null,
                 'tolerance' => $tolerance,
-                'dates' => $date_range_checkbox ? 'Desde el ' . $date_from->format('d/m/y') . ' hasta el ' . $date_to->format('d/m/y') : Carbon::parse($date)->format('d/m/y')
+                'dates' => $date_range_checkbox ? 'Desde el ' . $date_from->format('d/m/y') . ' hasta el ' . $date_to->format('d/m/y') : Carbon::parse($date)->format('d/m/y'),
+                'secretaries' => $secretaries->sortBy('name'),
+                'worker_status' => $worker_status,
             ]);
     }
 

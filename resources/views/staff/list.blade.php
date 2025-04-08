@@ -10,14 +10,14 @@
             <div class="px-3 flex flex-col gap-3 justify-center items-center">
                 <div class="flex flex-col gap-3 w-full">
                     <div>
-                        <x-input-label for="name_surname" value="Nombre y Apellido" />
-                        <x-text-input id="name_surname" type="text" name="name_surname" placeholder="Nombre completo"
-                            class="mt-1 block w-full" required />
-                    </div>
-                    <div>
                         <x-input-label for="file_number" value="Legajo" />
                         <x-text-input id="file_number" class="w-full" type="text" name="file_number"
                             placeholder="Número de legajo" required />
+                    </div>
+                    <div>
+                        <x-input-label for="name_surname" value="Nombre y Apellido" />
+                        <x-text-input id="name_surname" type="text" name="name_surname" placeholder="Nombre completo"
+                            class="mt-1 block w-full" required />
                     </div>
                 </div>
             </div>
@@ -80,7 +80,7 @@
                         'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
                         'icon' => '<i class=\'fa-solid fa-plus\'></i>',
                         'tooltip' => true,
-                        'tooltip_text' => 'Crear staff',
+                        'tooltip_text' => 'Agregar staff',
                         'modal_id' => 'add_staff_modal',
                     ]" />
 
