@@ -20,6 +20,6 @@ class coordinator extends Model
 
     public function area()
     {
-        return $this->belongsTo(office::class, 'office_id');
+        return $this->belongsTo(area::class, 'area_id');
     }
 }

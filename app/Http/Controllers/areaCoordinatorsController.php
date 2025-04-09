@@ -64,7 +64,11 @@ class areaCoordinatorsController extends Controller
         $newAreaName = $request->input('area');
         $coordinator_id = $request->input('coordinator');
 
-        if ($area->name != $newAreaName || $coordinator->staff_id != $coordinator_id || !$coordinator) {
+        if (
+            !$coordinator ||
+            $area->name != $newAreaName ||
+            $coordinator->staff_id != $coordinator_id
+        ) {
             $request->validate([
                 'area' => 'unique:area,name,' . $area_id . ',id',
                 'coordinator' => 'unique:coordinator,staff_id,' . $last_coordinator_id . ',staff_id',
@@ -76,9 +80,9 @@ class areaCoordinatorsController extends Controller
 
             $area = area::where('id', $area_id)->first();
 
-            
+
             $area->update(['name' => $newAreaName]);
-            
+
             coordinator::where('area_id', $area_id)->update([
                 'area_id' => $area->id,
                 'staff_id' => $coordinator_id
