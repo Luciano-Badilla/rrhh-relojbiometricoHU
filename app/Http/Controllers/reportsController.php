@@ -44,6 +44,8 @@ class reportsController extends Controller
             'dates' =>  session('dates') ?? null,
             'secretaries' => $secretaries->sortBy('name'),
             'worker_status' => $worker_status,
+            'staffsGrouped' => session('staffsGrouped') ?? null,
+
         ]);
     }
 
@@ -53,16 +55,30 @@ class reportsController extends Controller
         $area_id = $request->input('area_id');
         $absenceReason_id = $request->input('absenceReason_id');
         $secretary_id = $request->input('secretary_id');
-        $worker_status = ($request->input('worker_status') != "") ? strtolower($request->input('worker_status')) : null;
         $area = area::find($area_id);
-        $staffs = staff_area::when(!is_null($area_id), function ($query) use ($area_id) {
-            return $query->whereIn('area_id', [$area_id]);
-        })->with('staff')->get()->pluck('staff');
-        $file_numbers = $staffs->where('marking', true)->when(!is_null($secretary_id), function ($query) use ($secretary_id) {
-            return $query->where('secretary_id', $secretary_id);
-        })->when(!is_null($worker_status), function ($query) use ($worker_status) {
-            return $query->where('worker_status', $worker_status);
-        })->pluck('file_number');
+        $worker_status_input = ($request->input('worker_status') != "") ? strtolower($request->input('worker_status')) : null;
+
+        $staffAreasQuery = staff_area::with('staff');
+        if (!is_null($area_id)) {
+            $staffAreasQuery->where('area_id', $area_id);
+        }
+        $staffAreas = $staffAreasQuery->get();
+
+        $staffsGroupedByArea = $staffAreas->groupBy('area_id')->map(function ($group) use ($secretary_id, $worker_status_input) {
+            return $group->pluck('staff')
+                ->filter() // Elimina null
+                ->filter(function ($staff) use ($secretary_id, $worker_status_input) {
+                    return $staff->marking &&
+                        (is_null($secretary_id) || $staff->secretary_id == $secretary_id) &&
+                        (is_null($worker_status_input) || strtolower($staff->worker_status) == $worker_status_input);
+                });
+        })->filter(function ($staffs) {
+            return $staffs->isNotEmpty(); // Oculta áreas vacías
+        })->sortKeys()->sortBy(function ($staffs, $area_id) {
+            return area::find($area_id)?->name ?? '';
+        });
+
+        $file_numbers = $staffsGroupedByArea->flatten()->pluck('file_number');
 
         $devices = devices::all();
         $areas = area::all();
@@ -168,17 +184,26 @@ class reportsController extends Controller
             });
         }
 
+        // Agrupar por área solo si tienen tardanzas
+        $staffsGroupedByArea = $staffsGroupedByArea->filter(function ($staffs) use ($nonAttendances) {
+            return $staffs->filter(function ($staff) use ($nonAttendances) {
+                return $nonAttendances->contains('file_number', $staff->file_number);
+            })->isNotEmpty();
+        });
+
         return redirect()->route('reportView.nonAttendance')
             ->withInput()
             ->with([
                 'nonAttendances' => $nonAttendances,
                 'areas' => $areas->sortBy('name'),
                 'absenceReasons' => $absenceReasons->sortBy('name'),
-                'staffs' => $staffs->sortBy('name_surname'),
+                'staffs' => $staffsGroupedByArea->flatten()->sortBy('name_surname'),
                 'area_selected' => $area->name ?? 'Todas',
                 'dates' => $date_range_checkbox ? 'Desde el ' . $date_from->format('d/m/y') . ' hasta el ' . $date_to->format('d/m/y') : (Carbon::parse($date)->format('d/m/y') == Carbon::now()->format('d/m/y') ? Carbon::now()->format('d/m/y H:i') : Carbon::parse($date)->format('d/m/y')),
                 'secretaries' => $secretaries->sortBy('name'),
                 'worker_status' => $worker_status,
+                'staffsGrouped' => $staffsGroupedByArea,
+
             ]);
     }
 
@@ -212,6 +237,9 @@ class reportsController extends Controller
             'dates' =>  session('dates') ?? null,
             'secretaries' => $secretaries->sortBy('name'),
             'worker_status' => $worker_status,
+            'staffsGrouped' => session('staffsGrouped') ?? null,
+
+
         ]);
     }
 
@@ -222,21 +250,34 @@ class reportsController extends Controller
         $area_id = $request->input('area_id');
         $area = area::find($area_id);
         $secretary_id = $request->input('secretary_id') ?? null;
-        $worker_status = ($request->input('worker_status') != "") ? strtolower($request->input('worker_status')) : null;
-        $staffs = staff_area::when(!is_null($area_id), function ($query) use ($area_id) {
-            return $query->whereIn('area_id', [$area_id]);
-        })->with('staff')->get()->pluck('staff');
-        $file_numbers = $staffs->where('marking', true)->when(!is_null($secretary_id), function ($query) use ($secretary_id) {
-            return $query->where('secretary_id', $secretary_id);
-        })->when(!is_null($worker_status), function ($query) use ($worker_status) {
-            return $query->where('worker_status', $worker_status);
-        })->pluck('file_number');
+        $worker_status_input = ($request->input('worker_status') != "") ? strtolower($request->input('worker_status')) : null;
+
+        $staffAreasQuery = staff_area::with('staff');
+        if (!is_null($area_id)) {
+            $staffAreasQuery->where('area_id', $area_id);
+        }
+        $staffAreas = $staffAreasQuery->get();
+
+        $staffsGroupedByArea = $staffAreas->groupBy('area_id')->map(function ($group) use ($secretary_id, $worker_status_input) {
+            return $group->pluck('staff')
+                ->filter() // Elimina null
+                ->filter(function ($staff) use ($secretary_id, $worker_status_input) {
+                    return $staff->marking &&
+                        (is_null($secretary_id) || $staff->secretary_id == $secretary_id) &&
+                        (is_null($worker_status_input) || strtolower($staff->worker_status) == $worker_status_input);
+                });
+        })->filter(function ($staffs) {
+            return $staffs->isNotEmpty(); // Oculta áreas vacías
+        })->sortKeys()->sortBy(function ($staffs, $area_id) {
+            return area::find($area_id)?->name ?? '';
+        });
+
+        $file_numbers = $staffsGroupedByArea->flatten()->pluck('file_number');
 
         $devices = devices::all();
         $areas = area::all();
         $secretaries = secretary::all();
         $worker_status = ['Planta', 'Contratado'];
-
         $devicesLogs = $this->getDeviceLogs($devices);
 
         foreach ($file_numbers as $file_number) {
@@ -248,8 +289,9 @@ class reportsController extends Controller
             $date_to = Carbon::parse($request->input('date_to'));
             $counter = 1;
             $lastFileNumber = null;
-            $clockLogs = clockLogs::whereDate('timestamp', '>=', $date_from)->whereDate('timestamp', '<=', $date_to)->get();
 
+            $clockLogs = clockLogs::whereDate('timestamp', '>=', $date_from)
+                ->whereDate('timestamp', '<=', $date_to)->get();
             $this->updateAttendanceFromClockLogs($clockLogs);
 
             $tardies = attendance_reports::whereBetween('attendance_reports.date', [$date_from, $date_to])
@@ -261,41 +303,33 @@ class reportsController extends Controller
                         ->whereRaw('WEEKDAY(attendance_reports.date) + 1 = schedule.day_id');
                 })
                 ->join('shifts', 'shifts.id', '=', 'schedule.shift_id')
-                ->select('attendance_reports.*', DB::raw('ANY_VALUE(shifts.startTime) as startTime'), DB::raw('ANY_VALUE(shifts.endTime) as endTime')) // ✅ Solución con ANY_VALUE()
-                ->groupBy('attendance_reports.id') // ✅ Corregimos el GROUP BY
+                ->select(
+                    'attendance_reports.*',
+                    DB::raw('ANY_VALUE(shifts.startTime) as startTime'),
+                    DB::raw('ANY_VALUE(shifts.endTime) as endTime')
+                )
+                ->groupBy('attendance_reports.id')
                 ->orderBy('attendance_reports.file_number', 'ASC')
                 ->orderBy('attendance_reports.date', 'ASC')
                 ->get()
-                ->filter(function ($item) use ($tolerance) { // 🔹 Pasamos la tolerancia
+                ->filter(function ($item) use ($tolerance) {
                     $startTime = $item->startTime ?? null;
                     $entryTime = $item->entryTime ?? null;
+                    if (!$startTime || !$entryTime) return false;
 
-                    if (!$startTime || !$entryTime) {
-                        return false;
-                    }
-
-                    // ✅ Sumamos la tolerancia a startTime
                     $allowedEntry = Carbon::parse($startTime)->addMinutes($tolerance);
-
                     return Carbon::parse($entryTime)->greaterThan($allowedEntry);
                 })
                 ->map(function ($item) use (&$counter, &$lastFileNumber) {
                     if ($item->file_number !== $lastFileNumber && $lastFileNumber !== null) {
                         $counter = 1;
-                        $item->counter = 1;
-                        $counter++;
-                    } elseif ($item->file_number === $lastFileNumber) {
-                        $item->counter = $counter;
-                        $counter++;
-                    } else {
-                        $item->counter = 1;
-                        $counter++;
                     }
+
+                    $item->counter = $counter++;
                     $lastFileNumber = $item->file_number;
 
                     $item->date_formated = Carbon::parse($item->date)->format('d/m/y');
-                    $item->day = Carbon::createFromFormat('d/m/y', $item->date_formated)->locale('es')->translatedFormat('l');
-                    $item->day = ucfirst($item->day);
+                    $item->day = ucfirst(Carbon::createFromFormat('d/m/y', $item->date_formated)->locale('es')->translatedFormat('l'));
                     $item->asssignedSchedule = $item->startTime . ' - ' . $item->endTime;
 
                     return $item;
@@ -306,7 +340,6 @@ class reportsController extends Controller
             $date = $request->input('date');
 
             $clockLogs = clockLogs::whereDate('timestamp', '=', $date)->get();
-
             $this->updateAttendanceFromClockLogs($clockLogs);
 
             $tardies = attendance_reports::where('date', $date)
@@ -334,51 +367,53 @@ class reportsController extends Controller
                 ->filter(function ($item) use ($tolerance) {
                     $startTime = $item->startTime ?? null;
                     $entryTime = $item->entryTime ?? null;
-
-                    if (!$startTime || !$entryTime) {
-                        return false;
-                    }
+                    if (!$startTime || !$entryTime) return false;
 
                     $allowedEntry = Carbon::parse($startTime)->addMinutes($tolerance);
-
                     return Carbon::parse($entryTime)->greaterThan($allowedEntry);
                 })
                 ->map(function ($item) use (&$counter, &$lastFileNumber) {
                     if ($item->file_number !== $lastFileNumber && $lastFileNumber !== null) {
                         $counter = 1;
-                        $item->counter = 1;
-                        $counter++;
-                    } elseif ($item->file_number === $lastFileNumber) {
-                        $item->counter = $counter;
-                        $counter++;
-                    } else {
-                        $item->counter = 1;
-                        $counter++;
                     }
+
+                    $item->counter = $counter++;
                     $lastFileNumber = $item->file_number;
 
                     $item->date_formated = Carbon::parse($item->date)->format('d/m/y');
-                    $item->day = Carbon::createFromFormat('d/m/y', $item->date_formated)->locale('es')->translatedFormat('l');
-                    $item->day = ucfirst($item->day);
+                    $item->day = ucfirst(Carbon::createFromFormat('d/m/y', $item->date_formated)->locale('es')->translatedFormat('l'));
                     $item->asssignedSchedule = $item->startTime . ' - ' . $item->endTime;
 
                     return $item;
                 });
         }
 
+        // Agrupar por área solo si tienen tardanzas
+        $staffsGroupedByArea = $staffsGroupedByArea->filter(function ($staffs) use ($tardies) {
+            return $staffs->filter(function ($staff) use ($tardies) {
+                return $tardies->contains('file_number', $staff->file_number);
+            })->isNotEmpty();
+        });
+
+
         return redirect()->route('reportView.tardies')
             ->withInput()
             ->with([
                 'tardies' => $tardies,
                 'areas' => $areas->sortBy('name'),
-                'staffs' => $staffs->sortBy('name_surname'),
+                'staffs' => $staffsGroupedByArea->flatten()->sortBy('name_surname'),
                 'area_selected' => $area->name ?? null,
                 'tolerance' => $tolerance,
-                'dates' => $date_range_checkbox ? 'Desde el ' . $date_from->format('d/m/y') . ' hasta el ' . $date_to->format('d/m/y') : Carbon::parse($date)->format('d/m/y'),
+                'dates' => $date_range_checkbox
+                    ? 'Desde el ' . $date_from->format('d/m/y') . ' hasta el ' . $date_to->format('d/m/y')
+                    : Carbon::parse($date)->format('d/m/y'),
                 'secretaries' => $secretaries->sortBy('name'),
                 'worker_status' => $worker_status,
+                'staffsGrouped' => $staffsGroupedByArea,
             ]);
     }
+
+
 
     public function tardiesByAreaExport(PDF $pdf, Request $request)
     {

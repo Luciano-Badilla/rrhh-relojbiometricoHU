@@ -51,16 +51,15 @@
                             autofocus />
                     </div>
                     <div class="flex items-center space-x-2 w-1/2">
-                        <select id="area-select" name="area_id" required title="Selecciona un área"
+                        <select id="area-select" name="area_id" title="Selecciona un área"
                             class="selectpicker border-gray-300 rounded-xl shadow-sm" data-live-search="true">
                             <option value="">Todas las áreas</option> <!-- Opción por defecto -->
                             @foreach ($areas as $area)
-                                <option value="{{ $area->name }}" {{ old('area_id') == $area->id ? 'selected' : '' }}>
+                                <option value="{{ $area->name }}">
                                     {{ $area->name }}
                                 </option>
                             @endforeach
                         </select>
-
                         <!-- Botón para limpiar el select -->
                         <x-button :button="[
                             'id' => 'clear-area-select',
@@ -144,7 +143,6 @@
         // Evento para limpiar el select
         document.getElementById("clear-area-select").addEventListener("click", () => {
             searchSelect.value = "";
-            $('.selectpicker').selectpicker('refresh'); // Solo si usas Bootstrap select
             filterTable();
         });
 
@@ -175,5 +173,6 @@
         $('#add-staff-btn').click(function() {
             window.location.href = "{{ route('staff.create') }}";
         });
+        $('.selectpicker').selectpicker('refresh'); // Solo si usas Bootstrap select
     });
 </script>

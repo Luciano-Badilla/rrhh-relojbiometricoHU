@@ -158,42 +158,69 @@
                             'type' => 'submit',
                         ]" />
                     </form>
-                    @foreach ($staffs as $staff)
-                        @if ($tardies->where('file_number', $staff->file_number)->count() > 0)
-                            <div class="p-3 border border-gray-300 rounded-xl mt-2 shadow-sm">
-                                <div class="flex gap-3 justify-between">
-                                    <div class="flex gap-2">
-                                        <x-button-link :button="[
-                                            'id' => 'administration_panel_btn',
-                                            'route' => 'staff.administration_panel',
-                                            'data' => $staff->id,
-                                            'classes' =>
-                                                'btn btn-dark rounded-xl custom-tooltip administration_panel_btn -mt-2 mb-2',
-                                            'icon' => '<i class=\'fas fa-bars\'></i>',
-                                            'tooltip' => true,
-                                            'tooltip_text' => 'Panel administrativo de ' . $staff->name_surname,
-                                        ]" />
-                                        <h2 class="font-semibold text-md text-gray-800 leading-tight mb-2">
-                                            {{ '#' . $staff->file_number . ' ' . $staff->name_surname }}
-                                        </h2>
-                                    </div>
-                                    <p
-                                        class="font-semibold text-md text-gray-800 leading-tight px-2 rounded-full mb-2.5">
-                                        {{ $tardies->where('file_number', $staff->file_number)->count() == 1 ? $tardies->where('file_number', $staff->file_number)->count() . ' tardanza' : $tardies->where('file_number', $staff->file_number)->count() . ' tardanzas' }}
-                                    </p>
-                                </div>
-                                <x-table class="rounded-none" id="non_attendance-list" :headers="['#', 'Dia', 'Fecha', 'Horario', 'Entrada', 'Salida', 'Horas cumplidas']"
-                                    :fields="[
-                                        'counter',
-                                        'day',
-                                        'date_formated',
-                                        'asssignedSchedule',
-                                        'entryTime',
-                                        'departureTime',
-                                        'hoursCompleted',
-                                    ]" :data="$tardies->where('file_number', $staff->file_number)" />
+                    @foreach ($staffsGrouped as $areaId => $staffGroup)
+                        <div class="border rounded-xl mt-2">
+
+                            @php
+                                $area = $areas->firstWhere('id', $areaId);
+                            @endphp
+
+                            <div class="p-3 bg-gray-100 rounded-t-xl">
+                                <h2 class="block font-medium text-xl text-gray-700">
+                                    {{ $area?->name ?? 'Área desconocida' }}
+                                </h2>
                             </div>
-                        @endif
+                            <div class="p-3">
+
+                                @foreach ($staffGroup as $staff)
+                                    @if ($tardies->where('file_number', $staff->file_number)->count() > 0)
+                                        <div class="p-3 border border-gray-300 rounded-xl mt-2 shadow-sm">
+                                            <div class="flex gap-3 justify-between">
+                                                <div class="flex gap-2">
+                                                    <x-button-link :button="[
+                                                        'id' => 'administration_panel_btn',
+                                                        'route' => 'staff.administration_panel',
+                                                        'data' => $staff->id,
+                                                        'classes' =>
+                                                            'btn btn-dark rounded-xl custom-tooltip administration_panel_btn -mt-2 mb-2',
+                                                        'icon' => '<i class=\'fas fa-bars\'></i>',
+                                                        'tooltip' => true,
+                                                        'tooltip_text' =>
+                                                            'Panel administrativo de ' . $staff->name_surname,
+                                                    ]" />
+                                                    <h2 class="font-semibold text-md text-gray-800 leading-tight mb-2">
+                                                        {{ '#' . $staff->file_number . ' ' . $staff->name_surname }}
+                                                    </h2>
+                                                </div>
+                                                <p
+                                                    class="font-semibold text-md text-gray-800 leading-tight px-2 rounded-full mb-2.5">
+                                                    {{ $tardies->where('file_number', $staff->file_number)->count() }}
+                                                    {{ $tardies->where('file_number', $staff->file_number)->count() == 1 ? 'tardanza' : 'tardanzas' }}
+                                                </p>
+                                            </div>
+                                            <x-table class="rounded-none" id="tardies-list" :headers="[
+                                                '#',
+                                                'Día',
+                                                'Fecha',
+                                                'Horario',
+                                                'Entrada',
+                                                'Salida',
+                                                'Horas cumplidas',
+                                            ]"
+                                                :fields="[
+                                                    'counter',
+                                                    'day',
+                                                    'date_formated',
+                                                    'asssignedSchedule',
+                                                    'entryTime',
+                                                    'departureTime',
+                                                    'hoursCompleted',
+                                                ]" :data="$tardies->where('file_number', $staff->file_number)" />
+                                        </div>
+                                    @endif
+                                @endforeach
+                            </div>
+                        </div>
                     @endforeach
                 @else
                     <div class="text-center max-w-md" id="no_assistances" style="margin: 0 auto;">
@@ -286,6 +313,10 @@
 
             // Enviar el formulario
             $('#export-form').submit();
+        });
+
+        $('.administration_panel_btn').click(function() {
+            localStorage.removeItem('page_loaded');
         });
     });
 </script>
