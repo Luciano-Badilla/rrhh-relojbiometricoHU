@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\absenceReason;
+use App\Models\collective_agreement;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -19,20 +20,22 @@ class absenceController extends Controller
             return $absenceReason;
         });
 
+        $allCollectiveAgreements = collective_agreement::all()->pluck('name', 'id');
+
         return view('management.absenceReason_list', [
-            'absenceReasons' => $absenceReasons->sortBy('name')
+            'absenceReasons' => $absenceReasons->sortBy('name'),
+            'allCollectiveAgreements' => $allCollectiveAgreements
         ]);
     }
 
     public function add(Request $request)
     {
         $description = $request->input('description');
-        $decree = $request->input('decree') ?? '-';
+        $decree = collective_agreement::find($request->input('decree'))->name ?? '-';
         $article = $request->input('article') ?? '-';
         $subsection = $request->input('subsection') ?? '-';
         $item = $request->input('item') ?? '-';
         $year = $request->input('year') ?? '-';
-
         $enjoyment = $request->input('enjoyment');
         $businessDay = $request->input('businessDay');
         $continuous = $request->input('continuous');
@@ -64,7 +67,7 @@ class absenceController extends Controller
     {
         $id = $request->input('id');
         $description = $request->input('description');
-        $decree = $request->input('decree') ?? '-';
+        $decree = collective_agreement::find($request->input('decree'))->name ?? '-';
         $article = $request->input('article') ?? '-';
         $subsection = $request->input('subsection') ?? '-';
         $item = $request->input('item') ?? '-';
