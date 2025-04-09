@@ -15,11 +15,11 @@ class coordinator extends Model
 
     public function staff()
     {
-        return $this->belongsTo(Staff::class, 'staff_id');
+        return $this->belongsTo(staff::class, 'staff_id');
     }
 
     public function area()
     {
-        return $this->belongsTo(office::class, 'office_id');
+        return $this->belongsTo(area::class, 'area_id');
     }
 }
