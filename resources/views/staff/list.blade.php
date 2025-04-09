@@ -10,14 +10,14 @@
             <div class="px-3 flex flex-col gap-3 justify-center items-center">
                 <div class="flex flex-col gap-3 w-full">
                     <div>
-                        <x-input-label for="name_surname" value="Nombre y Apellido" />
-                        <x-text-input id="name_surname" type="text" name="name_surname" placeholder="Nombre completo"
-                            class="mt-1 block w-full" required />
-                    </div>
-                    <div>
                         <x-input-label for="file_number" value="Legajo" />
                         <x-text-input id="file_number" class="w-full" type="text" name="file_number"
                             placeholder="Número de legajo" required />
+                    </div>
+                    <div>
+                        <x-input-label for="name_surname" value="Nombre y Apellido" />
+                        <x-text-input id="name_surname" type="text" name="name_surname" placeholder="Nombre completo"
+                            class="mt-1 block w-full" required />
                     </div>
                 </div>
             </div>
@@ -51,16 +51,15 @@
                             autofocus />
                     </div>
                     <div class="flex items-center space-x-2 w-1/2">
-                        <select id="area-select" name="area_id" required title="Selecciona un área"
+                        <select id="area-select" name="area_id" title="Selecciona un área"
                             class="selectpicker border-gray-300 rounded-xl shadow-sm" data-live-search="true">
                             <option value="">Todas las áreas</option> <!-- Opción por defecto -->
                             @foreach ($areas as $area)
-                                <option value="{{ $area->name }}" {{ old('area_id') == $area->id ? 'selected' : '' }}>
+                                <option value="{{ $area->name }}">
                                     {{ $area->name }}
                                 </option>
                             @endforeach
                         </select>
-
                         <!-- Botón para limpiar el select -->
                         <x-button :button="[
                             'id' => 'clear-area-select',
@@ -80,7 +79,7 @@
                         'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
                         'icon' => '<i class=\'fa-solid fa-plus\'></i>',
                         'tooltip' => true,
-                        'tooltip_text' => 'Crear staff',
+                        'tooltip_text' => 'Agregar staff',
                         'modal_id' => 'add_staff_modal',
                     ]" />
 
@@ -144,7 +143,6 @@
         // Evento para limpiar el select
         document.getElementById("clear-area-select").addEventListener("click", () => {
             searchSelect.value = "";
-            $('.selectpicker').selectpicker('refresh'); // Solo si usas Bootstrap select
             filterTable();
         });
 
@@ -175,5 +173,6 @@
         $('#add-staff-btn').click(function() {
             window.location.href = "{{ route('staff.create') }}";
         });
+        $('.selectpicker').selectpicker('refresh'); // Solo si usas Bootstrap select
     });
 </script>

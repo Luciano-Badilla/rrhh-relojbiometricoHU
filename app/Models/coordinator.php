@@ -11,7 +11,7 @@ class coordinator extends Model
 
     protected $table = 'coordinator'; // Nombre de la tabla
 
-    protected $fillable = ['office_id', 'staff_id'];
+    protected $fillable = ['area_id', 'staff_id'];
 
     public function staff()
     {

@@ -6,7 +6,7 @@
     </x-slot>
 
     <div class="flex items-center justify-center py-6">
-        <div class="bg-white rounded-xl w-full lg:w-2/4">
+        <div class="bg-white rounded-xl w-full lg:w-3/4">
             @if (session('success'))
                 <div class="alert-success rounded-t-xl p-0.5 text-center mb-1">
                     {{ session('success') }}
@@ -45,9 +45,12 @@
                         </div>
                         <div class="w-1/4">
                             <label for="areas" class="block text-sm font-medium text-gray-700">Área:</label>
-                            <select id="area_select" name="area_id" required title="Selecciona un área"
+                            <select id="area_select" name="area_id" title="Selecciona un área" required
                                 class="selectpicker border-gray-300 rounded-xl shadow-sm" data-live-search="true"
                                 data-width="100%">
+                                <option value="" selected>
+                                    Todas las áreas
+                                </option>
                                 @foreach ($areas as $area)
                                     <option value="{{ $area->id }}"
                                         {{ old('area_id') == $area->id ? 'selected' : '' }}>
@@ -65,14 +68,48 @@
                                 <option value="">
                                     Seleccione un motivo
                                 </option>
+                                <option value="00">
+                                    Sin justificaciones
+                                </option>
                                 @foreach ($absenceReasons as $absenceReason)
                                     <option value="{{ $absenceReason->id }}"
                                         {{ old('absenceReason_id') == $absenceReason->id ? 'selected' : '' }}>
-                                        {{ $absenceReason->name }}
+                                        {{ $absenceReason->name . ' - (' . $absenceReason->decree . ')' }}
                                     </option>
                                 @endforeach
                             </select>
                         </div>
+                        <div class="w-1/4">
+                            <label for="secretary" class="block text-sm font-medium text-gray-700">Secretaria:</label>
+                            <select id="secretary_select" name="secretary_id" title="Seleccione una secretaria"
+                                class="selectpicker border-gray-300 rounded-xl shadow-sm" data-width="100%">
+                                <option value="">
+                                    Seleccione una secretaria
+                                </option>
+                                @foreach ($secretaries as $secretarie)
+                                    <option value="{{ $secretarie->id }}"
+                                        {{ old('secretary_id') == $secretarie->id ? 'selected' : '' }}>
+                                        {{ $secretarie->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="w-1/4">
+                            <label for="worker_status" class="block text-sm font-medium text-gray-700">Estado:</label>
+                            <select id="worker_status_Select" name="worker_status" title="Seleccione un estado"
+                                class="selectpicker border-gray-300 rounded-xl shadow-sm" data-width="100%">
+                                <option value="">
+                                    Seleccione un estado
+                                </option>
+                                @foreach ($worker_status as $worker_statu)
+                                    <option value="{{ $worker_statu }}"
+                                        {{ old('worker_status') == $worker_statu ? 'selected' : '' }}>
+                                        {{ $worker_statu }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
                         <x-button :button="[
                             'id' => 'search-btn',
                             'type' => 'submit',
@@ -116,10 +153,11 @@
             </div>
             <div id="content" class="px-3">
                 @if (!empty($nonAttendances) && !$nonAttendances->isEmpty())
-                    <form id="export-form" action="{{ route('reportExport.nonAttendanceByArea') }}" target="_blank" method="POST"
-                        class="-mt-8">
+                    <form id="export-form" action="{{ route('reportExport.nonAttendanceByArea') }}" target="_blank"
+                        method="POST" class="-mt-8">
                         @csrf
-                        <input type="hidden" name="file_name" value="Reporte de inasistencias - {{$area_selected .' '.$dates}}">
+                        <input type="hidden" name="file_name"
+                            value="Reporte de inasistencias - {{ $area_selected . ' ' . $dates }}">
                         <input type="hidden" name="nonAttendances" id="nonAttendances">
                         <input type="hidden" name="staffs" id="staffs">
                         <input type="hidden" name="area_selected" value="{{ $area_selected }}">
@@ -129,25 +167,60 @@
                             'classes' => 'btn btn-danger rounded-xl custom-tooltip h-[2.40rem] mt-[1.75rem]',
                             'icon' => '<i class=\'fa-solid fa-file-pdf\'></i>',
                             'tooltip_text' => 'Exportar a PDF',
-                            'type' => 'submit'
+                            'type' => 'submit',
                         ]" />
                     </form>
-                    @foreach ($staffs as $staff)
-                        @if ($nonAttendances->where('file_number', $staff->file_number)->count() > 0)
-                            <div class="p-3 border border-gray-300 rounded-xl mt-2 shadow-sm">
-                                <div class="flex gap-3 justify-between">
-                                    <h2 class="font-semibold text-md text-gray-800 leading-tight mb-2">
-                                        {{ '#' . $staff->file_number . ' ' . $staff->name_surname }}
-                                    </h2>
-                                    <p
-                                        class="font-semibold text-md text-gray-800 leading-tight px-2 rounded-full mb-2.5">
-                                        {{ $nonAttendances->where('file_number', $staff->file_number)->count() == 1 ? $nonAttendances->where('file_number', $staff->file_number)->count() . ' inasistencia' : $nonAttendances->where('file_number', $staff->file_number)->count() . ' inasistencias' }}
-                                    </p>
-                                </div>
-                                <x-table class="rounded-none" id="non_attendance-list" :headers="['#', 'Día', 'Fecha', 'Motivo/Justificación', 'Observaciones']"
-                                    :fields="['counter', 'day', 'date_formated', 'absenceReason', 'observations']" :data="$nonAttendances->where('file_number', $staff->file_number)" />
+                    @foreach ($staffsGrouped as $areaId => $staffGroup)
+                        <div class="border rounded-xl mt-2">
+                            @php
+                                $area = $areas->firstWhere('id', $areaId);
+                            @endphp
+
+                            <div class="p-3 bg-gray-100 rounded-t-xl">
+                                <h2 class="block font-medium text-xl text-gray-700">
+                                    {{ $area?->name ?? 'Área desconocida' }}
+                                </h2>
                             </div>
-                        @endif
+                            <div class="p-3">
+                                @foreach ($staffGroup as $staff)
+                                    @if ($nonAttendances->where('file_number', $staff->file_number)->count() > 0)
+                                        <div class="p-3 border border-gray-300 rounded-xl mt-2 shadow-sm">
+                                            <div class="flex gap-3 justify-between">
+                                                <div class="flex gap-2">
+                                                    <x-button-link :button="[
+                                                        'id' => 'administration_panel_btn',
+                                                        'route' => 'staff.administration_panel',
+                                                        'data' => $staff->id,
+                                                        'classes' =>
+                                                            'btn btn-dark rounded-xl custom-tooltip administration_panel_btn -mt-2 mb-2',
+                                                        'icon' => '<i class=\'fas fa-bars\'></i>',
+                                                        'tooltip' => true,
+                                                        'tooltip_text' =>
+                                                            'Panel administrativo de ' . $staff->name_surname,
+                                                    ]" />
+                                                    <h2 class="font-semibold text-md text-gray-800 leading-tight mb-2">
+                                                        {{ '#' . $staff->file_number . ' ' . $staff->name_surname }}
+                                                    </h2>
+                                                </div>
+                                                <p
+                                                    class="font-semibold text-md text-gray-800 leading-tight px-2 rounded-full mb-2.5">
+                                                    {{ $nonAttendances->where('file_number', $staff->file_number)->count() }}
+                                                    {{ $nonAttendances->where('file_number', $staff->file_number)->count() == 1 ? 'tardanza' : 'tardanzas' }}
+                                                </p>
+                                            </div>
+                                            <x-table class="rounded-none" id="nonAttendances-list" :headers="['#', 'Día', 'Fecha', 'Horario', 'Entrada']"
+                                                :fields="[
+                                                    'counter',
+                                                    'day',
+                                                    'date_formated',
+                                                    'asssignedSchedule',
+                                                    'entryTime',
+                                                ]" :data="$nonAttendances->where('file_number', $staff->file_number)" />
+                                        </div>
+                                    @endif
+                                @endforeach
+                            </div>
+                        </div>
                     @endforeach
                 @else
                     <div class="text-center max-w-md" id="no_assistances" style="margin: 0 auto;">
@@ -245,6 +318,10 @@
 
             // Enviar el formulario
             $('#export-form').submit();
+        });
+
+        $('.administration_panel_btn').click(function() {
+            localStorage.removeItem('page_loaded');
         });
     });
 </script>
