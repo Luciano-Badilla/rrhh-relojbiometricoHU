@@ -624,6 +624,7 @@ class reportsController extends Controller
                         'file_number' => $staff->file_number,
                         'date' => $date,
                         'absenceReason_id' => $nonAttendances[$date]->absenceReason_id ?? null,
+                        'observations' => $nonAttendances[$date]->observations ?? null,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ];
@@ -661,6 +662,7 @@ class reportsController extends Controller
                                 'file_number' => $staff->file_number,
                                 'date' => $workingDayFormatted,
                                 'absenceReason_id' => $nonAttendances[$workingDayFormatted]->absenceReason_id ?? null,
+                                'observations' => $nonAttendances[$workingDayFormatted]->observations ?? null,
                                 'created_at' => now(),
                                 'updated_at' => now(),
                             ];

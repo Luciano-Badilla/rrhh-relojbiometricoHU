@@ -29,7 +29,7 @@
     </x-modal-custom>
 
     <div class="flex items-center justify-center py-6">
-        <div class="bg-white rounded-xl w-full lg:w-2/4">
+        <div class="bg-white rounded-xl w-full lg:w-[55%]">
             @if (session('success'))
                 <div class="alert-success rounded-t-xl p-0.5 text-center mb-1">
                     {{ session('success') }}

@@ -6,7 +6,7 @@
     </x-slot>
 
     <div class="flex items-center justify-center py-6">
-        <div class="bg-white rounded-xl w-full lg:w-3/4">
+        <div class="bg-white rounded-xl w-full lg:w-[87%]">
             @if (session('success'))
                 <div class="alert-success rounded-t-xl p-0.5 text-center mb-1">
                     {{ session('success') }}
@@ -207,16 +207,16 @@
                                                 <p
                                                     class="font-semibold text-md text-gray-800 leading-tight px-2 rounded-full mb-2.5">
                                                     {{ $nonAttendances->where('file_number', $staff->file_number)->count() }}
-                                                    {{ $nonAttendances->where('file_number', $staff->file_number)->count() == 1 ? 'tardanza' : 'tardanzas' }}
+                                                    {{ $nonAttendances->where('file_number', $staff->file_number)->count() == 1 ? 'inasistencia' : 'inasistencias' }}
                                                 </p>
                                             </div>
-                                            <x-table class="rounded-none" id="nonAttendances-list" :headers="['#', 'Día', 'Fecha', 'Horario', 'Entrada']"
+                                            <x-table class="rounded-none" id="nonAttendances-list" :headers="['#', 'Día', 'Fecha', 'Motivo/justificación', 'Observaciones']"
                                                 :fields="[
                                                     'counter',
                                                     'day',
                                                     'date_formated',
-                                                    'asssignedSchedule',
-                                                    'entryTime',
+                                                    'absenceReason',
+                                                    'observations',
                                                 ]" :data="$nonAttendances->where('file_number', $staff->file_number)" />
                                         </div>
                                     @endif
