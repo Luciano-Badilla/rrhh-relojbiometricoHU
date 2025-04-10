@@ -22,6 +22,7 @@ use App\Models\day;
 use Carbon\Carbon;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -150,8 +151,12 @@ class staffController extends Controller
 
     public function attendance($id, Request $request)
     {
-
         $staff = staff::find($id);
+        $vacations = Vacations::where('staff_id', $staff->file_number)->get();
+        $totalVacationDays = 0;
+        foreach ($vacations as $vacation) {
+            $totalVacationDays += $vacation->days;
+        }
         $file_number = $staff->file_number;
 
         $schedules = $staff->schedules;
@@ -175,7 +180,7 @@ class staffController extends Controller
         $schedules = $schedules->values();
 
         if ($staff->collective_agreement) {
-            $absenceReasons = absenceReason::where('decree', $staff->collective_agreement->name)->get();
+            $absenceReasons = absenceReason::where('decree', $staff->collective_agreement->name)->where('logical_erase', false)->get();
         } else {
             $absenceReasons = collect(); // Devuelve una colección vacía si no hay convenio colectivo
         }
@@ -313,7 +318,9 @@ class staffController extends Controller
             'nonAttendance' => $nonAttendance->sortBy('date'),
             'absenceReasons' => $absenceReasons->sortBy('name'),
             'absenceReasonCount' => $absenceReasonCount,
-            'dataToExport' => $dataToExport
+            'dataToExport' => $dataToExport,
+            'totalVacationDays' => $totalVacationDays,
+            'vacations' => $vacations
         ]);
     }
 
@@ -487,4 +494,111 @@ class staffController extends Controller
         return $dates;
     }
 
+    public function vacations_add(Request $request)
+    {
+        $staff = Staff::find($request->input('staff_id'));
+        $date_from = Carbon::parse($request->input('vacations_date_from'));
+        $date_to = Carbon::parse($request->input('vacations_date_to'));
+        $totalDays = $date_to->diffInDays($date_from) + 1;
+        $observations = $request->input('observations') . ' - ' . Auth::user()->name . ' ' . Carbon::now()->format('d/m/Y H:i');
+
+        $vacations = Vacations::where('staff_id', $staff->file_number)
+            ->orderBy('year', 'asc')
+            ->get();
+
+        $currentDate = $date_from->copy();
+
+        // Para feedback
+        $conflictedDates = [];
+        $attendanceDates = [];
+        $usedDays = 0;
+
+        while ($totalDays > 0 && $currentDate->lte($date_to)) {
+            // Verificar si hay asistencia registrada para ese día
+            $hasAttendance = Attendance::where('file_number', $staff->file_number)
+                ->whereDate('date', $currentDate)
+                ->exists();
+
+            if ($hasAttendance) {
+                $attendanceDates[] = $currentDate->format('d/m/Y');
+                $currentDate->addDay();
+                continue;
+            }
+
+            $existing = NonAttendance::where('file_number', $staff->file_number)
+                ->where('date', $currentDate->format('Y-m-d'))
+                ->first();
+
+            if ($existing && !is_null($existing->absenceReason_id)) {
+                // Día ocupado con otro motivo
+                $conflictedDates[] = $currentDate->format('d/m/Y');
+                $currentDate->addDay();
+                continue;
+            }
+
+            $vacation = $vacations->first(function ($v) {
+                return $v->days > 0;
+            });
+
+            if (!$vacation) {
+                // Sin más días disponibles
+                break;
+            }
+
+            $absenceReason = AbsenceReason::firstOrCreate(
+                ['name' => 'Vacaciones ' . $vacation->year],
+                ['logical_erase' => 1]
+            );
+
+            if ($existing && is_null($existing->absenceReason_id)) {
+                $existing->update([
+                    'absenceReason_id' => $absenceReason->id,
+                    'observations' => $observations,
+                ]);
+            } elseif (!$existing) {
+                NonAttendance::create([
+                    'file_number' => $staff->file_number,
+                    'date' => $currentDate->format('Y-m-d'),
+                    'absenceReason_id' => $absenceReason->id,
+                    'observations' => $observations,
+                ]);
+            }
+
+            // Solo descontar si se usó el día
+            $vacation->days -= 1;
+            $vacation->save();
+
+            $usedDays++;
+            $totalDays--;
+            $currentDate->addDay();
+        }
+
+        // Mensajes personalizados
+        if ($usedDays === 0 && count($conflictedDates) > 0 && count($attendanceDates) === 0) {
+            return redirect()->back()->with('error', 'No se registraron vacaciones. Todos los días ya están justificados.');
+        }
+
+        if ($usedDays === 0 && count($attendanceDates) > 0 && count($conflictedDates) === 0) {
+            return redirect()->back()->with('error', 'No se registraron vacaciones. Los siguientes días ya tienen asistencias registradas: ' . implode(', ', $attendanceDates));
+        }
+
+        if ($usedDays === 0) {
+            return redirect()->back()->with('error', 'No se registraron vacaciones. Todos los días ya estaban justificados o tenían asistencia registrada.');
+        }
+
+        // Si hubo algunos conflictos o asistencias
+        $warnings = [];
+        if (count($conflictedDates) > 0) {
+            $warnings[] = 'Los siguientes días ya tenían una justificación registrada y no se descontaron de vacaciones: ' . implode(', ', $conflictedDates);
+        }
+        if (count($attendanceDates) > 0) {
+            $warnings[] = 'Los siguientes días ya tienen asistencia registrada y no se descontaron de vacaciones: ' . implode(', ', $attendanceDates);
+        }
+
+        if (count($warnings) > 0) {
+            return redirect()->back()->with('warning', 'Vacaciones registradas parcialmente. ' . implode(' ', $warnings));
+        }
+
+        return redirect()->back()->with('success', 'Vacaciones registradas correctamente.');
+    }
 }

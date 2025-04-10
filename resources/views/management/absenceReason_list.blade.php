@@ -18,7 +18,7 @@
                     <div class="flex flex-row gap-3 justify-between">
                         <div class="flex flex-col w-full">
                             <label for="decree" class="block text-sm font-medium text-gray-700">Decreto:</label>
-                            <x-select id="decree" name="decree" :options="$allCollectiveAgreements" class="-mt-2"
+                            <x-select id="decree" name="decree" :options="$allCollectiveAgreements" class="-mt-2 w-full"
                                 placeholder="Seleccionar un decreto">
                             </x-select>
                         </div>
@@ -88,7 +88,7 @@
                     <div class="flex flex-row gap-3 justify-between">
                         <div class="flex flex-col w-full">
                             <label for="decree" class="block text-sm font-medium text-gray-700">Decreto:</label>
-                            <x-select id="decree" name="decree" :options="$allCollectiveAgreements" class="-mt-2"
+                            <x-select id="decree" name="decree" :options="$allCollectiveAgreements" class="-mt-2 w-full"
                                 placeholder="Seleccionar un decreto">
                             </x-select>
                         </div>
