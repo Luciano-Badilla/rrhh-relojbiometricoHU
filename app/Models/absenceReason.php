@@ -21,6 +21,7 @@ class absenceReason extends Model
         'continuous',
         'businessDay',
         'decree',
+        'logical_erase'
     ];
 
     public function nonAttendances()

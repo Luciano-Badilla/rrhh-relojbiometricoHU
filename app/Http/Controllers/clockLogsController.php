@@ -65,7 +65,7 @@ class clockLogsController extends Controller
             }
         }
 
-        return response()->json(['message' => 'Backup realizado correctamente.']);
+        return redirect()->back()->with('success', 'Los registros de asistencia se respaldaron correctamente.');
     }
 
     public function update_attendance($file_number = null)

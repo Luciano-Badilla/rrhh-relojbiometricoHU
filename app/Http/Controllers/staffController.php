@@ -157,7 +157,7 @@ class staffController extends Controller
         $schedules = $schedules->values();
 
         if ($staff->collective_agreement) {
-            $absenceReasons = absenceReason::where('decree', $staff->collective_agreement->name)->get();
+            $absenceReasons = absenceReason::where('decree', $staff->collective_agreement->name)->where('logical_erase', false)->get();
         } else {
             $absenceReasons = collect(); // Devuelve una colección vacía si no hay convenio colectivo
         }
@@ -516,7 +516,7 @@ class staffController extends Controller
 
             $absenceReason = AbsenceReason::firstOrCreate(
                 ['name' => 'Vacaciones ' . $vacation->year],
-                ['logical_erase' => true]
+                ['logical_erase' => 1]
             );
 
             if ($existing && is_null($existing->absenceReason_id)) {
