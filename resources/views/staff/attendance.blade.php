@@ -174,6 +174,68 @@
         </div>
 
     </x-modal-custom>
+    <x-modal-custom id="add_vacations_modal" title="Agregar vacaciones"
+        subtitle="Esta acción agregará inasistencias justificadas con vacaciones para esta persona.">
+        <form action="{{ route('vacations.add') }}" method="POST">
+            @csrf
+            <div class="px-3 mt-1 flex flex-col gap-3 justify-center items-center">
+                <div class="flex flex-col gap-3 w-full justify-center items-center">
+                    <div class="flex flex-row gap-3">
+                        <div>
+                            <label for="vacations_date" class="block text-sm font-medium text-gray-700">Desde:</label>
+                            <x-text-input id="vacations_date1" name="vacations_date_from" type="date" class="h-10" required value="{{old('vacations_date_from')}}"/>
+                        </div>
+                        <div>
+                            <label for="vacations_date" class="block text-sm font-medium text-gray-700">Hasta:</label>
+                            <x-text-input id="vacations_date2" name="vacations_date_to" type="date" class="h-10" required value="{{old('vacations_date_to')}}"/>
+                        </div>
+                        
+                    </div>
+                    <div class="flex gap-1 w-full pl-[4rem]">
+                        <label class="block text-sm font-medium text-gray-700">Cantidad de días:</label>
+                        <p id="vacation_days" class="text-gray-900 font-semibold -mt-0.5">0</p>
+                    </div>
+                    <div class="flex gap-1 w-full pl-[4rem] -mt-6">
+                        <p id="vacation_error" class="text-red-600 font-semibold text-sm mt-1 hidden">El total de dias disponibles es: {{ $totalVacationDays }}.</p>
+
+                    </div>
+                    
+                    <x-text-input id="staff_id" name="staff_id" type="text" class="hidden"
+                        value="{{ $staff->id }}" />
+                        <div>
+                            <table class="w-full text-sm text-center text-gray-500">
+                                <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                                    <tr>
+                                        @foreach ($vacations as $vacation)
+                                            <th scope="col" class="px-6 py-3">{{ $vacation->year }}</th>
+                                        @endforeach
+                                        <th scope="col" class="px-6 py-3">Total</th>
+
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="bg-white border-b hover:bg-gray-50">
+                                        @foreach ($vacations as $vacation)
+                                            <td class="px-6 py-4">{{ $vacation->days }}</td>
+                                        @endforeach
+                                        <td class="px-6 py-4">{{ $totalVacationDays }}</td>
+
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                </div>
+            </div>
+            <div class="flex flex-col px-[6%] mb-3 mt-1">
+                <label for="observations" class="block text-sm font-medium text-gray-700">Observaciones: (Se agregara su nombre despues de la observación)</label>
+                <x-text-input id="observations" name="observations" type="text" value="Ingreso manual" required />
+            </div>
+            <div class="flex justify-end px-3 gap-2">
+                <button type="submit" class="btn btn-success rounded-xl" id="add_vacations_btn">Agregar
+                </button>
+            </div>
+        </form>
+    </x-modal-custom>
     <div class="flex items-center justify-center py-6">
         <div class="bg-white rounded-xl w-full lg:w-2/4">
             <div id="loading-overlay" class="hidden">
@@ -183,7 +245,7 @@
                     </div>
                 @endif
                 @if (session('warning'))
-                    <div class="alert-warning rounded-t-xl p-0.5 text-center mb-1">
+                    <div class="alert-warning rounded-t-xl py-0.5 px-2 text-center mb-1">
                         {{ session('warning') }}
                     </div>
                 @endif
@@ -474,7 +536,7 @@
                             <div class="mt-3 text-center">
                                 @if ($nonAttendance->isEmpty())
                                 <div class="flex flex-col justify-start mb-3">
-                                    <div class="flex w-full justify-between">
+                                    <div class="flex w-full gap-1">
                                         <x-button :button="[
                                             'id' => 'add_many_nonattendance_btn',
                                             'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
@@ -482,7 +544,14 @@
                                             'tooltip_text' => 'Justificador de inasistencias',
                                             'modal_id' => 'add_many_nonattendance_modal'
                                         ]" />
-                                    
+                                        <x-button :button="[
+                                            'id' => 'add_vacations',
+                                            'classes' => 'btn btn-dark rounded-xl custom-tooltip add_vacations_btn h-10',
+                                            'icon' => '<i class=\'fa-solid fa-suitcase-rolling\'></i>',
+                                            'tooltip_text' => 'Agregar vacaciones',
+                                            'modal_id' => 'add_vacations_modal',
+                                            'role' => 2
+                                        ]" />
                                     </div>
                                     <div class="text-center max-w-md" id="no_assistances" style="margin: 0 auto;">
                                         <div class="p-6 rounded-lg mt-3">
@@ -501,14 +570,25 @@
                                 @if ($nonAttendance->isNotEmpty())
                                 <div class="flex justify-start mb-3">
                                     <div class="flex w-full justify-between">
-                                        <x-button :button="[
-                                            'id' => 'add_many_nonattendance_btn',
-                                            'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
-                                            'icon' => '<i class=\'fa-solid fa-plus\'></i>',
-                                            'tooltip_text' => 'Justificador de inasistencias',
-                                            'modal_id' => 'add_many_nonattendance_modal',
-                                            'role' => 2
-                                        ]" />
+                                        <div>
+                                            <x-button :button="[
+                                                'id' => 'add_many_nonattendance_btn',
+                                                'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
+                                                'icon' => '<i class=\'fa-solid fa-plus\'></i>',
+                                                'tooltip_text' => 'Justificador de inasistencias',
+                                                'modal_id' => 'add_many_nonattendance_modal',
+                                                'role' => 2
+                                            ]" />
+                                            
+                                            <x-button :button="[
+                                                'id' => 'add_vacations',
+                                                'classes' => 'btn btn-dark rounded-xl custom-tooltip add_vacations_btn h-10',
+                                                'icon' => '<i class=\'fa-solid fa-suitcase-rolling\'></i>',
+                                                'tooltip_text' => 'Agregar vacaciones',
+                                                'modal_id' => 'add_vacations_modal',
+                                                'role' => 2
+                                            ]" />
+                                        </div>
                                         <x-button :button="[
                                             'id' => 'view_nonattendance_btn',
                                             'classes' => 'btn btn-success rounded-xl custom-tooltip h-10',
@@ -623,5 +703,43 @@
             const encodedData = encodeURIComponent(JSON.stringify(dataToExport));
             window.location.href = "{{ route('report.individual_hours') }}?data=" + encodedData;
         });
+        const totalVacationDays = {{ $totalVacationDays }};
+        const inputFrom = document.getElementById('vacations_date1');
+        const inputTo = document.getElementById('vacations_date2');
+        const daysOutput = document.getElementById('vacation_days');
+        const addBtn = document.getElementById('add_vacations_btn');
+        const errorText = document.getElementById('vacation_error');
+
+
+        function calculateDays() {
+            const fromDate = new Date(inputFrom.value);
+            const toDate = new Date(inputTo.value);
+
+            if (!isNaN(fromDate.getTime()) && !isNaN(toDate.getTime())) {
+                const timeDiff = toDate - fromDate;
+                const dayDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24)) + 1;
+
+                const validDays = dayDiff > 0 ? dayDiff : 0;
+                daysOutput.textContent = validDays;
+
+                if (validDays > totalVacationDays) {
+                    addBtn.disabled = true;
+                    errorText.classList.remove('hidden');
+                } else {
+                    addBtn.disabled = false;
+                    errorText.classList.add('hidden');
+                }
+            } else {
+                daysOutput.textContent = 0;
+                addBtn.disabled = true;
+                errorText.classList.add('hidden');
+            }
+        }
+
+        inputFrom.addEventListener('change', calculateDays);
+        inputTo.addEventListener('change', calculateDays);
+
+        calculateDays(); // Para evaluar valores pre-cargados
+
     });
 </script>

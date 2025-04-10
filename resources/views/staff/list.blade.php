@@ -52,7 +52,7 @@
                     </div>
                     <div class="flex items-center space-x-2 w-1/2">
                         <select id="area-select" name="area_id" title="Selecciona un área"
-                            class="selectpicker border-gray-300 rounded-xl shadow-sm" data-live-search="true">
+                            class="border-gray-300 rounded-xl shadow-sm p-1.5">
                             <option value="">Todas las áreas</option> <!-- Opción por defecto -->
                             @foreach ($areas as $area)
                                 <option value="{{ $area->name }}">
@@ -71,7 +71,7 @@
                         ]" />
                     </div>
                 </div>
-                <div>
+                <div class="flex gap-1">
                     <!-- Botón de agregar staff -->
                     <x-button :button="[
                         'id' => 'add-btn',
@@ -84,15 +84,17 @@
                     ]" />
 
                     <!-- Botón de backup (se mantiene en la misma posición) -->
-                    <x-button :button="[
-                        'id' => 'backup-btn',
-                        'type' => 'button',
-                        'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
-                        'icon' => '<i class=\'fa-solid fa-rotate\'></i>',
-                        'tooltip' => true,
-                        'tooltip_text' => 'Backup de marcadas',
-                        'loading' => true,
-                    ]" />
+                    <form action="{{ route('clockLogs.backup') }}">
+                        <x-button :button="[
+                            'id' => 'backup-btn',
+                            'type' => 'submit',
+                            'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
+                            'icon' => '<i class=\'fa-solid fa-rotate\'></i>',
+                            'tooltip' => true,
+                            'tooltip_text' => 'Backup de marcadas',
+                            'loading' => true,
+                        ]" />
+                    </form>
                 </div>
 
             </div>
@@ -151,23 +153,6 @@
 
         $('.administration_panel_btn').click(function() {
             localStorage.removeItem('page_loaded');
-        });
-
-        $('#backup-btn').click(function() {
-            $.ajax({
-                url: "{{ route('clockLogs.backup') }}",
-                type: 'GET',
-                data: {
-                    _token: '{{ csrf_token() }}'
-                },
-                success: function(response) {
-                    custom_alert(response.message, 'success');
-                    window.location.reload();
-                },
-                error: function(xhr, status, error) {
-                    custom_alert(error, 'error');
-                }
-            });
         });
 
         $('#add-staff-btn').click(function() {

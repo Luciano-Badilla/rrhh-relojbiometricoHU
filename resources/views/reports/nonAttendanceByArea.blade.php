@@ -74,7 +74,9 @@
                                 @foreach ($absenceReasons as $absenceReason)
                                     <option value="{{ $absenceReason->id }}"
                                         {{ old('absenceReason_id') == $absenceReason->id ? 'selected' : '' }}>
-                                        {{ $absenceReason->name . ' - (' . $absenceReason->decree . ')' }}
+                                        {{ $absenceReason->name }} @if (!empty($absenceReason->decree))
+                                            - ({{ $absenceReason->decree }})
+                                        @endif
                                     </option>
                                 @endforeach
                             </select>

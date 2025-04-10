@@ -36,7 +36,7 @@ class areaCoordinatorsController extends Controller
             'coordinator' => 'unique:coordinator,staff_id',
         ], [
             'area.unique' => 'El área ya existe',
-            'coordinator.unique' => 'El coordinador ya está asignado al área: ' .
+            'coordinator.unique' => 'El coordinador '.optional(optional(coordinator::where('staff_id', $request->coordinator)->first())->staff)->name_surname.' ya está asignado al área: ' .
                 (coordinator::where('staff_id', $request->coordinator)->first() ? coordinator::where('staff_id', $request->coordinator)->first()->area->name : '')
         ]);
 
