@@ -216,7 +216,7 @@
 
                 <div class="flex items-center mb-4 mt-2">
                     <label for="annual-vacation-days" class="mr-2 text-gray-700">Días anuales:</label>
-                    <input id="annual-vacation-days" style="text-align: right; width: 65px"
+                    <input id="annual_vacation_days" name="annual_vacation_days" style="text-align: right; width: 65px"
                         value="{{ $annual_vacation_days->days ?? '' }}" x-bind:disabled="!isEditing" type="number"
                         class="border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:border-indigo-500">
                 </div>

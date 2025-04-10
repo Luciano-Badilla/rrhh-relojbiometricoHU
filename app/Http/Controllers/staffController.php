@@ -89,11 +89,34 @@ class staffController extends Controller
     public function management($id)
     {
         $staff = Staff::find($id); // Encuentra el registro del staff
+
+        $currentYear = now()->year;
+        $previousYear = $currentYear - 1;
+
+        $annual_vacation_days = annual_vacation_days::where('staff_id', $staff->file_number)->value('days');
+
+        $annual_vacation_days = $annual_vacation_days ?? 0;
+
+        // Verifica si el año anterior ya está registrado
+        $existing = vacations::where('staff_id', $staff->file_number)
+            ->where('year', $previousYear)
+            ->exists();
+
+        //dd($existing);
+        if (!$existing) {
+            $nuevaVac = vacations::create([
+                'staff_id' => $staff->file_number,
+                'year' => $previousYear,
+                'days' => $annual_vacation_days, // o el valor que manejes por defecto
+            ]);
+        }
+        //dd($nuevaVac);
+
         $categories = Category::all()->pluck('name', 'id');
         $collective_agreement = collective_agreement::all();
         $secretaries = Secretary::all()->pluck('name', 'id');
         $schedules = $staff->schedules;
-        $vacations = Vacations::where('staff_id', $staff->file_number)->orderBy('year')->get();
+        $vacations = vacations::where('staff_id', $staff->file_number)->orderBy('year')->get();
         $annual_vacation_days = annual_vacation_days::where('staff_id', $staff->file_number)
             ->first();
 
@@ -174,7 +197,7 @@ class staffController extends Controller
             ->get()
             ->map(function ($item) {
                 // Formatear las fechas en formato dd/mm/yy
-
+    
                 $item->date_formated = \Carbon\Carbon::parse($item->date)->format('d/m/y');
                 $item->hoursCompleted = $this->calculateWorkedHours($item->entryTime, $item->departureTime) ?? gmdate('H:i:s', 0);
 
@@ -304,17 +327,20 @@ class staffController extends Controller
 
     public function list()
     {
-
         $staff = Staff::all()->map(function ($item) {
-            // Agregar una nueva clave con los nombres de las áreas
             $item->areas_name = $item->areas->pluck('name')->implode(', ') ?: 'Sin área asignada';
             return $item;
         });
 
         $areas = area::all();
 
+        // Ordenar: primero los activos, luego los dados de baja, y dentro de cada grupo por nombre
+        $staff = $staff->sortBy(function ($item) {
+            return [$item->inactive_since ? 1 : 0, $item->name_surname];
+        });
+
         return view('staff.list', [
-            'staff' => $staff->sortBy('name_surname'),
+            'staff' => $staff,
             'areas' => $areas
         ]);
     }
@@ -340,7 +366,6 @@ class staffController extends Controller
     public function update(Request $request, $id)
     {
         //dd($request->all());
-        // Valida los datos del formulario
         $request->validate([
             'file_number' => 'required|string|max:255',
             'coordinator' => 'nullable|integer',
@@ -358,9 +383,15 @@ class staffController extends Controller
         ]);
 
         $areas = $request->input('areas', []);
-
+        
         $staff = Staff::findOrFail($id);
         $staff->areas()->sync($areas);
+        $annualVacationDays = $request->input('annual_vacation_days');
+
+        Annual_Vacation_Days::updateOrCreate(
+            ['staff_id' => $staff->file_number],
+            ['days' => $annualVacationDays]
+        );
 
         $staff->file_number = $request->input('file_number');
         $staff->coordinator_id = $request->input('coordinator');
