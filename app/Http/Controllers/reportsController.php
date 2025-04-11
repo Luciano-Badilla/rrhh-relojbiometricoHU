@@ -6,6 +6,7 @@ use App\Models\absenceReason;
 use App\Models\area;
 use App\Models\attendance;
 use App\Models\attendance_reports;
+use App\Models\category;
 use App\Models\clockLogs;
 use App\Models\day;
 use App\Models\devices;
@@ -22,6 +23,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Rats\Zkteco\Lib\ZKTeco;
 use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 
 class reportsController extends Controller
@@ -624,6 +630,7 @@ class reportsController extends Controller
                         'file_number' => $staff->file_number,
                         'date' => $date,
                         'absenceReason_id' => $nonAttendances[$date]->absenceReason_id ?? null,
+                        'observations' => $nonAttendances[$date]->observations ?? null,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ];
@@ -661,6 +668,7 @@ class reportsController extends Controller
                                 'file_number' => $staff->file_number,
                                 'date' => $workingDayFormatted,
                                 'absenceReason_id' => $nonAttendances[$workingDayFormatted]->absenceReason_id ?? null,
+                                'observations' => $nonAttendances[$workingDayFormatted]->observations ?? null,
                                 'created_at' => now(),
                                 'updated_at' => now(),
                             ];
@@ -674,5 +682,125 @@ class reportsController extends Controller
         if (!empty($bulkInsert)) {
             NonAttendance_reports::insert($bulkInsert);
         }
+    }
+
+    public function attendanceExport(Request $request)
+    {
+        // Decodificar datos
+        $staff = json_decode($request->input('staff'), true);
+        $days = json_decode($request->input('days'), true);
+        $totalHours = json_decode($request->input('totalHours'), true);
+        $hoursAverage = json_decode($request->input('hoursAverage'), true);
+        $totalExtraHours = json_decode($request->input('totalExtraHours'), true);
+        $schedules = json_decode($request->input('schedules'), true);
+        $attendances = json_decode($request->input('attendances'), true);
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Reporte');
+
+        $row = 1;
+
+        // --- RESUMEN ---
+        $sheet->setCellValue("A$row", "Universidad Nacional de Cuyo - Hospital universitario");
+        $sheet->mergeCells("A$row:B$row");
+        $sheet->getStyle("A$row")->getFont()->setBold(true)->setSize(14);
+
+        $row += 2;
+        
+        $sheet->setCellValue("A$row", $staff['file_number']);
+        $sheet->setCellValue("B$row", $staff['name_surname']);
+        $sheet->setCellValue("C$row", ($staff['worker_status'] == 'planta') ? $staff['worker_status'] . ' - ' . category::find($staff['category_id'])->name : $staff['worker_status']);
+        $sheet->setCellValue("D$row", secretary::find($staff['secretary_id'])->name);
+        $sheet->setCellValue("E$row", (Carbon::parse($staff['inactive_since'])->format('d/m/y')) ? Carbon::parse($staff['date_of_entry'])->format('d/m/y') .' - '.Carbon::parse($staff['inactive_since'])->format('d/m/y') : Carbon::parse($staff['date_of_entry'])->format('d/m/y'));
+        $sheet->setCellValue("G$row", Carbon::now()->format('d/m/y'));
+ 
+        $row += 2;
+ 
+        $resumen = [
+            ['Días completados', $days],
+            ['Horas totales', $totalHours],
+            ['Promedio de horas', $hoursAverage],
+            ['Horas adicionales', $totalExtraHours],
+        ];
+
+        $sheet->setCellValue("A$row", "Horarios por Día");
+        $sheet->setCellValue("B$row", "Horarios por Día");
+        $sheet->setCellValue("C$row", "Horarios por Día");
+        $sheet->setCellValue("D$row", "Horarios por Día");
+
+
+        $row += 2;
+
+        // --- HORARIOS POR DÍA ---
+        $sheet->setCellValue("A$row", "Horarios por Día");
+        $sheet->mergeCells("A$row:C$row");
+        $sheet->getStyle("A$row")->getFont()->setBold(true)->setSize(12);
+        $row++;
+
+        $sheet->fromArray(['Día', 'Horario', 'Horas'], null, "A$row");
+        $sheet->getStyle("A$row:C$row")->getFont()->setBold(true);
+        $row++;
+
+        $diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
+        foreach (range(1, 7) as $i) {
+            $diaNombre = $diasSemana[$i - 1];
+            $schedule = collect($schedules)->firstWhere('day_id', $i);
+
+            if ($schedule) {
+                $shift = \App\Models\Shift::find($schedule['shift_id']);
+                $start = \Carbon\Carbon::parse($shift->startTime)->format('H:i');
+                $end = \Carbon\Carbon::parse($shift->endTime)->format('H:i');
+                $horas = \Carbon\Carbon::parse($shift->startTime)->diffInHours($shift->endTime);
+                $sheet->fromArray([$diaNombre, "$start - $end", $horas], null, "A$row");
+            } else {
+                $sheet->fromArray([$diaNombre, "Sin horario", 0], null, "A$row");
+            }
+            $row++;
+        }
+
+        $row += 2;
+
+        // --- DETALLE DE ASISTENCIAS ---
+        $sheet->setCellValue("A$row", "Detalle de Asistencias");
+        $sheet->mergeCells("A$row:G$row");
+        $sheet->getStyle("A$row")->getFont()->setBold(true)->setSize(12);
+        $row++;
+
+        $headers = ['Día', 'Fecha', 'Entrada', 'Salida', 'Horas cumplidas', 'Horas adicionales', 'Observaciones'];
+        $sheet->fromArray($headers, null, "A$row");
+        $sheet->getStyle("A$row:G$row")->getFont()->setBold(true);
+        $row++;
+
+        foreach ($attendances as $registro) {
+            $sheet->fromArray([
+                $registro['day'],
+                $registro['date_formated'],
+                $registro['entryTime'],
+                $registro['departureTime'],
+                $registro['hoursCompleted'],
+                $registro['extraHours'],
+                $registro['observations'],
+            ], null, "A$row");
+            $row++;
+        }
+
+        // Estilo rápido para toda la hoja
+        $sheet->getStyle("A1:G$row")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+        $sheet->getColumnDimension('A')->setAutoSize(true);
+        foreach (range('B', 'G') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // Descargar el archivo
+        $writer = new Xlsx($spreadsheet);
+        $filename = $request->input('file_name') . '.xlsx';
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
     }
 }

@@ -237,7 +237,7 @@
         </form>
     </x-modal-custom>
     <div class="flex items-center justify-center py-6">
-        <div class="bg-white rounded-xl w-full lg:w-2/4">
+        <div class="bg-white rounded-xl w-full lg:w-3/4">
             <div id="loading-overlay" class="hidden">
                 @if (session('success'))
                     <div class="alert-success rounded-t-xl p-0.5 text-center mb-1">
@@ -476,21 +476,26 @@
                                             
                                         </div>
                                         <div>
-                                            <!--
-                                            <x-button :button="[
-                                            'id' => 'report_individual_hours_btn',
-                                            'classes' => 'btn btn-success rounded-xl custom-tooltip add_nonattendance_btn h-10',
-                                            'icon' => '<i class=\'fa-solid fa-stopwatch\'></i>',
-                                            'role' => 2,
-                                            'tooltip_text' => 'Reporte de horas'
-                                        ]" />
-                                        <x-button :button="[
-                                            'id' => 'report_individual_hours_btn',
-                                            'classes' => 'btn btn-success rounded-xl custom-tooltip add_nonattendance_btn h-10',
-                                            'icon' => '<i class=\'fa-solid fa-table\'></i>',
-                                            'role' => 2,
-                                            'tooltip_text' => 'Reporte de asistencias'
-                                        ]" />-->
+                                            <form id="export-form" action="{{ route('reportExport.attendance') }}" target="_blank"
+                                                method="POST" class="-mt-8">
+                                                @csrf
+                                                <input type="hidden" name="file_name"
+                                                    value="Resumen de asistencias - {{ $staff->name_surname . ' ' . Carbon::now()->format('d-m-Y') }}">
+                                                <input type="hidden" name="attendances" id="attendances">
+                                                <input type="hidden" name="staff" id="staff">
+                                                <input type="hidden" name="days" id="days">
+                                                <input type="hidden" name="totalHours" id="totalHours">
+                                                <input type="hidden" name="hoursAverage" id="hoursAverage">
+                                                <input type="hidden" name="totalExtraHours" id="totalExtraHours">
+                                                <input type="hidden" name="schedules" id="schedules">
+                                                <x-button :button="[
+                                                    'id' => 'export-btn',
+                                                    'classes' => 'btn btn-success rounded-xl custom-tooltip h-[2.40rem] mt-[1.75rem]',
+                                                    'icon' => '<i class=\'fa-solid fa-table\'></i>',
+                                                    'tooltip_text' => 'Exportar resumen a Excel',
+                                                    'type' => 'submit',
+                                                ]" />
+                                            </form>
                                         </div>
                                         
                                     </div>
@@ -596,6 +601,7 @@
                                             'tooltip_text' => 'Ver cantidad de justificaciones usadas',
                                             'modal_id' => 'view_absenseReason_modal'
                                         ]" />
+                                        
                                     </div>
                                     
                                 </div>
@@ -741,5 +747,21 @@
 
         calculateDays(); // Para evaluar valores pre-cargados
 
+
+        $('#export-btn').click(function(e) {
+            e.preventDefault(); // Evita la recarga de la página
+
+            // Asigna los valores de PHP a los campos ocultos
+            $('#attendances').val(JSON.stringify(@json($attendance)));
+            $('#staff').val(JSON.stringify(@json($staff)));
+            $('#days').val(JSON.stringify(@json($days)));
+            $('#totalHours').val(JSON.stringify(@json($totalHours)));
+            $('#hoursAverage').val(JSON.stringify(@json($hoursAverage)));
+            $('#totalExtraHours').val(JSON.stringify(@json($totalExtraHours)));
+            $('#schedules').val(JSON.stringify(@json($schedules)));
+
+            // Enviar el formulario
+            $('#export-form').submit();
+        });
     });
 </script>

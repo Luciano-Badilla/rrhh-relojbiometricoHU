@@ -7,7 +7,7 @@
         @isset($button['modal_id']) data-toggle="modal" data-target="#{{ $button['modal_id'] }}" @endisset
         class="{{ $button['classes'] }}" data-button-id="{{ $button['id'] }}">
 
-        <span class="button-icon">{!! $button['icon'] !!}</span>
+        <span class="button-icon">{!! $button['icon'] !!} @isset($button['text']) {{ $button['text'] }} @endisset</span>
         @isset($button['loading'])
             <div class="spinner-border spinner-border-sm hidden my-1 updating-icon" role="status">
                 <span class="sr-only">Loading...</span>

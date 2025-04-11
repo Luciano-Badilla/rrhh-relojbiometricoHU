@@ -197,7 +197,7 @@ class staffController extends Controller
             ->get()
             ->map(function ($item) {
                 // Formatear las fechas en formato dd/mm/yy
-    
+
                 $item->date_formated = \Carbon\Carbon::parse($item->date)->format('d/m/y');
                 $item->hoursCompleted = $this->calculateWorkedHours($item->entryTime, $item->departureTime) ?? gmdate('H:i:s', 0);
 
@@ -383,7 +383,7 @@ class staffController extends Controller
         ]);
 
         $areas = $request->input('areas', []);
-        
+
         $staff = Staff::findOrFail($id);
         $staff->areas()->sync($areas);
         $annualVacationDays = $request->input('annual_vacation_days');
@@ -600,5 +600,81 @@ class staffController extends Controller
         }
 
         return redirect()->back()->with('success', 'Vacaciones registradas correctamente.');
+    }
+
+    public function add_eventuality(Request $request)
+    {
+        $request->validate([
+            'date' => 'required|date',
+            'absenceReason' => 'required|string|max:255',
+        ]);
+
+        try {
+            $file_numbers = staff::all()->pluck('file_number');
+            $date = Carbon::parse($request->input('date'))->format('Y-m-d');
+            $absenceReason_name = $request->input('absenceReason');
+            $observations = $request->input('observations') . ' - ' . Auth::user()->name . ' ' . Carbon::now()->format('d/m/Y H:i');
+
+            // Obtener o crear el motivo de inasistencia
+            $absenceReason = absenceReason::firstOrCreate(
+                ['name' => $absenceReason_name],
+                ['logical_erase' => 1]
+            );
+
+            $vinieron = []; // empleados con asistencia ese día
+            $agregados = 0; // contador de inasistencias agregadas
+
+            foreach ($file_numbers as $file_number) {
+                // Verificar si tiene una asistencia registrada ese día
+                $tieneAsistencia = Attendance::where('file_number', $file_number)
+                    ->whereDate('date', $date)
+                    ->exists();
+
+                if ($tieneAsistencia) {
+                    $vinieron[] = $file_number;
+                    continue; // no se justifica si ya vino
+                }
+
+                // Verificar si ya tiene una inasistencia justificada
+                $inasistencia = NonAttendance::where('file_number', $file_number)
+                    ->whereDate('date', $date)
+                    ->first();
+
+                if ($inasistencia) {
+                    if ($inasistencia->absenceReason_id === null) {
+                        // Actualizar la inasistencia sin justificar
+                        $inasistencia->update([
+                            'absenceReason_id' => $absenceReason->id,
+                            'observations' => $observations,
+                        ]);
+                        $agregados++;
+                    }
+                    // Si ya tenía una justificada, no hacer nada
+                } else {
+                    // Crear nueva inasistencia justificada
+                    NonAttendance::create([
+                        'file_number' => $file_number,
+                        'date' => $date,
+                        'absenceReason_id' => $absenceReason->id,
+                        'observations' => $observations,
+                    ]);
+                    $agregados++;
+                }
+            }
+
+            if ($date >= Carbon::now()) {
+                $mensaje = "Se justificaran las inasistencias del día " . Carbon::parse($date)->format('d/m/Y') . " con el motivo: {$absenceReason_name}";
+            } else {
+                $mensaje = "Se justificaron las inasistencias del día " . Carbon::parse($date)->format('d/m/Y') . " con el motivo: {$absenceReason_name}";
+            }
+
+            if (count($vinieron)) {
+                $mensaje .= ', pero hay persona que tienen asistencias y no fueron afectadas.';
+            }
+
+            return redirect()->back()->with('success', $mensaje);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error al procesar la inasistencia: ' . $e->getMessage());
+        }
     }
 }

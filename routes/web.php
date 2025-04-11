@@ -56,12 +56,16 @@ Route::middleware(['auth', 'verified', CheckRole::class . ':2'])->group(function
     Route::get('/reports/nonAttendanceByArea', [reportsController::class, 'nonAttendanceByAreaIndex'])->name('reportView.nonAttendance');
     Route::get('/reports/nonAttendanceByArea/search', [reportsController::class, 'nonAttendanceByAreaSearch'])->name('reportSearch.nonAttendance');
     Route::post('/reports/nonAttendanceByArea/export', [reportsController::class, 'nonAttendanceByAreaExport'])->name('reportExport.nonAttendanceByArea');
-    
+
     Route::get('/reports/tardiesByArea', [reportsController::class, 'tardiesByAreaIndex'])->name('reportView.tardies');
     Route::get('/reports/tardiesByArea/search', [reportsController::class, 'tardiesByAreaSearch'])->name('reportSearch.tardies');
     Route::post('/reports/tardiesByArea/export', [reportsController::class, 'tardiesByAreaExport'])->name('reportExport.tardiesByArea');
 
+    Route::post('/reports/attendance/export', [reportsController::class, 'attendanceExport'])->name('reportExport.attendance');
+
     Route::get('/individual_hours_report', [reports::class, 'individual_hours'])->name('report.individual_hours');
+
+    Route::post('/eventuality/add', [StaffController::class, 'add_eventuality'])->name('eventuality.add');
 
     Route::middleware('auth')->group(function () {
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

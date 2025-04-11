@@ -12,7 +12,7 @@
 
     <div class="flex items-center justify-center py-6">
         <!-- Inicializa el estado de edición con Alpine.js -->
-        <div x-data="{ isEditing: false }" class="bg-white p-8 rounded-xl shadow-lg w-2/4">
+        <div x-data="{ isEditing: false }" class="bg-white p-8 rounded-xl shadow-lg w-3/4">
             <form x-data="{ isEditing: false }" x-ref="form" method="POST" action="{{ route('staff.update', $staff->id) }}">
                 @csrf
                 @method('POST')
