@@ -56,10 +56,12 @@ Route::middleware(['auth', 'verified', CheckRole::class . ':2'])->group(function
     Route::get('/reports/nonAttendanceByArea', [reportsController::class, 'nonAttendanceByAreaIndex'])->name('reportView.nonAttendance');
     Route::get('/reports/nonAttendanceByArea/search', [reportsController::class, 'nonAttendanceByAreaSearch'])->name('reportSearch.nonAttendance');
     Route::post('/reports/nonAttendanceByArea/export', [reportsController::class, 'nonAttendanceByAreaExport'])->name('reportExport.nonAttendanceByArea');
+    Route::post('/reports/nonAttendanceByArea/exportExcel', [reportsController::class, 'nonAttendanceByAreaExportExcel'])->name('reportExport.nonAttendanceByAreaExcel');
 
     Route::get('/reports/tardiesByArea', [reportsController::class, 'tardiesByAreaIndex'])->name('reportView.tardies');
     Route::get('/reports/tardiesByArea/search', [reportsController::class, 'tardiesByAreaSearch'])->name('reportSearch.tardies');
     Route::post('/reports/tardiesByArea/export', [reportsController::class, 'tardiesByAreaExport'])->name('reportExport.tardiesByArea');
+    Route::post('/reports/tardiesByAreaExcel/export', [reportsController::class, 'tardinessReportExportExcel'])->name('reportExport.tardiesByAreaExcel');
 
     Route::post('/reports/attendance/export', [reportsController::class, 'attendanceExport'])->name('reportExport.attendance');
 
