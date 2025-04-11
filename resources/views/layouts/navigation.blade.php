@@ -10,10 +10,12 @@
             <div class="flex">
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
-                    <a href="{{ route('staff.list') }}">
-                        <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
+                    <a href="{{ route('staff.list') }}" class="block h-18 w-auto max-w-[170px] overflow-hidden">
+                        <x-application-logo />
                     </a>
                 </div>
+
+
 
                 <!-- Navigation Links -->
                 @if (Auth::check() && Auth::user()->role_id == 2)
@@ -30,15 +32,18 @@
                                 Gestiones
                             </button>
                             <ul class="dropdown-menu rounded-lg border-gray-300">
-                                <x-dropdown-link :href="route('absenceReason.list')" :active="request()->routeIs('absenceReason.list')"
+                                <x-dropdown-link :href="route('absenceReason.list')"
+                                    :active="request()->routeIs('absenceReason.list')"
                                     class="no-underline block px-4 py-1 text-sm text-gray-700 hover:bg-gray-100">
                                     Just. de Inasistencias
                                 </x-dropdown-link>
-                                <x-dropdown-link :href="route('areaCoordinators.list')" :active="request()->routeIs('areaCoordinators.list')"
+                                <x-dropdown-link :href="route('areaCoordinators.list')"
+                                    :active="request()->routeIs('areaCoordinators.list')"
                                     class="no-underline block px-4 py-1 text-sm text-gray-700 hover:bg-gray-100">
                                     Areas y Coordinadores
                                 </x-dropdown-link>
-                                <x-dropdown-link :href="route('category.list')" :active="request()->routeIs('category.list')"
+                                <x-dropdown-link :href="route('category.list')"
+                                    :active="request()->routeIs('category.list')"
                                     class="no-underline block px-4 py-1 text-sm text-gray-700 hover:bg-gray-100">
                                     Categorías
                                 </x-dropdown-link>
@@ -53,11 +58,13 @@
                                 Reportes
                             </button>
                             <ul class="dropdown-menu rounded-lg border-gray-300">
-                                <x-dropdown-link :href="route('reportView.nonAttendance')" :active="request()->routeIs('reportView.nonAttendance')"
+                                <x-dropdown-link :href="route('reportView.nonAttendance')"
+                                    :active="request()->routeIs('reportView.nonAttendance')"
                                     class="no-underline block px-4 py-1 text-sm text-gray-700 hover:bg-gray-100">
                                     Ausentismo
                                 </x-dropdown-link>
-                                <x-dropdown-link :href="route('reportView.tardies')" :active="request()->routeIs('reportView.tardies')"
+                                <x-dropdown-link :href="route('reportView.tardies')"
+                                    :active="request()->routeIs('reportView.tardies')"
                                     class="no-underline block px-4 py-1 text-sm text-gray-700 hover:bg-gray-100">
                                     Tardanzas
                                 </x-dropdown-link>
