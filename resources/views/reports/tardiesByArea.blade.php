@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Reporte de tardanzas por área') }}
+            {{ __('Reporte de tardanzas') }}
         </h2>
     </x-slot>
 
@@ -140,24 +140,47 @@
             </div>
             <div id="content" class="px-3">
                 @if (!empty($tardies) && !$tardies->isEmpty())
-                    <form id="export-form" action="{{ route('reportExport.tardiesByArea') }}" target="_blank"
-                        method="POST" class="-mt-8">
-                        @csrf
-                        <input type="hidden" name="file_name"
-                            value="Reporte de tardanzas - {{ $area_selected . ' ' . $dates }}">
-                        <input type="hidden" name="tardies" id="tardies">
-                        <input type="hidden" name="staffs" id="staffs">
-                        <input type="hidden" name="area_selected" value="{{ $area_selected }}">
-                        <input type="hidden" name="dates" value="{{ $dates }}">
-                        <input type="hidden" name="tolerance" value="{{ $tolerance }}">
-                        <x-button :button="[
-                            'id' => 'export-btn',
-                            'classes' => 'btn btn-danger rounded-xl custom-tooltip h-[2.40rem] mt-[1.75rem]',
-                            'icon' => '<i class=\'fa-solid fa-file-pdf\'></i>',
-                            'tooltip_text' => 'Exportar a PDF',
-                            'type' => 'submit',
-                        ]" />
-                    </form>
+                    <div class="flex gap-1">
+                        <form id="export-form" action="{{ route('reportExport.tardiesByArea') }}" target="_blank"
+                            method="POST" class="-mt-8">
+                            @csrf
+                            <input type="hidden" name="file_name"
+                                value="Reporte de tardanzas - {{ $area_selected . ' ' . $dates }}">
+                            <input type="hidden" name="tardies" id="tardies">
+                            <input type="hidden" name="staffs" id="staffs">
+                            <input type="hidden" name="area_selected" value="{{ $area_selected }}">
+                            <input type="hidden" name="dates" value="{{ $dates }}">
+                            <input type="hidden" name="tolerance" value="{{ $tolerance }}">
+                            <x-button :button="[
+                                'id' => 'export-btn',
+                                'classes' => 'btn btn-danger rounded-xl custom-tooltip h-[2.40rem] mt-[1.75rem]',
+                                'icon' => '<i class=\'fa-solid fa-file-pdf\'></i>',
+                                'tooltip_text' => 'Exportar a PDF',
+                                'type' => 'submit',
+                            ]" />
+                        </form>
+                        <form id="exportExcel-form" action="{{ route('reportExport.tardiesByAreaExcel') }}"
+                            target="_blank" method="POST" class="-mt-8">
+                            @csrf
+                            <input type="hidden" name="file_name"
+                                value="Reporte de inasistencias - {{ $area_selected . ' ' . $dates }}">
+                            <input type="hidden" name="tardies" id="tardies">
+                            <input type="hidden" name="staffs" id="staffs">
+                            <input type="hidden" name="area_selected" value="{{ $area_selected }}">
+                            <input type="hidden" name="dates" value="{{ $dates }}">
+                            <input type="hidden" name="areas" id="areas">
+                            <input type="hidden" name="tolerance" value="{{ $tolerance }}">
+
+                            <x-button :button="[
+                                'id' => 'exportExcel-btn',
+                                'classes' => 'btn btn-success rounded-xl custom-tooltip h-[2.40rem] mt-[1.75rem]',
+                                'icon' => '<i class=\'fa-solid fa-table\'></i>',
+                                'tooltip_text' => 'Exportar a Excel',
+                                'type' => 'submit',
+                            ]" />
+                        </form>
+                    </div>
+
                     @foreach ($staffsGrouped as $areaId => $staffGroup)
                         <div class="border rounded-xl mt-2">
 
@@ -313,6 +336,19 @@
 
             // Enviar el formulario
             $('#export-form').submit();
+        });
+
+        $('#exportExcel-btn').click(function(e) {
+            e.preventDefault();
+
+            const form = $(this).closest('form'); // ✅ obtiene el formulario más cercano al botón
+
+            form.find('#tardies').val(JSON.stringify(@json($tardies)));
+            form.find('#staffs').val(JSON.stringify(@json($staffs)));
+            form.find('#areas').val(JSON.stringify(@json($areas)));
+            form.find('#tolerance').val(JSON.stringify(@json($tolerance)));
+
+            form.submit();
         });
 
         $('.administration_panel_btn').click(function() {
