@@ -847,29 +847,32 @@ class reportsController extends Controller
 
 
         // --- DETALLE DE ASISTENCIAS ---
-        $sheet->setCellValue("A$row", "Detalle de Inasistencias:");
-        $sheet->mergeCells("A$row:G$row");
-        $sheet->getStyle("A$row")->getFont()->setBold(true)->setSize(12);
-        $row++;
-
-        $headers = ['Día', 'Fecha', 'Motivo/justificación', 'Observaciones'];
-        $sheet->fromArray($headers, null, "A$row");
-        $sheet->getStyle("A$row:G$row")->getFont()->setBold(true);
-        $row++;
-
-        foreach ($non_attendances as $registro) {
-            $sheet->fromArray([
-                $registro['day'],
-                $registro['date'],
-                ($registro['absenceReason_id']) ? absenceReason::find($registro['absenceReason_id'])->name : '-',
-                $registro['observations'],
-            ], null, "A$row");
-
-            // Aplicar wrap text SOLO a C y D en esa fila
-            $sheet->getStyle("C$row:D$row")->getAlignment()->setWrapText(true);
-
+        if(count($non_attendances) > 0){
+            $sheet->setCellValue("A$row", "Detalle de Inasistencias:");
+            $sheet->mergeCells("A$row:G$row");
+            $sheet->getStyle("A$row")->getFont()->setBold(true)->setSize(12);
             $row++;
+    
+            $headers = ['Día', 'Fecha', 'Motivo/justificación', 'Observaciones'];
+            $sheet->fromArray($headers, null, "A$row");
+            $sheet->getStyle("A$row:G$row")->getFont()->setBold(true);
+            $row++;
+    
+            foreach ($non_attendances as $registro) {
+                $sheet->fromArray([
+                    $registro['day'],
+                    $registro['date'],
+                    ($registro['absenceReason_id']) ? absenceReason::find($registro['absenceReason_id'])->name : '-',
+                    $registro['observations'],
+                ], null, "A$row");
+    
+                // Aplicar wrap text SOLO a C y D en esa fila
+                $sheet->getStyle("C$row:D$row")->getAlignment()->setWrapText(true);
+    
+                $row++;
+            }
         }
+        
 
 
         // Estilo rápido para toda la hoja
