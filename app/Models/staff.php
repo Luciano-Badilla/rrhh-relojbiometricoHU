@@ -42,4 +42,14 @@ class staff extends Model
     {
         return $this->belongsTo(collective_agreement::class);
     }
+
+    public function category(){
+        return $this->belongsTo(category::class);
+
+    }
+
+    public function secretary(){
+        return $this->belongsTo(secretary::class);
+
+    }
 }

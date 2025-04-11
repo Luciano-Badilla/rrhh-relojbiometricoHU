@@ -27,9 +27,44 @@
             </div>
         </form>
     </x-modal-custom>
+    <x-modal-custom id="add_eventuality_modal" title="Agregar eventualidad"
+        subtitle="Se justificaran todas las inasistencias del personal en la fecha elegida">
+        <form action="{{ route('eventuality.add') }}" method="POST" id="add_eventuality_modal">
+            @csrf
+            <div class="px-4 flex flex-col gap-3 justify-center items-center">
+                <div class="flex flex-col gap-3 w-full items-center">
+                    <div class="w-1/3">
+                        <x-input-label for="date" value="Fecha:" />
+                        <x-text-input id="date" class="w-full" type="date" name="date"
+                            placeholder="Motivo de la eventualidad" required />
+                    </div>
+                    <div class="w-full">
+                        <x-input-label for="absenceReason" value="Justificación:" />
+                        <x-text-input id="absenceReason" type="text" name="absenceReason" class="mt-1 block w-full"
+                            required />
+                    </div>
+                    <div class="w-full">
+                        <label for="observations" class="block text-sm font-medium text-gray-700">Observaciones: (Se
+                            agregara su nombre despues de la observación)</label>
+                        <x-text-input id="observations" name="observations" type="text" value="Ingreso manual"
+                            class="w-full" required />
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end px-3 mt-3">
+                <x-button :button="[
+                    'id' => 'add-btn',
+                    'type' => 'submit',
+                    'classes' => 'btn btn-success rounded-xl h-10',
+                    'icon' => '',
+                    'text' => 'Agregar',
+                ]" />
+            </div>
+        </form>
+    </x-modal-custom>
 
     <div class="flex items-center justify-center py-6">
-        <div class="bg-white rounded-xl w-full lg:w-2/4">
+        <div class="bg-white rounded-xl w-full lg:w-[55%]">
             @if (session('success'))
                 <div class="alert-success rounded-t-xl p-0.5 text-center mb-1">
                     {{ session('success') }}
@@ -67,7 +102,7 @@
                             'classes' => 'btn btn-dark rounded-xl custom-tooltip h-[2.40rem]',
                             'icon' => '<i class=\'fa-solid fa-filter-circle-xmark\'></i>',
                             'tooltip' => true,
-                            'tooltip_text' => 'Todas las áreas',
+                            'tooltip_text' => 'Borrar filtros',
                         ]" />
                     </div>
                 </div>
@@ -82,6 +117,15 @@
                         'tooltip_text' => 'Agregar staff',
                         'modal_id' => 'add_staff_modal',
                     ]" />
+                    <x-button :button="[
+                        'id' => 'add-eventuality-btn',
+                        'type' => 'button',
+                        'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
+                        'icon' => '<i class=\'fa-solid fa-calendar-xmark\'></i>',
+                        'tooltip' => true,
+                        'tooltip_text' => 'Agregar eventualidad',
+                        'modal_id' => 'add_eventuality_modal',
+                    ]" />
 
                     <!-- Botón de backup (se mantiene en la misma posición) -->
                     <form action="{{ route('clockLogs.backup') }}">
@@ -91,7 +135,7 @@
                             'classes' => 'btn btn-dark rounded-xl custom-tooltip h-10',
                             'icon' => '<i class=\'fa-solid fa-rotate\'></i>',
                             'tooltip' => true,
-                            'tooltip_text' => 'Backup de marcadas',
+                            'tooltip_text' => 'Respaldar marcas del reloj en la BD local',
                             'loading' => true,
                         ]" />
                     </form>
@@ -144,6 +188,7 @@
 
         // Evento para limpiar el select
         document.getElementById("clear-area-select").addEventListener("click", () => {
+            $('#table-search').val(null).trigger('input');
             searchSelect.value = "";
             filterTable();
         });
