@@ -265,35 +265,49 @@ class staffController extends Controller
             ->toArray();
 
         // Filtrar y eliminar las inasistencias que coincidan con fechas de asistencia
-        $nonAttendance = NonAttendance::where('file_number', $file_number)->with('absenceReason')
-            ->whereMonth('date', $month)
-            ->whereYear('date', $year)->get()->map(function ($item) use ($schedules, $attendanceDates) {
-                // Verificar si la fecha de inasistencia coincide con una fecha de asistencia
-                if (in_array($item->date, $attendanceDates)) {
-                    NonAttendance::where('id', $item->id)->delete();
-                    return null; // Excluir del resultado
-                }
+        $nonAttendanceRaw = NonAttendance::where('file_number', $file_number)
+            ->with('absenceReason')
+            ->get(); // SIN filtrar por mes ni año
 
-                // Formatear las fechas en formato dd/mm/yy
-                $item->date = \Carbon\Carbon::parse($item->date)->format('d/m/y');
-                $item->day = \Carbon\Carbon::createFromFormat('d/m/y', $item->date)->locale('es')->translatedFormat('l');
-                $item->day = ucfirst($item->day);
-                $item->absenceReason = $item->absenceReason->name ?? null;
+        $nonAttendance = $nonAttendanceRaw->filter(function ($item) use ($month, $year) {
+            return \Carbon\Carbon::parse($item->date)->month == $month &&
+                \Carbon\Carbon::parse($item->date)->year == $year;
+        })->map(function ($item) use ($schedules, $attendanceDates) {
+            if (in_array($item->date, $attendanceDates)) {
+                NonAttendance::where('id', $item->id)->delete();
+                return null;
+            }
 
-                return $item;
-            })->filter(); // Filtrar nulos después de eliminar
+            $item->date = \Carbon\Carbon::parse($item->date)->format('d/m/y');
+            $item->day = \Carbon\Carbon::createFromFormat('d/m/y', $item->date)->locale('es')->translatedFormat('l');
+            $item->day = ucfirst($item->day);
 
-        $absenceReasonCount = $nonAttendance
+            // NO sobreescribas el objeto
+            $item->absence_reason_name = $item->absenceReason->name ?? null;
+
+            return $item;
+        })->filter();
+
+
+
+        $absenceReasonCount = $nonAttendanceRaw
             ->filter(function ($item) {
-                return !empty($item->absenceReason); // Excluir razones vacías
+                return !empty($item->absenceReason); // Sigue siendo objeto
             })
-            ->groupBy('absenceReason')
-            ->map(function ($items, $reason) {
+            ->groupBy(function ($item) {
+                return $item->absenceReason->id;
+            })
+            ->map(function ($items) {
+                $reason = $items->first()->absenceReason;
+
                 return (object) [
-                    'name' => $reason,       // Nombre del tipo de ausencia
-                    'count' => count($items) // Cantidad de inasistencias de ese tipo
+                    'id' => $reason->id,
+                    'name' => $reason->name,
+                    'count' => $items->count()
                 ];
             });
+
+
 
         $dataToExport = [
             'staff' => $staff,
@@ -473,8 +487,6 @@ class staffController extends Controller
                 $dates[] = $date->toDateString();
             }
         }
-
-        dd($dates);
 
 
         // Obtener los feriados del año desde la API

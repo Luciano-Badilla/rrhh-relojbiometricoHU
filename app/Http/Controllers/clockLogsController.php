@@ -200,8 +200,7 @@ class clockLogsController extends Controller
 
             // Obtener todas las asistencias del día
             $attendances = Attendance::where('file_number', $entryLog->file_number)
-                ->where('date', $date)
-                ->get();
+                ->where('date', $date)->get();
 
             // Calcular el total de horas trabajadas hasta el momento
             $totalWorkedSeconds = 0;
@@ -248,12 +247,15 @@ class clockLogsController extends Controller
             }
 
             // Verificar si ya existe un registro con la misma entrada
-            $existingAttendance = $attendances->firstWhere('entryTime', $entryTime);
+            $existingAttendance = $attendances->first(function ($attendance) use ($entryTime, $departureTime) {
+                return $attendance->entryTime == $entryTime || $attendance->departureTime == $departureTime;
+            });
 
             if ($existingAttendance) {
-                if ($existingAttendance->date >= $lastChecked) {
+                if ($existingAttendance->date >= $lastChecked || $existingAttendance->entryTime == $existingAttendance->departureTime) {
                     // Actualizar el registro existente
                     $existingAttendance->update([
+                        'entryTime' => $entryTime,
                         'departureTime' => $departureTime ?? $existingAttendance->departureTime,
                         'hoursCompleted' => $hoursCompleted,
                         'extraHours' => $extraHours,

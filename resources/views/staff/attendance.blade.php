@@ -364,7 +364,16 @@
                             
                         </div>
                     </form>
-                    <div class="ml-auto">
+                    <div class="ml-auto flex gap-1">
+                        <div class="mt-[1.25rem]">
+                            <x-button :button="[
+                                'id' => 'view_nonattendance_btn',
+                                'classes' => 'btn btn-success rounded-xl custom-tooltip h-10',
+                                'icon' => '<i class=\'fa-solid fa-clipboard-list\'></i>',
+                                'tooltip_text' => 'Ver cantidad de justificaciones usadas',
+                                'modal_id' => 'view_absenseReason_modal'
+                            ]" />
+                        </div>
                         <form id="export-form" action="{{ route('reportExport.attendance') }}" target="_blank"
                             method="POST" class="-mt-8">
                             @csrf
@@ -601,18 +610,11 @@
                                                 'role' => 2
                                             ]" />
                                         </div>
-                                        <x-button :button="[
-                                            'id' => 'view_nonattendance_btn',
-                                            'classes' => 'btn btn-success rounded-xl custom-tooltip h-10',
-                                            'icon' => '<i class=\'fa-solid fa-clipboard-list\'></i>',
-                                            'tooltip_text' => 'Ver cantidad de justificaciones usadas',
-                                            'modal_id' => 'view_absenseReason_modal'
-                                        ]" />
                                         
                                     </div>
                                     
                                 </div>
-                                    <x-table id="non_attendance-list" :headers="['Día', 'Fecha', 'Motivo', 'Observaciones']" :fields="['day', 'date', 'absenceReason', 'observations']"
+                                    <x-table id="non_attendance-list" :headers="['Día', 'Fecha', 'Motivo', 'Observaciones']" :fields="['day', 'date', 'absence_reason_name', 'observations']"
                                         :data="$nonAttendance" :buttons="[
                                             [
                                                 'id' => 'add_nonattendance_btn',
@@ -676,6 +678,7 @@
 
         document.querySelectorAll('.edit_btn').forEach(button => {
             button.addEventListener('click', function() {
+                
                 // Obtener valores de los atributos data-*
                 const entryTime = this.getAttribute('data-entrytime'); // Formato "HH:MM:SS"
                 const id = this.getAttribute('data-id'); // ID de la asistencia
