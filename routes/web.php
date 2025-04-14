@@ -10,6 +10,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\reports;
 use App\Http\Controllers\reportsController;
+use App\Http\Controllers\VacationController;
 use App\Http\Middleware\CheckRole;
 use Illuminate\Support\Facades\Route;
 
@@ -68,6 +69,10 @@ Route::middleware(['auth', 'verified', CheckRole::class . ':2'])->group(function
     Route::get('/individual_hours_report', [reports::class, 'individual_hours'])->name('report.individual_hours');
 
     Route::post('/eventuality/add', [StaffController::class, 'add_eventuality'])->name('eventuality.add');
+
+    // routes/web.php o routes/api.php (según tu contexto)
+    Route::put('/vacations/{id}', [VacationController::class, 'update'])->name('vacations.update');
+
 
     Route::middleware('auth')->group(function () {
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

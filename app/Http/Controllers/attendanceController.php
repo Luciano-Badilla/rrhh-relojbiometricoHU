@@ -75,7 +75,7 @@ class attendanceController extends Controller
 
         $timestamp1 = date('Y-m-d H:i:s', strtotime($datetime1));
 
-        $clockLog = clockLogs::where('file_number', $file_number)->where('timestamp', $timestamp1)->exists();
+        $clockLog = clockLogs::where('file_number', $file_number)->where('timestamp', $timestamp1)->first();
 
         if (!$clockLog) {
             clockLogs::create([
