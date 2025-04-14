@@ -163,7 +163,7 @@
                             target="_blank" method="POST" class="-mt-8">
                             @csrf
                             <input type="hidden" name="file_name"
-                                value="Reporte de inasistencias - {{ $area_selected . ' ' . $dates }}">
+                                value="Reporte de tardanzas - {{ $area_selected . ' ' . $dates }}">
                             <input type="hidden" name="tardies" id="tardies">
                             <input type="hidden" name="staffs" id="staffs">
                             <input type="hidden" name="area_selected" value="{{ $area_selected }}">
