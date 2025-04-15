@@ -304,6 +304,12 @@ class reportsController extends Controller
 
             $tardies = attendance_reports::whereBetween('attendance_reports.date', [$date_from, $date_to])
                 ->whereIn('attendance_reports.file_number', $file_numbers)
+                ->whereIn('attendance_reports.id', function ($query) use ($date_from, $date_to) {
+                    $query->selectRaw('MIN(id)')
+                        ->from('attendance_reports as sub')
+                        ->whereBetween('sub.date', [$date_from, $date_to])
+                        ->groupBy('sub.date', 'sub.file_number');
+                })
                 ->join('staff', 'staff.file_number', '=', 'attendance_reports.file_number')
                 ->join('schedule_staff', 'schedule_staff.staff_id', '=', 'staff.id')
                 ->join('schedule', function ($join) {
@@ -350,8 +356,14 @@ class reportsController extends Controller
             $clockLogs = clockLogs::whereDate('timestamp', '=', $date)->get();
             $this->updateAttendanceFromClockLogs($clockLogs);
 
-            $tardies = attendance_reports::where('date', $date)
+            $tardies = attendance_reports::where('attendance_reports.date', $date)
                 ->whereIn('attendance_reports.file_number', $file_numbers)
+                ->whereIn('attendance_reports.id', function ($query) use ($date) {
+                    $query->selectRaw('MIN(id)')
+                        ->from('attendance_reports as sub')
+                        ->where('sub.date', $date)
+                        ->groupBy('sub.date', 'sub.file_number');
+                })
                 ->join('staff', 'staff.file_number', '=', 'attendance_reports.file_number')
                 ->join('schedule_staff', 'schedule_staff.staff_id', '=', 'staff.id')
                 ->join('schedule', function ($join) {
@@ -395,6 +407,7 @@ class reportsController extends Controller
                     return $item;
                 });
         }
+
 
         // Agrupar por área solo si tienen tardanzas
         $staffsGroupedByArea = $staffsGroupedByArea->filter(function ($staffs) use ($tardies) {
@@ -1122,7 +1135,7 @@ class reportsController extends Controller
             }
 
             // Encabezado tabla
-            $headers = ['#Legajo', 'Nombre', 'Días', 'Fecha(s)']; 
+            $headers = ['#Legajo', 'Nombre', 'Días', 'Fecha(s)'];
             foreach ($headers as $i => $header) {
                 $col = chr(65 + $i); // A-D
                 $sheet->setCellValue("{$col}{$row}", $header);
