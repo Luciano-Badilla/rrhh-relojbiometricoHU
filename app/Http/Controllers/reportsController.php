@@ -438,6 +438,738 @@ class reportsController extends Controller
         return $pdfInstance->stream($fileName . '.pdf');
     }
 
+    public function attendanceExport(Request $request)
+    {
+        // Decodificar datos
+        $staff = json_decode($request->input('staff'), true);
+        $days = json_decode($request->input('days'), true);
+        $totalHours = json_decode($request->input('totalHours'), true);
+        $hoursAverage = json_decode($request->input('hoursAverage'), true);
+        $totalExtraHours = json_decode($request->input('totalExtraHours'), true);
+        $schedules = json_decode($request->input('schedules'), true);
+        $attendances = json_decode($request->input('attendances'), true);
+        $non_attendances = json_decode($request->input('non_attendances'), true);
+        $row = 1;
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Reporte');
+
+        // --- RESUMEN ---
+        $sheet->setCellValue("A$row", "Universidad Nacional de Cuyo - Hospital universitario");
+        $sheet->mergeCells("A$row:C$row");
+        $sheet->getStyle("A$row")->getFont()->setBold(true)->setSize(14);
+
+        $row += 2;
+
+        $infoPersonal = [
+            'Legajo' => $staff['file_number'],
+            'Nombre y apellido' => $staff['name_surname'],
+            'Cordinador' => staff::find(coordinator::find($staff['coordinator_id'])->staff_id)->name_surname,
+            'Condición' => ($staff['worker_status'] == 'planta')
+                ? 'Planta' . ' - ' . category::find($staff['category_id'])->name
+                : 'Contratado',
+            'Secretaría' => secretary::find($staff['secretary_id'])->name,
+            'Fecha de ingreso' => Carbon::parse($staff['date_of_entry'])->format('d/m/y'),
+            'Fecha de baja' => $staff['inactive_since'] ? Carbon::parse($staff['inactive_since'])->format('d/m/y') : '—',
+            'Fecha de reporte' => Carbon::now()->format('d/m/y'),
+            'Marca' => ($staff['marking']) ? '✔' : '✘',
+        ];
+
+        $sheet->setCellValue("A$row", "Información personal:");
+        $sheet->mergeCells("A$row:B$row");
+        $sheet->getStyle("A$row")->getFont()->setBold(true)->setSize(12);
+        $row++;
+
+        // Agregar los datos en vertical
+        foreach ($infoPersonal as $titulo => $valor) {
+            $sheet->setCellValue("A$row", $titulo);
+            $sheet->setCellValueExplicit("B$row", $valor, DataType::TYPE_STRING); // Siempre como texto por seguridad
+            $sheet->getStyle("A$row")->getFont()->setBold(true);
+            $row++;
+        }
+
+        $row++;
+
+        $sheet->setCellValue("A$row", "Resumen:");
+        $sheet->mergeCells("A$row:G$row");
+        $sheet->getStyle("A$row")->getFont()->setBold(true)->setSize(12);
+        $row++;
+        $resumen = [
+            ['Días completados', $days . ' '],
+            ['Horas totales', $totalHours],
+            ['Promedio de horas', $hoursAverage],
+            ['Horas adicionales', $totalExtraHours],
+        ];
+
+        $diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+        $horarios = [];
+        $horas = [];
+
+        foreach (range(1, 7) as $i) {
+            $schedule = collect($schedules)->firstWhere('day_id', $i);
+
+            if ($schedule) {
+                $shift = Shift::find($schedule['shift_id']);
+                $start = Carbon::parse($shift->startTime)->format('H:i');
+                $end = Carbon::parse($shift->endTime)->format('H:i');
+                $horarios[] = "$start - $end";
+                $horas[] = Carbon::parse($shift->startTime)->diffInHours($shift->endTime) . ' horas';
+            } else {
+                $horarios[] = "Sin horario";
+                $horas[] = 0 . ' horas';
+            }
+        }
+
+        $startCol = 'A';
+        $col = $startCol;
+
+        // --- Fila 1: títulos resumen ---
+        foreach ($resumen as $item) {
+            $sheet->setCellValue("$col$row", $item[0]);
+            $sheet->getStyle("$col$row")->getFont()->setBold(true);
+            $col++;
+        }
+        $row++;
+
+        // --- Fila 2: valores resumen ---
+        $col = $startCol;
+        foreach ($resumen as $item) {
+            $sheet->setCellValue("$col$row", $item[1]);
+            $col++;
+        }
+        $row++;
+
+        // --- Fila 3: días semana ---
+        $col = $startCol;
+        foreach ($diasSemana as $dia) {
+            $sheet->setCellValue("$col$row", $dia);
+            $sheet->getStyle("$col$row")->getFont()->setBold(true);
+            $col++;
+        }
+        $row++;
+
+        // --- Fila 4: rangos horarios ---
+        $col = $startCol;
+        foreach ($horarios as $horario) {
+            $sheet->setCellValue("$col$row", $horario);
+            $col++;
+        }
+        $row++;
+
+        // --- Fila 5: horas por día ---
+        $col = $startCol;
+        foreach ($horas as $hora) {
+            $sheet->setCellValue("$col$row", $hora);
+            $col++;
+        }
+
+        $endCol = chr(ord($startCol) + max(count($resumen), count($diasSemana)) - 1);
+        $endRow = $row;
+
+        $row += 2;
+
+        // --- DETALLE DE ASISTENCIAS ---
+        $sheet->setCellValue("A$row", "Detalle de Asistencias:");
+        $sheet->mergeCells("A$row:G$row");
+        $sheet->getStyle("A$row")->getFont()->setBold(true)->setSize(12);
+        $row++;
+
+        $headers = ['Día', 'Fecha', 'Entrada', 'Salida', 'Horas cumplidas', 'Horas adicionales', 'Observaciones'];
+        $sheet->fromArray($headers, null, "A$row");
+        $sheet->getStyle("A$row:G$row")->getFont()->setBold(true);
+        $row++;
+
+        foreach ($attendances as $registro) {
+            $sheet->fromArray([
+                $registro['day'],
+                $registro['date_formated'],
+                $registro['entryTime'],
+                $registro['departureTime'],
+                $registro['hoursCompleted'],
+                $registro['extraHours'],
+                $registro['observations'],
+            ], null, "A$row");
+            $row++;
+        }
+
+        $row++;
+
+        $sheet->getColumnDimension('C')->setWidth(40); // Motivo/justificación
+        $sheet->getColumnDimension('D')->setWidth(30); // Observaciones
+
+
+        // --- DETALLE DE ASISTENCIAS ---
+        if (count($non_attendances) > 0) {
+            $sheet->setCellValue("A$row", "Detalle de Inasistencias:");
+            $sheet->mergeCells("A$row:G$row");
+            $sheet->getStyle("A$row")->getFont()->setBold(true)->setSize(12);
+            $row++;
+
+            $headers = ['Día', 'Fecha', 'Motivo/justificación', 'Observaciones'];
+            $sheet->fromArray($headers, null, "A$row");
+            $sheet->getStyle("A$row:G$row")->getFont()->setBold(true);
+            $row++;
+
+            foreach ($non_attendances as $registro) {
+                $sheet->fromArray([
+                    $registro['day'],
+                    $registro['date'],
+                    ($registro['absenceReason_id']) ? absenceReason::find($registro['absenceReason_id'])->name : '-',
+                    $registro['observations'],
+                ], null, "A$row");
+
+                // Aplicar wrap text SOLO a C y D en esa fila
+                $sheet->getStyle("C$row:D$row")->getAlignment()->setWrapText(true);
+
+                $row++;
+            }
+        }
+
+
+
+        // Estilo rápido para toda la hoja
+        $sheet->getStyle("A1:G$row")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+
+        foreach (range('A', 'G') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(false)->setWidth(20); // Ajuste general
+        }
+
+
+        $sheet->getPageSetup()->setPrintArea("A1:G$row");
+        $sheet->getPageSetup()
+            ->setFitToWidth(1)
+            ->setFitToHeight(0); // 0 = no limitar filas
+        $pageMargins = $sheet->getPageMargins();
+        $pageMargins->setTop(0.1);
+        $pageMargins->setBottom(0.1);
+        $pageMargins->setLeft(0.1);
+        $pageMargins->setRight(0.1);
+        $sheet->getPageSetup()->setScale(75); // podés ajustar el porcentaje
+
+        // Descargar el archivo
+        $writer = new Xlsx($spreadsheet);
+        $filename = $request->input('file_name') . '.xlsx';
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    public function nonAttendanceByAreaExportExcel(Request $request)
+    {
+        $nonAttendances = json_decode($request->nonAttendances, true);
+        $staffs = json_decode($request->staffs, true);
+        $areas = collect(json_decode($request->areas, true)); // Asegurate de enviar esto desde la vista
+        $dates = $request->dates;
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Título y subtítulo
+        $row = 1;
+        $sheet->setCellValue("A{$row}", "Universidad Nacional de Cuyo - Hospital Universitario");
+        $sheet->mergeCells("A{$row}:E{$row}");
+        $sheet->getStyle("A{$row}")->getFont()->setBold(true);
+
+        $row++;
+        $sheet->setCellValue("A{$row}", "Reporte de ausentismo");
+        $sheet->mergeCells("A{$row}:E{$row}");
+        $sheet->getStyle("A{$row}")->getFont()->setBold(true);
+
+        $row += 2;
+        $sheet->setCellValue("A{$row}", "Fecha:");
+        $sheet->getStyle("A{$row}")->getFont()->setBold(true);
+        $sheet->setCellValue("B{$row}", $dates);
+
+        $row += 2;
+
+        // Agrupar staffs por área
+        $groupedStaffs = [];
+
+        foreach ($staffs as $staff) {
+            $areaId = optional(Staff::find($staff['id'])->areas()->first())->id;
+            $groupedStaffs[$areaId][] = $staff;
+        }
+
+        foreach ($groupedStaffs as $areaId => $staffGroup) {
+            $areaStartRow = $row; // Marcar inicio del área
+
+            $areaName = optional($areas->firstWhere('id', $areaId))['name'] ?? 'Área desconocida';
+
+            // Título del área
+            $sheet->setCellValue("A{$row}", $areaName);
+            $sheet->mergeCells("A{$row}:E{$row}");
+            $sheet->getStyle("A{$row}")->getFont()->setBold(true)->setSize(12);
+            $row++;
+
+            foreach ($staffGroup as $staff) {
+                $staffAbsences = array_filter($nonAttendances, fn($a) => $a['file_number'] === $staff['file_number']);
+                if (count($staffAbsences) === 0) continue;
+
+                // Título del agente
+                $sheet->setCellValue("A{$row}", "#{$staff['file_number']} {$staff['name_surname']} - " . count($staffAbsences) . ' Inasistencia' . (count($staffAbsences) > 1 ? 's' : ''));
+                $sheet->mergeCells("A{$row}:E{$row}");
+                $sheet->getStyle("A{$row}")->getFont()->setBold(true);
+                $row++;
+
+                // Encabezados
+                $headers = ['#', 'Día', 'Fecha', 'Motivo/Justificación', 'Observaciones'];
+                foreach ($headers as $i => $header) {
+                    $col = chr(65 + $i); // A, B, C, D, E
+                    $sheet->setCellValue("{$col}{$row}", $header);
+                    $sheet->getColumnDimension($col)->setAutoSize(true);
+                    $sheet->getStyle("{$col}{$row}")->getFont()->setBold(true);
+                }
+                $row++;
+
+                // Detalle de inasistencias
+                foreach ($staffAbsences as $absence) {
+                    $sheet->setCellValue("A{$row}", $absence['counter']);
+                    $sheet->setCellValue("B{$row}", $absence['day']);
+                    $sheet->setCellValue("C{$row}", $absence['date_formated']);
+                    $sheet->setCellValue("D{$row}", $absence['absenceReason'] ?? '-');
+                    $sheet->setCellValue("E{$row}", $absence['observations'] ?? '-');
+                    $row++;
+                }
+
+                $row++; // espacio después del agente
+            }
+
+            $areaEndRow = $row - 1; // Fin del área
+
+            // Aplicar borde grueso alrededor del bloque del área
+            $sheet->getStyle("A{$areaStartRow}:E{$areaEndRow}")->getBorders()->getOutline()->setBorderStyle(Border::BORDER_MEDIUM);
+
+            $row++; // espacio después del área
+        }
+
+        // Configuración de página
+        $sheet->getPageSetup()->setOrientation(PageSetup::ORIENTATION_PORTRAIT);
+        $sheet->getPageSetup()->setPrintArea("A1:E{$row}");
+        $sheet->getPageSetup()->setFitToWidth(1)->setFitToHeight(0);
+        $sheet->getPageSetup()->setScale(75);
+        $pageMargins = $sheet->getPageMargins();
+        $pageMargins->setTop(0.1)->setBottom(0.1)->setLeft(0.1)->setRight(0.1);
+
+        // Guardado y respuesta
+        $writer = new Xlsx($spreadsheet);
+
+        // Limpiar el nombre del archivo
+        $rawFileName = $request->input('file_name');
+        $safeFileName = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $rawFileName);
+        $filename = $safeFileName . '.xlsx';
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    public function tardinessReportExportExcel(Request $request)
+    {
+        $tardies = json_decode($request->tardies, true);
+        $staffs = json_decode($request->staffs, true);
+        $areas = collect(json_decode($request->areas, true));
+        $dates = $request->dates;
+        $tolerance = $request->tolerance;
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $row = 1;
+
+        // Encabezado general
+        $sheet->setCellValue("A{$row}", "Universidad Nacional de Cuyo - Hospital Universitario");
+        $sheet->mergeCells("A{$row}:G{$row}");
+        $sheet->getStyle("A{$row}")->getFont()->setBold(true);
+        $row++;
+
+        $sheet->setCellValue("A{$row}", "Reporte de tardanzas");
+        $sheet->mergeCells("A{$row}:G{$row}");
+        $sheet->getStyle("A{$row}")->getFont()->setBold(true);
+        $row++;
+
+        $row++;
+        $sheet->setCellValue("A{$row}", "Fecha:");
+        $sheet->setCellValue("B{$row}", $dates);
+        $row++;
+
+        $sheet->setCellValue("A{$row}", "Tolerancia:");
+        $sheet->setCellValue("B{$row}", "{$tolerance} minutos");
+        $row += 2;
+
+        // Agrupar por área
+        $groupedStaffs = [];
+        foreach ($staffs as $staff) {
+            $areaId = optional(Staff::find($staff['id'])->areas()->first())->id;
+            $groupedStaffs[$areaId][] = $staff;
+        }
+
+        foreach ($groupedStaffs as $areaId => $staffGroup) {
+            $areaName = optional($areas->firstWhere('id', $areaId))['name'] ?? 'Área desconocida';
+
+            $areaStartRow = $row;
+
+            // Título del área
+            $sheet->setCellValue("A{$row}", $areaName);
+            $sheet->mergeCells("A{$row}:G{$row}");
+            $sheet->getStyle("A{$row}")->getFont()->setBold(true)->setSize(12);
+            $row++;
+
+            foreach ($staffGroup as $staff) {
+                $staffTardies = array_filter($tardies, fn($t) => $t['file_number'] === $staff['file_number']);
+                if (count($staffTardies) === 0) continue;
+
+                // Encabezado del agente
+                $sheet->setCellValue("A{$row}", "#{$staff['file_number']} {$staff['name_surname']} - " . count($staffTardies) . ' Tardanza' . (count($staffTardies) > 1 ? 's' : ''));
+                $sheet->mergeCells("A{$row}:G{$row}");
+                $sheet->getStyle("A{$row}")->getFont()->setBold(true);
+                $row++;
+
+                // Encabezados de tabla
+                $headers = ['#', 'Día', 'Fecha', 'Horario', 'Entrada', 'Salida', 'Horas cumplidas'];
+                foreach ($headers as $i => $header) {
+                    $col = chr(65 + $i); // A-G
+                    $sheet->setCellValue("{$col}{$row}", $header);
+                    $sheet->getStyle("{$col}{$row}")->getFont()->setBold(true);
+                    $sheet->getColumnDimension($col)->setAutoSize(true);
+                }
+                $row++;
+
+                // Tardanzas
+                foreach ($staffTardies as $tardy) {
+                    $sheet->setCellValue("A{$row}", $tardy['counter']);
+                    $sheet->setCellValue("B{$row}", $tardy['day']);
+                    $sheet->setCellValue("C{$row}", $tardy['date_formated']);
+                    $sheet->setCellValue("D{$row}", $tardy['asssignedSchedule'] ?? '-');
+                    $sheet->setCellValue("E{$row}", $tardy['entryTime'] ?? '-');
+                    $sheet->setCellValue("F{$row}", $tardy['departureTime'] ?? '-');
+                    $sheet->setCellValue("G{$row}", $tardy['hoursCompleted'] ?? '-');
+                    $row++;
+                }
+
+                $row++; // Espacio después del staff
+            }
+
+            $areaEndRow = $row - 1;
+            // Aplicar bordes al área completa
+            $sheet->getStyle("A{$areaStartRow}:G{$areaEndRow}")->applyFromArray([
+                'borders' => [
+                    'outline' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['argb' => 'FF000000'],
+                    ],
+                ],
+            ]);
+
+            $row++; // Espacio después del área
+        }
+
+        // Configuración de página
+        $sheet->getPageSetup()->setOrientation(PageSetup::ORIENTATION_PORTRAIT);
+        $sheet->getPageSetup()->setFitToWidth(1)->setFitToHeight(0);
+        $sheet->getPageSetup()->setPrintArea("A1:G{$row}");
+        $sheet->getPageSetup()->setScale(80);
+        $sheet->getPageMargins()->setTop(0.3)->setBottom(0.3)->setLeft(0.3)->setRight(0.3);
+
+        // Exportar
+        $writer = new Xlsx($spreadsheet);
+        $safeFileName = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $request->input('file_name', 'reporte_tardanzas'));
+        $filename = $safeFileName . '.xlsx';
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    public function nonAttendanceByAreaExpIndex(Request $request)
+    {
+        $areas = area::all();
+        $absenceReasons = absenceReason::all();
+        $secretaries = secretary::all();
+        $worker_status = ['Planta', 'Contratado'];
+        nonAttendance_reports::truncate();
+
+        return view('reports.nonAttendanceExpByArea', [
+            'absenceReasons' => $absenceReasons->sortBy('name'),
+            'areas' => $areas->sortBy('name'),
+            'nonAttendances' => session('nonAttendances'),  // Pasar la variable desde la sesión si es necesario
+            'staffs' => session('staffs') ? collect(session('staffs'))->sortBy('name_surname') : collect(), // Recuperar staffs
+            'area_selected' => session('area_selected') ?? null,
+            'absenceReason_selected' => session('absenceReason_selected') ?? null,
+            'dates' =>  session('dates') ?? null,
+            'secretaries' => $secretaries->sortBy('name'),
+            'worker_status' => $worker_status,
+            'staffsGrouped' => session('staffsGrouped') ?? null,
+
+        ]);
+    }
+
+    public function nonAttendanceByAreaSearchExp(Request $request)
+    {
+        $month = $request->input('month');
+        $year = $request->input('year');
+        $area_id = $request->input('area_id');
+        $absenceReason_id = $request->input('absenceReason_id');
+        $secretary_id = $request->input('secretary_id');
+        $area = area::find($area_id);
+        $worker_status_input = ($request->input('worker_status') != "") ? strtolower($request->input('worker_status')) : null;
+
+        $staffAreasQuery = staff_area::with('staff');
+        if (!is_null($area_id)) {
+            $staffAreasQuery->where('area_id', $area_id);
+        }
+        $staffAreas = $staffAreasQuery->get();
+
+        $staffsGroupedByArea = $staffAreas->groupBy('area_id')->map(function ($group) use ($secretary_id, $worker_status_input) {
+            return $group->pluck('staff')
+                ->filter()
+                ->filter(function ($staff) use ($secretary_id, $worker_status_input) {
+                    return $staff->marking &&
+                        (is_null($secretary_id) || $staff->secretary_id == $secretary_id) &&
+                        (is_null($worker_status_input) || strtolower($staff->worker_status) == $worker_status_input);
+                });
+        })->filter(function ($staffs) {
+            return $staffs->isNotEmpty();
+        })->sortKeys()->sortBy(function ($staffs, $area_id) {
+            return area::find($area_id)?->name ?? '';
+        });
+
+        $file_numbers = $staffsGroupedByArea->flatten()->pluck('file_number');
+
+        $devices = devices::all();
+        $areas = area::all();
+        $absenceReasons = absenceReason::all();
+        $secretaries = secretary::all();
+        $worker_status = ['Planta', 'Contratado'];
+
+        $devicesLogs = $this->getDeviceLogs($devices);
+
+        foreach ($file_numbers as $file_number) {
+            $this->processClockLogs($devicesLogs, $file_number);
+        }
+
+        // Nuevo: Filtrado por mes y año
+        $date_from = Carbon::createFromDate($year, $month, 1)->startOfMonth();
+        $date_to = $date_from->copy()->endOfMonth();
+
+        $clockLogs = clockLogs::whereDate('timestamp', '>=', $date_from)
+            ->whereDate('timestamp', '<=', $date_to)
+            ->get();
+
+        $this->updateAttendanceFromClockLogs($clockLogs);
+
+        foreach ($file_numbers as $file_number) {
+            $this->createNonAttendance($file_number, $date_from, $date_to, []);
+        }
+
+        $nonAttendances = NonAttendance_reports::whereMonth('date', $month)
+            ->whereIn('file_number', $file_numbers)
+            ->whereNotNull('absenceReason_id') // Solo justificadas
+            ->when(!is_null($absenceReason_id), function ($query) use ($absenceReason_id) {
+                return $query->where('absenceReason_id', $absenceReason_id);
+            })
+            ->with(['staff', 'absenceReason'])
+            ->orderBy('absenceReason_id')
+            ->orderBy('file_number')
+            ->orderBy('date')
+            ->get();
+
+        // Agrupar como ya lo tenías
+        $groupedByReason = $nonAttendances
+            ->sortBy([['absenceReason.name', 'asc'], ['staff.name_surname', 'asc'], ['date', 'asc']])
+            ->groupBy('absenceReason_id')
+            ->map(function ($group, $reason_id) {
+                $reasonName = optional($group->first()->absenceReason)->name ?? 'Sin motivo';
+                $reasonDecree = optional($group->first()->absenceReason)->decree ?? '';
+                $reasonArticle = optional($group->first()->absenceReason)->article ?? '';
+                $reasonSubsection = optional($group->first()->absenceReason)->subsection ?? '';
+
+                $groupedByStaff = $group->groupBy('file_number')->map(function ($staffGroup) {
+                    $staffGroup = $staffGroup->sortBy('date')->values();
+                    $result = collect();
+                    $start = null;
+                    $end = null;
+                    $count = 0;
+
+                    foreach ($staffGroup as $i => $item) {
+                        $currentDate = \Carbon\Carbon::parse($item->date);
+
+                        if (is_null($start)) {
+                            $start = $currentDate;
+                            $end = $currentDate;
+                            $count = 1;
+                            continue;
+                        }
+
+                        $previousDate = \Carbon\Carbon::parse($staffGroup[$i - 1]->date);
+
+                        if ($currentDate->diffInDays($previousDate) == 1) {
+                            $end = $currentDate;
+                            $count++;
+                        } else {
+                            $result->push([
+                                'date_range' => $start->equalTo($end)
+                                    ? $start->format('d/m/Y')
+                                    : $start->format('d/m/Y') . ' al ' . $end->format('d/m/Y'),
+                                'days_count' => $count,
+                            ]);
+
+                            $start = $currentDate;
+                            $end = $currentDate;
+                            $count = 1;
+                        }
+                    }
+
+                    if (!is_null($start)) {
+                        $result->push([
+                            'date_range' => $start->equalTo($end)
+                                ? $start->format('d/m/Y')
+                                : $start->format('d/m/Y') . ' al ' . $end->format('d/m/Y'),
+                            'days_count' => $count,
+                        ]);
+                    }
+
+                    $staff = $staffGroup->first()->staff;
+
+                    return [
+                        'file_number' => $staff->file_number,
+                        'name' => $staff->name_surname,
+                        'rango_fechas' => $result,
+                    ];
+                });
+
+                $reason_data = [
+                    'article' => $reasonArticle,
+                    'subsection' => $reasonSubsection,
+                    'decree' => $reasonDecree,
+                ];
+
+                return [
+                    'reason' => $reasonName,
+                    'reason_data' => $reason_data,
+                    'staffs' => $groupedByStaff->sortBy('file_number')->values(),
+                ];
+            })->values();
+
+
+        return redirect()->route('reportView.nonAttendanceExp')
+            ->withInput()
+            ->with([
+                'nonAttendances' => $groupedByReason,
+                'areas' => $areas->sortBy('name'),
+                'absenceReasons' => $absenceReasons->sortBy('name'),
+                'staffs' => $staffsGroupedByArea->flatten()->sortBy('name_surname'),
+                'area_selected' => $area->name ?? 'Todas',
+                'dates' => 'Mes de ' . ucfirst(Carbon::create()->month($month)->monthName) . ' del ' . $year,
+                'secretaries' => $secretaries->sortBy('name'),
+                'worker_status' => $worker_status,
+                'staffsGrouped' => $staffsGroupedByArea,
+            ]);
+    }
+
+    public function nonAttendanceByAreaExcelExp(Request $request)
+    {
+        $nonAttendances = collect(json_decode($request->nonAttendances, true));
+        $staffs = collect(json_decode($request->staffs, true));
+        $areas = collect(json_decode($request->areas, true));
+        $area_selected = $request->area_selected;
+        $dates = $request->dates;
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $row = 1;
+
+        // Encabezado principal
+        $sheet->setCellValue("A{$row}", "Universidad Nacional de Cuyo - Hospital Universitario");
+        $sheet->mergeCells("A{$row}:E{$row}");
+        $sheet->getStyle("A{$row}")->getFont()->setBold(true);
+        $row++;
+
+        $sheet->setCellValue("A{$row}", "LICENCIAS Y JUSTIFICACION DE INASISTENCIAS");
+        $sheet->mergeCells("A{$row}:E{$row}");
+        $sheet->getStyle("A{$row}")->getFont()->setBold(true);
+        $row++;
+
+        $sheet->setCellValue("A{$row}", "Área:");
+        $sheet->setCellValue("B{$row}", $area_selected);
+        $row++;
+
+        $sheet->setCellValue("A{$row}", "Fechas:");
+        $sheet->setCellValue("B{$row}", $dates);
+        $row += 2;
+
+        foreach ($nonAttendances as $group) {
+            $sheet->setCellValue("A{$row}", $group['reason']);
+            $sheet->mergeCells("A{$row}:E{$row}");
+            $sheet->getStyle("A{$row}")->getFont()->setBold(true)->setSize(12);
+            $row++;
+
+            $info = $group['reason_data'] ?? null;
+            if ($info) {
+                $descripcion = [];
+                if ($info['article']) $descripcion[] = "Artículo: {$info['article']}";
+                if ($info['subsection']) $descripcion[] = "Inciso: {$info['subsection']}";
+                if ($info['decree']) $descripcion[] = "Decreto: {$info['decree']}";
+                $sheet->setCellValue("A{$row}", implode(' - ', $descripcion));
+                $sheet->mergeCells("A{$row}:E{$row}");
+                $sheet->getStyle("A{$row}")->getFont()->setItalic(true)->setSize(10);
+                $row++;
+            }
+
+            // Encabezado tabla
+            $headers = ['#Legajo', 'Nombre', 'Días', 'Fecha(s)']; 
+            foreach ($headers as $i => $header) {
+                $col = chr(65 + $i); // A-D
+                $sheet->setCellValue("{$col}{$row}", $header);
+                $sheet->getStyle("{$col}{$row}")->getFont()->setBold(true);
+                $sheet->getColumnDimension($col)->setAutoSize(true);
+            }
+            $row++;
+
+            $datos = collect($group['staffs'])->flatMap(function ($staff) {
+                return collect($staff['rango_fechas'])->map(function ($rango) use ($staff) {
+                    return [
+                        'file_number' => '#' . $staff['file_number'],
+                        'name' => $staff['name'],
+                        'date_range' => $rango['date_range'],
+                        'days_count' => $rango['days_count'],
+                    ];
+                });
+            });
+
+            foreach ($datos as $registro) {
+                $sheet->setCellValue("A{$row}", $registro['file_number']);
+                $sheet->setCellValue("B{$row}", $registro['name']);
+                $sheet->setCellValue("C{$row}", $registro['days_count']);
+                $sheet->setCellValue("D{$row}", $registro['date_range']);
+                $row++;
+            }
+
+            $row++; // espacio entre grupos
+        }
+
+        // Configuración de página
+        $sheet->getPageSetup()->setOrientation(PageSetup::ORIENTATION_PORTRAIT);
+        $sheet->getPageSetup()->setFitToWidth(1)->setFitToHeight(0);
+        $sheet->getPageMargins()->setTop(0.3)->setBottom(0.3)->setLeft(0.3)->setRight(0.3);
+
+        // Descargar archivo
+        $writer = new Xlsx($spreadsheet);
+        $safeFileName = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $request->input('file_name', 'reporte_inasistencias'));
+        $filename = $safeFileName . '.xlsx';
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
 
     public function getDeviceLogs($devices)
     {
@@ -586,12 +1318,50 @@ class reportsController extends Controller
         $bulkInsert = [];
         $addedDates = [];
 
+        // Clonar inasistencias ya registradas a la tabla temporal
+        $existingReports = NonAttendance_reports::where('file_number', $file_number)
+            ->pluck('date')
+            ->map(fn($d) => Carbon::parse($d)->format('Y-m-d'))
+            ->toArray();
+
+        $existingNonAttendancesQuery = NonAttendance::where('file_number', $file_number);
+
         if (!empty($specific_dates)) {
             $specific_dates = collect($specific_dates)
                 ->map(fn($d) => Carbon::parse($d)->format('Y-m-d'))
                 ->unique()
                 ->toArray();
 
+            $existingNonAttendancesQuery->whereIn('date', $specific_dates);
+        } elseif ($date_from && $date_to) {
+            $existingNonAttendancesQuery->whereBetween('date', [$date_from, $date_to]);
+        }
+
+        $existingNonAttendances = $existingNonAttendancesQuery->get();
+
+        $manualInsert = [];
+
+        foreach ($existingNonAttendances as $na) {
+            $formattedDate = Carbon::parse($na->date)->format('Y-m-d');
+
+            if (!in_array($formattedDate, $existingReports)) {
+                $manualInsert[] = [
+                    'file_number' => $na->file_number,
+                    'date' => $formattedDate,
+                    'absenceReason_id' => $na->absenceReason_id,
+                    'observations' => $na->observations,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+                $addedDates[] = $formattedDate;
+            }
+        }
+
+        if (!empty($manualInsert)) {
+            NonAttendance_reports::insert($manualInsert);
+        }
+
+        if (!empty($specific_dates)) {
             $attendances = clockLogs::where('file_number', $file_number)
                 ->whereIn(DB::raw('DATE(timestamp)'), $specific_dates)
                 ->pluck('timestamp')
@@ -684,453 +1454,5 @@ class reportsController extends Controller
         if (!empty($bulkInsert)) {
             NonAttendance_reports::insert($bulkInsert);
         }
-    }
-
-    public function attendanceExport(Request $request)
-    {
-        // Decodificar datos
-        $staff = json_decode($request->input('staff'), true);
-        $days = json_decode($request->input('days'), true);
-        $totalHours = json_decode($request->input('totalHours'), true);
-        $hoursAverage = json_decode($request->input('hoursAverage'), true);
-        $totalExtraHours = json_decode($request->input('totalExtraHours'), true);
-        $schedules = json_decode($request->input('schedules'), true);
-        $attendances = json_decode($request->input('attendances'), true);
-        $non_attendances = json_decode($request->input('non_attendances'), true);
-        $row = 1;
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('Reporte');
-
-        // --- RESUMEN ---
-        $sheet->setCellValue("A$row", "Universidad Nacional de Cuyo - Hospital universitario");
-        $sheet->mergeCells("A$row:C$row");
-        $sheet->getStyle("A$row")->getFont()->setBold(true)->setSize(14);
-
-        $row += 2;
-
-        $infoPersonal = [
-            'Legajo' => $staff['file_number'],
-            'Nombre y apellido' => $staff['name_surname'],
-            'Cordinador' => staff::find(coordinator::find($staff['coordinator_id'])->staff_id)->name_surname,
-            'Condición' => ($staff['worker_status'] == 'planta')
-                ? 'Planta' . ' - ' . category::find($staff['category_id'])->name
-                : 'Contratado',
-            'Secretaría' => secretary::find($staff['secretary_id'])->name,
-            'Fecha de ingreso' => Carbon::parse($staff['date_of_entry'])->format('d/m/y'),
-            'Fecha de baja' => $staff['inactive_since'] ? Carbon::parse($staff['inactive_since'])->format('d/m/y') : '—',
-            'Fecha de reporte' => Carbon::now()->format('d/m/y'),
-            'Marca' => ($staff['marking']) ? '✔' : '✘',
-        ];
-
-        $sheet->setCellValue("A$row", "Información personal:");
-        $sheet->mergeCells("A$row:B$row");
-        $sheet->getStyle("A$row")->getFont()->setBold(true)->setSize(12);
-        $row++;
-
-        // Agregar los datos en vertical
-        foreach ($infoPersonal as $titulo => $valor) {
-            $sheet->setCellValue("A$row", $titulo);
-            $sheet->setCellValueExplicit("B$row", $valor, DataType::TYPE_STRING); // Siempre como texto por seguridad
-            $sheet->getStyle("A$row")->getFont()->setBold(true);
-            $row++;
-        }
-
-        $row++;
-
-        $sheet->setCellValue("A$row", "Resumen:");
-        $sheet->mergeCells("A$row:G$row");
-        $sheet->getStyle("A$row")->getFont()->setBold(true)->setSize(12);
-        $row++;
-        $resumen = [
-            ['Días completados', $days . ' '],
-            ['Horas totales', $totalHours],
-            ['Promedio de horas', $hoursAverage],
-            ['Horas adicionales', $totalExtraHours],
-        ];
-
-        $diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-        $horarios = [];
-        $horas = [];
-
-        foreach (range(1, 7) as $i) {
-            $schedule = collect($schedules)->firstWhere('day_id', $i);
-
-            if ($schedule) {
-                $shift = \App\Models\Shift::find($schedule['shift_id']);
-                $start = \Carbon\Carbon::parse($shift->startTime)->format('H:i');
-                $end = \Carbon\Carbon::parse($shift->endTime)->format('H:i');
-                $horarios[] = "$start - $end";
-                $horas[] = \Carbon\Carbon::parse($shift->startTime)->diffInHours($shift->endTime) . ' horas';
-            } else {
-                $horarios[] = "Sin horario";
-                $horas[] = 0 . ' horas';
-            }
-        }
-
-        $startCol = 'A';
-        $col = $startCol;
-
-        // --- Fila 1: títulos resumen ---
-        foreach ($resumen as $item) {
-            $sheet->setCellValue("$col$row", $item[0]);
-            $sheet->getStyle("$col$row")->getFont()->setBold(true);
-            $col++;
-        }
-        $row++;
-
-        // --- Fila 2: valores resumen ---
-        $col = $startCol;
-        foreach ($resumen as $item) {
-            $sheet->setCellValue("$col$row", $item[1]);
-            $col++;
-        }
-        $row++;
-
-        // --- Fila 3: días semana ---
-        $col = $startCol;
-        foreach ($diasSemana as $dia) {
-            $sheet->setCellValue("$col$row", $dia);
-            $sheet->getStyle("$col$row")->getFont()->setBold(true);
-            $col++;
-        }
-        $row++;
-
-        // --- Fila 4: rangos horarios ---
-        $col = $startCol;
-        foreach ($horarios as $horario) {
-            $sheet->setCellValue("$col$row", $horario);
-            $col++;
-        }
-        $row++;
-
-        // --- Fila 5: horas por día ---
-        $col = $startCol;
-        foreach ($horas as $hora) {
-            $sheet->setCellValue("$col$row", $hora);
-            $col++;
-        }
-
-        $endCol = chr(ord($startCol) + max(count($resumen), count($diasSemana)) - 1);
-        $endRow = $row;
-
-        $row += 2;
-
-        // --- DETALLE DE ASISTENCIAS ---
-        $sheet->setCellValue("A$row", "Detalle de Asistencias:");
-        $sheet->mergeCells("A$row:G$row");
-        $sheet->getStyle("A$row")->getFont()->setBold(true)->setSize(12);
-        $row++;
-
-        $headers = ['Día', 'Fecha', 'Entrada', 'Salida', 'Horas cumplidas', 'Horas adicionales', 'Observaciones'];
-        $sheet->fromArray($headers, null, "A$row");
-        $sheet->getStyle("A$row:G$row")->getFont()->setBold(true);
-        $row++;
-
-        foreach ($attendances as $registro) {
-            $sheet->fromArray([
-                $registro['day'],
-                $registro['date_formated'],
-                $registro['entryTime'],
-                $registro['departureTime'],
-                $registro['hoursCompleted'],
-                $registro['extraHours'],
-                $registro['observations'],
-            ], null, "A$row");
-            $row++;
-        }
-
-        $row++;
-
-        $sheet->getColumnDimension('C')->setWidth(40); // Motivo/justificación
-        $sheet->getColumnDimension('D')->setWidth(30); // Observaciones
-
-
-        // --- DETALLE DE ASISTENCIAS ---
-        if(count($non_attendances) > 0){
-            $sheet->setCellValue("A$row", "Detalle de Inasistencias:");
-            $sheet->mergeCells("A$row:G$row");
-            $sheet->getStyle("A$row")->getFont()->setBold(true)->setSize(12);
-            $row++;
-    
-            $headers = ['Día', 'Fecha', 'Motivo/justificación', 'Observaciones'];
-            $sheet->fromArray($headers, null, "A$row");
-            $sheet->getStyle("A$row:G$row")->getFont()->setBold(true);
-            $row++;
-    
-            foreach ($non_attendances as $registro) {
-                $sheet->fromArray([
-                    $registro['day'],
-                    $registro['date'],
-                    ($registro['absenceReason_id']) ? absenceReason::find($registro['absenceReason_id'])->name : '-',
-                    $registro['observations'],
-                ], null, "A$row");
-    
-                // Aplicar wrap text SOLO a C y D en esa fila
-                $sheet->getStyle("C$row:D$row")->getAlignment()->setWrapText(true);
-    
-                $row++;
-            }
-        }
-        
-
-
-        // Estilo rápido para toda la hoja
-        $sheet->getStyle("A1:G$row")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
-
-        foreach (range('A', 'G') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(false)->setWidth(20); // Ajuste general
-        }
-
-
-        $sheet->getPageSetup()->setPrintArea("A1:G$row");
-        $sheet->getPageSetup()
-            ->setFitToWidth(1)
-            ->setFitToHeight(0); // 0 = no limitar filas
-        $pageMargins = $sheet->getPageMargins();
-        $pageMargins->setTop(0.1);
-        $pageMargins->setBottom(0.1);
-        $pageMargins->setLeft(0.1);
-        $pageMargins->setRight(0.1);
-        $sheet->getPageSetup()->setScale(75); // podés ajustar el porcentaje
-
-        // Descargar el archivo
-        $writer = new Xlsx($spreadsheet);
-        $filename = $request->input('file_name') . '.xlsx';
-
-        return response()->streamDownload(function () use ($writer) {
-            $writer->save('php://output');
-        }, $filename, [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        ]);
-    }
-
-    public function nonAttendanceByAreaExportExcel(Request $request)
-    {
-        $nonAttendances = json_decode($request->nonAttendances, true);
-        $staffs = json_decode($request->staffs, true);
-        $areas = collect(json_decode($request->areas, true)); // Asegurate de enviar esto desde la vista
-        $dates = $request->dates;
-
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-
-        // Título y subtítulo
-        $row = 1;
-        $sheet->setCellValue("A{$row}", "Universidad Nacional de Cuyo - Hospital Universitario");
-        $sheet->mergeCells("A{$row}:E{$row}");
-        $sheet->getStyle("A{$row}")->getFont()->setBold(true);
-
-        $row++;
-        $sheet->setCellValue("A{$row}", "Reporte de ausentismo");
-        $sheet->mergeCells("A{$row}:E{$row}");
-        $sheet->getStyle("A{$row}")->getFont()->setBold(true);
-
-        $row += 2;
-        $sheet->setCellValue("A{$row}", "Fecha:");
-        $sheet->getStyle("A{$row}")->getFont()->setBold(true);
-        $sheet->setCellValue("B{$row}", $dates);
-
-        $row += 2;
-
-        // Agrupar staffs por área
-        $groupedStaffs = [];
-
-        foreach ($staffs as $staff) {
-            $areaId = optional(Staff::find($staff['id'])->areas()->first())->id;
-            $groupedStaffs[$areaId][] = $staff;
-        }
-
-        foreach ($groupedStaffs as $areaId => $staffGroup) {
-            $areaStartRow = $row; // Marcar inicio del área
-
-            $areaName = optional($areas->firstWhere('id', $areaId))['name'] ?? 'Área desconocida';
-
-            // Título del área
-            $sheet->setCellValue("A{$row}", $areaName);
-            $sheet->mergeCells("A{$row}:E{$row}");
-            $sheet->getStyle("A{$row}")->getFont()->setBold(true)->setSize(12);
-            $row++;
-
-            foreach ($staffGroup as $staff) {
-                $staffAbsences = array_filter($nonAttendances, fn($a) => $a['file_number'] === $staff['file_number']);
-                if (count($staffAbsences) === 0) continue;
-
-                // Título del agente
-                $sheet->setCellValue("A{$row}", "#{$staff['file_number']} {$staff['name_surname']} - " . count($staffAbsences) . ' Inasistencia' . (count($staffAbsences) > 1 ? 's' : ''));
-                $sheet->mergeCells("A{$row}:E{$row}");
-                $sheet->getStyle("A{$row}")->getFont()->setBold(true);
-                $row++;
-
-                // Encabezados
-                $headers = ['#', 'Día', 'Fecha', 'Motivo/Justificación', 'Observaciones'];
-                foreach ($headers as $i => $header) {
-                    $col = chr(65 + $i); // A, B, C, D, E
-                    $sheet->setCellValue("{$col}{$row}", $header);
-                    $sheet->getColumnDimension($col)->setAutoSize(true);
-                    $sheet->getStyle("{$col}{$row}")->getFont()->setBold(true);
-                }
-                $row++;
-
-                // Detalle de inasistencias
-                foreach ($staffAbsences as $absence) {
-                    $sheet->setCellValue("A{$row}", $absence['counter']);
-                    $sheet->setCellValue("B{$row}", $absence['day']);
-                    $sheet->setCellValue("C{$row}", $absence['date_formated']);
-                    $sheet->setCellValue("D{$row}", $absence['absenceReason'] ?? '-');
-                    $sheet->setCellValue("E{$row}", $absence['observations'] ?? '-');
-                    $row++;
-                }
-
-                $row++; // espacio después del agente
-            }
-
-            $areaEndRow = $row - 1; // Fin del área
-
-            // Aplicar borde grueso alrededor del bloque del área
-            $sheet->getStyle("A{$areaStartRow}:E{$areaEndRow}")->getBorders()->getOutline()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_MEDIUM);
-
-            $row++; // espacio después del área
-        }
-
-        // Configuración de página
-        $sheet->getPageSetup()->setOrientation(PageSetup::ORIENTATION_PORTRAIT);
-        $sheet->getPageSetup()->setPrintArea("A1:E{$row}");
-        $sheet->getPageSetup()->setFitToWidth(1)->setFitToHeight(0);
-        $sheet->getPageSetup()->setScale(75);
-        $pageMargins = $sheet->getPageMargins();
-        $pageMargins->setTop(0.1)->setBottom(0.1)->setLeft(0.1)->setRight(0.1);
-
-        // Guardado y respuesta
-        $writer = new Xlsx($spreadsheet);
-
-        // Limpiar el nombre del archivo
-        $rawFileName = $request->input('file_name');
-        $safeFileName = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $rawFileName);
-        $filename = $safeFileName . '.xlsx';
-
-        return response()->streamDownload(function () use ($writer) {
-            $writer->save('php://output');
-        }, $filename, [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        ]);
-    }
-
-    public function tardinessReportExportExcel(Request $request)
-    {
-        $tardies = json_decode($request->tardies, true);
-        $staffs = json_decode($request->staffs, true);
-        $areas = collect(json_decode($request->areas, true));
-        $dates = $request->dates;
-        $tolerance = $request->tolerance;
-
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        $row = 1;
-
-        // Encabezado general
-        $sheet->setCellValue("A{$row}", "Universidad Nacional de Cuyo - Hospital Universitario");
-        $sheet->mergeCells("A{$row}:G{$row}");
-        $sheet->getStyle("A{$row}")->getFont()->setBold(true);
-        $row++;
-
-        $sheet->setCellValue("A{$row}", "Reporte de tardanzas");
-        $sheet->mergeCells("A{$row}:G{$row}");
-        $sheet->getStyle("A{$row}")->getFont()->setBold(true);
-        $row++;
-
-        $row++;
-        $sheet->setCellValue("A{$row}", "Fecha:");
-        $sheet->setCellValue("B{$row}", $dates);
-        $row++;
-
-        $sheet->setCellValue("A{$row}", "Tolerancia:");
-        $sheet->setCellValue("B{$row}", "{$tolerance} minutos");
-        $row += 2;
-
-        // Agrupar por área
-        $groupedStaffs = [];
-        foreach ($staffs as $staff) {
-            $areaId = optional(Staff::find($staff['id'])->areas()->first())->id;
-            $groupedStaffs[$areaId][] = $staff;
-        }
-
-        foreach ($groupedStaffs as $areaId => $staffGroup) {
-            $areaName = optional($areas->firstWhere('id', $areaId))['name'] ?? 'Área desconocida';
-
-            $areaStartRow = $row;
-
-            // Título del área
-            $sheet->setCellValue("A{$row}", $areaName);
-            $sheet->mergeCells("A{$row}:G{$row}");
-            $sheet->getStyle("A{$row}")->getFont()->setBold(true)->setSize(12);
-            $row++;
-
-            foreach ($staffGroup as $staff) {
-                $staffTardies = array_filter($tardies, fn($t) => $t['file_number'] === $staff['file_number']);
-                if (count($staffTardies) === 0) continue;
-
-                // Encabezado del agente
-                $sheet->setCellValue("A{$row}", "#{$staff['file_number']} {$staff['name_surname']} - " . count($staffTardies) . ' Tardanza' . (count($staffTardies) > 1 ? 's' : ''));
-                $sheet->mergeCells("A{$row}:G{$row}");
-                $sheet->getStyle("A{$row}")->getFont()->setBold(true);
-                $row++;
-
-                // Encabezados de tabla
-                $headers = ['#', 'Día', 'Fecha', 'Horario', 'Entrada', 'Salida', 'Horas cumplidas'];
-                foreach ($headers as $i => $header) {
-                    $col = chr(65 + $i); // A-G
-                    $sheet->setCellValue("{$col}{$row}", $header);
-                    $sheet->getStyle("{$col}{$row}")->getFont()->setBold(true);
-                    $sheet->getColumnDimension($col)->setAutoSize(true);
-                }
-                $row++;
-
-                // Tardanzas
-                foreach ($staffTardies as $tardy) {
-                    $sheet->setCellValue("A{$row}", $tardy['counter']);
-                    $sheet->setCellValue("B{$row}", $tardy['day']);
-                    $sheet->setCellValue("C{$row}", $tardy['date_formated']);
-                    $sheet->setCellValue("D{$row}", $tardy['asssignedSchedule'] ?? '-');
-                    $sheet->setCellValue("E{$row}", $tardy['entryTime'] ?? '-');
-                    $sheet->setCellValue("F{$row}", $tardy['departureTime'] ?? '-');
-                    $sheet->setCellValue("G{$row}", $tardy['hoursCompleted'] ?? '-');
-                    $row++;
-                }
-
-                $row++; // Espacio después del staff
-            }
-
-            $areaEndRow = $row - 1;
-            // Aplicar bordes al área completa
-            $sheet->getStyle("A{$areaStartRow}:G{$areaEndRow}")->applyFromArray([
-                'borders' => [
-                    'outline' => [
-                        'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                        'color' => ['argb' => 'FF000000'],
-                    ],
-                ],
-            ]);
-
-            $row++; // Espacio después del área
-        }
-
-        // Configuración de página
-        $sheet->getPageSetup()->setOrientation(PageSetup::ORIENTATION_PORTRAIT);
-        $sheet->getPageSetup()->setFitToWidth(1)->setFitToHeight(0);
-        $sheet->getPageSetup()->setPrintArea("A1:G{$row}");
-        $sheet->getPageSetup()->setScale(80);
-        $sheet->getPageMargins()->setTop(0.3)->setBottom(0.3)->setLeft(0.3)->setRight(0.3);
-
-        // Exportar
-        $writer = new Xlsx($spreadsheet);
-        $safeFileName = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $request->input('file_name', 'reporte_tardanzas'));
-        $filename = $safeFileName . '.xlsx';
-
-        return response()->streamDownload(function () use ($writer) {
-            $writer->save('php://output');
-        }, $filename, [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        ]);
     }
 }

@@ -110,6 +110,9 @@
                             @endforeach
                         </select>
                         <p class="text-muted">Decreto: {{$staff->collective_agreement->name ?? 'No asignado'}}</p>
+                        <p id="warning-text" class="text-red-500 text-sm mt-1 hidden"></p>
+
+                        
 
                         </div>
                     </div>
@@ -138,6 +141,9 @@
                     @endforeach
                 </select>
                 <p class="text-muted">Decreto: {{$staff->collective_agreement->name ?? 'No asignado'}}</p>
+                <p id="warning-text" class="text-red-500 text-sm mt-1 hidden"></p>
+
+                
 
             </div>
             <div class="flex flex-col px-[3%] mb-3 mt-1 w-full">
@@ -151,7 +157,7 @@
             </div>
         </form>
     </x-modal-custom>
-    <x-modal-custom id="view_absenseReason_modal" title="Justificaciones" subtitle="">
+    <x-modal-custom id="view_absenseReason_modal" title="Justificaciones de {{$year}}" subtitle="">
         <div class="p-2">
             @if ($absenceReasonCount->isEmpty())
                 <!-- Verifica si no hay tickets -->
@@ -231,6 +237,7 @@
                 <x-text-input id="observations" name="observations" type="text" value="Ingreso manual" required />
             </div>
             <div class="flex justify-end px-3 gap-2">
+                <span id="errorText" class="text-danger hidden"></span>
                 <button type="submit" class="btn btn-success rounded-xl" id="add_vacations_btn">Agregar
                 </button>
             </div>
@@ -730,6 +737,9 @@
         function calculateDays() {
             const fromDate = new Date(inputFrom.value);
             const toDate = new Date(inputTo.value);
+            const collective_agreement_id = @json($staff->collective_agreement_id);
+
+            const isCollectiveAgreementValid = collective_agreement_id !== null;
 
             if (!isNaN(fromDate.getTime()) && !isNaN(toDate.getTime())) {
                 const timeDiff = toDate - fromDate;
@@ -738,9 +748,12 @@
                 const validDays = dayDiff > 0 ? dayDiff : 0;
                 daysOutput.textContent = validDays;
 
-                if (validDays > totalVacationDays) {
+                if (validDays > totalVacationDays || !isCollectiveAgreementValid) {
                     addBtn.disabled = true;
                     errorText.classList.remove('hidden');
+                    errorText.textContent = !isCollectiveAgreementValid
+                        ? "Esta persona no tiene seleccionado un decreto."
+                        : "Supera los días disponibles.";
                 } else {
                     addBtn.disabled = false;
                     errorText.classList.add('hidden');
@@ -751,6 +764,7 @@
                 errorText.classList.add('hidden');
             }
         }
+
 
         inputFrom.addEventListener('change', calculateDays);
         inputTo.addEventListener('change', calculateDays);
@@ -773,6 +787,38 @@
 
             // Enviar el formulario
             $('#export-form').submit();
+        });
+
+        const razonesCountMonth = {{ $razonesCountMonth }};
+        const razonesCountYear = {{ $razonesCountYear }};
+
+        const warningText = document.getElementById('warning-text');
+        const selects = document.querySelectorAll('#absenceReason_select');
+
+        selects.forEach(select => {
+            select.addEventListener('change', function () {
+                const selectedText = select.options[select.selectedIndex].text.toLowerCase();
+                const isRazones = selectedText.includes('raz') || selectedText.includes('part') || selectedText.includes('particulares');
+
+                if (isRazones) {
+                    let messages = [];
+                    if (razonesCountMonth >= 2) {
+                        messages.push(`ya tiene ${razonesCountMonth} "razones particulares" en el mes seleccionado`);
+                    }
+                    if (razonesCountYear >= 6) {
+                        messages.push(`ya tiene ${razonesCountYear} "razones particulares" en el año`);
+                    }
+
+                    if (messages.length > 0) {
+                        warningText.innerText = `Advertencia: esta persona ${messages.join(' y ')}.`;
+                        warningText.classList.remove('hidden');
+                    } else {
+                        warningText.classList.add('hidden');
+                    }
+                } else {
+                    warningText.classList.add('hidden');
+                }
+            });
         });
     });
 </script>
