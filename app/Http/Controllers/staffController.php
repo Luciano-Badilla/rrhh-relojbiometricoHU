@@ -265,7 +265,7 @@ class staffController extends Controller
             ->toArray();
 
         // Filtrar y eliminar las inasistencias que coincidan con fechas de asistencia
-        $nonAttendanceRaw = NonAttendance::where('file_number', $file_number)
+        $nonAttendanceRaw = NonAttendance::where('file_number', $file_number)->whereYear('date', $year)
             ->with('absenceReason')
             ->get(); // SIN filtrar por mes ni año
 
@@ -307,6 +307,24 @@ class staffController extends Controller
                 ];
             });
 
+        $razonesCountMonth = NonAttendance::where('file_number', $staff->file_number)
+            ->whereHas('absenceReason', function ($q) {
+                $q->where('name', 'like', '%raz%')
+                    ->orWhere('name', 'like', '%part%')
+                    ->orWhere('name', 'like', '%particulares%');
+            })
+            ->whereMonth('date', $month)
+            ->whereYear('date', $year)
+            ->count();
+
+        $razonesCountYear = NonAttendance::where('file_number', $staff->file_number)
+            ->whereHas('absenceReason', function ($q) {
+                $q->where('name', 'like', '%raz%')
+                    ->orWhere('name', 'like', '%part%')
+                    ->orWhere('name', 'like', '%particulares%');
+            })
+            ->whereYear('date', $year)
+            ->count();
 
 
         $dataToExport = [
@@ -334,7 +352,9 @@ class staffController extends Controller
             'absenceReasonCount' => $absenceReasonCount,
             'dataToExport' => $dataToExport,
             'totalVacationDays' => $totalVacationDays,
-            'vacations' => $vacations
+            'vacations' => $vacations,
+            'razonesCountYear' => $razonesCountYear,
+            'razonesCountMonth' => $razonesCountMonth,
         ]);
     }
 
@@ -558,8 +578,15 @@ class staffController extends Controller
             }
 
             $absenceReason = AbsenceReason::firstOrCreate(
-                ['name' => 'Vacaciones ' . $vacation->year],
-                ['logical_erase' => 1]
+                [
+                    'name' => 'Vacaciones ' . $vacation->year,
+                    'decree' => $staff->collective_agreement->name
+                ],
+                [
+                    'logical_erase' => 1,
+                    'decree' => $staff->collective_agreement->name
+                ],
+
             );
 
             if ($existing && is_null($existing->absenceReason_id)) {
