@@ -22,7 +22,13 @@ class staff extends Model
         'category_id',
         'secretary_id',
         'scale_id',
-        'last_checked'
+        'last_checked',
+        'date_of_entry',
+        'coordinator_id',
+        'worker_status',
+        'inactive_since',
+        'marking',
+        'collective_agreement_id'
     ];
 
     /**

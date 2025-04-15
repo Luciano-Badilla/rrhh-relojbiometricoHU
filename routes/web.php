@@ -70,8 +70,11 @@ Route::middleware(['auth', 'verified', CheckRole::class . ':2'])->group(function
 
     Route::post('/eventuality/add', [StaffController::class, 'add_eventuality'])->name('eventuality.add');
 
-    // routes/web.php o routes/api.php (según tu contexto)
     Route::put('/vacations/{id}', [VacationController::class, 'update'])->name('vacations.update');
+
+    Route::get('/reports/nonAttendanceByAreaExp', [reportsController::class, 'nonAttendanceByAreaExpIndex'])->name('reportView.nonAttendanceExp');
+    Route::get('/reports/nonAttendanceByAreaExp/search', [reportsController::class, 'nonAttendanceByAreaSearchExp'])->name('reportSearch.nonAttendanceExp');
+    Route::post('/reports/tardiesByAreaExcelExp/export', [reportsController::class, 'nonAttendanceByAreaExcelExp'])->name('reportExport.nonAttendanceExp');
 
 
     Route::middleware('auth')->group(function () {
