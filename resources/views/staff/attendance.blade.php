@@ -109,7 +109,7 @@
                                 <option value="{{ $absenceReason->id }}">{{ $absenceReason->name }}</option>
                             @endforeach
                         </select>
-                        <p class="text-muted">Decreto: {{$staff->collective_agreement->name ?? 'No asignado'}}</p>
+                        <p class="text-muted">Convenio: {{$staff->collective_agreement->name ?? 'No asignado'}}</p>
                         <p id="warning-text" class="text-red-500 text-sm mt-1 hidden"></p>
 
                         
@@ -140,7 +140,7 @@
                         <option value="{{ $absenceReason->id }}">{{ $absenceReason->name }}</option>
                     @endforeach
                 </select>
-                <p class="text-muted">Decreto: {{$staff->collective_agreement->name ?? 'No asignado'}}</p>
+                <p class="text-muted">Convenio: {{$staff->collective_agreement->name ?? 'No asignado'}}</p>
                 <p id="warning-text" class="text-red-500 text-sm mt-1 hidden"></p>
 
                 
@@ -701,7 +701,6 @@
             });
         });
 
-
         document.querySelectorAll('.add_nonattendance_btn').forEach(button => {
             button.addEventListener('click', function() {
                 const id_nonattendance = this.getAttribute('data-id');
@@ -751,7 +750,7 @@
                     addBtn.disabled = true;
                     errorText.classList.remove('hidden');
                     errorText.textContent = !isCollectiveAgreementValid
-                        ? "Esta persona no tiene seleccionado un decreto."
+                        ? "Esta persona no tiene seleccionado un convenio."
                         : "Supera los días disponibles.";
                 } else {
                     addBtn.disabled = false;
