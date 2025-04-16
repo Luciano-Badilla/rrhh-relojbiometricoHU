@@ -410,7 +410,7 @@ class staffController extends Controller
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
-            'date_of_entry' => 'nullable|string',
+            'date_of_entry' => 'nullable|date',
             'worker_status' => 'nullable|string',
             'inactive' => 'nullable|boolean',
             'marking' => 'nullable|boolean',
@@ -436,14 +436,7 @@ class staffController extends Controller
         $staff->email = $request->input('email');
         $staff->phone = $request->input('phone');
         $staff->address = $request->input('address');
-
-        // Convertir la fecha de dd/mm/yyyy a yyyy-mm-dd antes de guardarla
-        if ($request->filled('date_of_entry')) {
-            $dateParts = explode('/', $request->input('date_of_entry'));
-            if (count($dateParts) === 3) {
-                $staff->date_of_entry = "{$dateParts[2]}-{$dateParts[1]}-{$dateParts[0]}";
-            }
-        }
+        $staff->date_of_entry = $request->input('date_of_entry');
 
         $staff->worker_status = $request->input('worker_status');
 
