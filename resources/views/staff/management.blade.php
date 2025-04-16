@@ -21,7 +21,7 @@
                 <div class="flex flex-row gap-4 mb-4 w-full">
                     <div class="w-1/3">
                         <x-input-label for="ID" value="Legajo" class="w-full" />
-                        <x-text-input id="file_number" type="text" name="file_number" class="w-full"
+                        <x-text-input id="file_number" type="number" name="file_number" class="w-full"
                             value="{{ $staff->file_number }}" placeholder="file_number" x-bind:disabled="!isEditing" />
                     </div>
                     <div class="w-1/3">
@@ -39,85 +39,67 @@
                 </div>
 
                 <div class="flex flex-row gap-4 mb-4 w-full">
-                    <div class="w-1/3">
-                        <x-select id="secretary" name="secretary" :options="$secretaries" placeholder="Seleccionar secretaria"
-                            :selected="$staff->secretary_id" x-bind:disabled="!isEditing" class="w-[102%]">
-                            Secretaria
-                        </x-select>
-                    </div>
-                    <div class="w-1/3">
-                        <x-select id="category" name="category" :options="$categories" placeholder="Seleccionar categoría"
-                            :selected="$staff->category_id" x-bind:disabled="!isEditing" class="w-[101%] ml-2">
-                            Categoría
-                        </x-select>
-                    </div>
+
+
                     <div class="w-1/3" x-data="{
                         entryDate: '{{ $staff->date_of_entry }}',
-                        formattedEntryDate: '',
                         yearsOfService: 0,
-                        formatEntryDate() {
-                            if (this.entryDate) {
-                                let [year, month, day] = this.entryDate.split('-'); // Asumiendo que viene en formato yyyy-mm-dd
-                                this.formattedEntryDate = `${day}/${month}/${year}`;
-                            }
-                        },
                         calculateYears() {
                             if (this.entryDate) {
                                 let [year, month, day] = this.entryDate.split('-');
-                                let entry = new Date(year, month - 1, day); // Meses en JS van de 0 a 11
+                                let entry = new Date(year, month - 1, day);
                                 let today = new Date();
                     
                                 let years = today.getFullYear() - entry.getFullYear();
-                    
                                 let hasAnniversaryPassed = (today.getMonth() > entry.getMonth()) ||
                                     (today.getMonth() === entry.getMonth() && today.getDate() >= entry.getDate());
                     
                                 this.yearsOfService = hasAnniversaryPassed ? years : years - 1;
                             }
                         }
-                    }" x-init="formatEntryDate();
-                    calculateYears()">
+                    }" x-init="calculateYears()">
 
-                        <!-- Input para fecha con formato dd/mm/yyyy -->
-                        <x-input-label for="Ingreso" value="Ingreso" class="ml-2.5" />
-                        <x-text-input id="date_of_entry" type="text" name="date_of_entry"
-                            x-model="formattedEntryDate" placeholder="dd/mm/yyyy" class="mt-1 ml-2.5 block w-[102%]"
-                            x-bind:disabled="!isEditing" />
+                        <!-- Input tipo date -->
+                        <x-input-label for="Ingreso" value="Ingreso" />
+                        <x-text-input id="date_of_entry" type="date" name="date_of_entry" x-model="entryDate"
+                            class="mt-1 block w-[100%]" x-bind:disabled="!isEditing" />
 
                     </div>
-
+                    <div class="w-1/3" x-data="{
+                        entryDate: '{{ $staff->date_of_entry }}',
+                        yearsOfService: 0,
+                        calculateYears() {
+                            if (this.entryDate) {
+                                let entry = new Date(this.entryDate);
+                                let today = new Date();
+                    
+                                let years = today.getFullYear() - entry.getFullYear();
+                    
+                                // Verifica si el aniversario de ingreso ya ocurrió este año
+                                let hasAnniversaryPassed = (today.getMonth() > entry.getMonth()) ||
+                                    (today.getMonth() === entry.getMonth() && today.getDate() >= entry.getDate());
+                    
+                                // Si aún no ha pasado el aniversario en este año, restamos 1
+                                this.yearsOfService = hasAnniversaryPassed ? years : years - 1;
+                            }
+                        }
+                    }" x-init="calculateYears()">
+                        <!-- Antigüedad calculada -->
+                        <x-input-label for="Antiguedad" value="Antigüedad" />
+                        <x-text-input id="years_of_service" type="text" name="years_of_service"
+                            x-bind:value="yearsOfService + ' años'" class="mt-1 block w-full"
+                            x-bind:disabled="!isEditing" />
+                    </div>
+                    <div class="w-1/3">
+                        <x-select id="secretary" name="secretary" :options="$secretaries" placeholder="Seleccionar secretaria"
+                            :selected="$staff->secretary_id" x-bind:disabled="!isEditing" class="w-[102%]">
+                            Secretaria
+                        </x-select>
+                    </div>
 
                 </div>
 
                 <div class="flex flex-row gap-4 mb-4 w-full">
-                    <div class="w-1/3">
-                        <div x-data="{
-                            entryDate: '{{ $staff->date_of_entry }}',
-                            yearsOfService: 0,
-                            calculateYears() {
-                                if (this.entryDate) {
-                                    let entry = new Date(this.entryDate);
-                                    let today = new Date();
-                        
-                                    let years = today.getFullYear() - entry.getFullYear();
-                        
-                                    // Verifica si el aniversario de ingreso ya ocurrió este año
-                                    let hasAnniversaryPassed = (today.getMonth() > entry.getMonth()) ||
-                                        (today.getMonth() === entry.getMonth() && today.getDate() >= entry.getDate());
-                        
-                                    // Si aún no ha pasado el aniversario en este año, restamos 1
-                                    this.yearsOfService = hasAnniversaryPassed ? years : years - 1;
-                                }
-                            }
-                        }" x-init="calculateYears()">
-                            <!-- Antigüedad calculada -->
-                            <x-input-label for="Antiguedad" value="Antigüedad" />
-                            <x-text-input id="years_of_service" type="text" name="years_of_service"
-                                x-bind:value="yearsOfService + ' años'" class="mt-1 block w-full"
-                                x-bind:disabled="!isEditing" />
-                        </div>
-                    </div>
-
                     <!-- Select de Estado (1/4) -->
                     <div class="w-1/3">
                         <label for="worker-status-select" class="block font-medium text-sm text-gray-700 mb-1">
@@ -154,6 +136,12 @@
                             @endforeach
 
                         </select>
+                    </div>
+                    <div class="w-1/3">
+                        <x-select id="category" name="category" :options="$categories" placeholder="Seleccionar categoría"
+                            :selected="$staff->category_id" x-bind:disabled="!isEditing" class="w-[101%]">
+                            Categoría
+                        </x-select>
                     </div>
 
                 </div>
@@ -219,7 +207,7 @@
                     <label for="annual-vacation-days" class="mr-2 text-gray-700">Días anuales:</label>
                     <input id="annual_vacation_days" name="annual_vacation_days"
                         style="text-align: right; width: 65px" value="{{ $annual_vacation_days->days ?? '' }}"
-                        x-bind:disabled="!isEditing" type="number"
+                        x-bind:disabled="!isEditing" type="number" min="0"
                         class="border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:border-indigo-500">
                 </div>
 
@@ -262,16 +250,20 @@
                                                 <td class="px-6 py-4">
                                                     <span class="vacation-display" data-id="{{ $vacation->id }}">
                                                         <span class="days-text">{{ $vacation->days }}</span>
-                                                        <i
-                                                            class="fas fa-pencil-alt text-blue-500 cursor-pointer edit-icon ml-2"></i>
+                                                        <button class="update-holidays-btn edit-icon" type="button">
+                                                            <i
+                                                                class="fas fa-pencil-alt text-blue-500 cursor-pointer ml-2"></i>
+                                                        </button>
                                                     </span>
                                                     <span class="vacation-edit hidden" data-id="{{ $vacation->id }}"
                                                         data-url="{{ route('vacations.update', $vacation->id) }}">
-                                                        <input type="number"
+                                                        <input type="number" min="0"
                                                             class="days-input border rounded px-2 py-1 w-16"
                                                             value="{{ $vacation->days }}">
-                                                        <i
-                                                            class="fas fa-check text-green-500 cursor-pointer save-icon ml-2"></i>
+                                                        <button class="end-update-holidays-btn save-icon" type="button">
+                                                            <i
+                                                                class="fas fa-check text-green-500 cursor-pointer ml-2"></i>
+                                                        </button>
                                                     </span>
                                                 </td>
                                             @endforeach
@@ -312,10 +304,10 @@
                                                     $schedule = $schedules->firstWhere('day_id', $day);
                                                     $shift = $schedule ? shift::find($schedule->shift_id) : null;
                                                     $startTime = $shift
-                                                        ? \Carbon\Carbon::parse($shift->startTime)->format('H:i')
+                                                        ? Carbon::parse($shift->startTime)->format('H:i')
                                                         : '';
                                                     $endTime = $shift
-                                                        ? \Carbon\Carbon::parse($shift->endTime)->format('H:i')
+                                                        ? Carbon::parse($shift->endTime)->format('H:i')
                                                         : '';
                                                 @endphp
                                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
@@ -364,7 +356,7 @@
                                                             <!-- Botón Guardar -->
                                                             <button type="button"
                                                                 @click="isEditing = !isEditing; if (!isEditing) saveSchedule()"
-                                                                class="mt-2 text-blue-500 hover:text-blue-700 transition-all flex items-center gap-2">
+                                                                class="mt-2 text-blue-500 hover:text-blue-700 transition-all flex items-center gap-2 update-schedule-btn">
                                                                 <svg x-show="!isEditing"
                                                                     xmlns="http://www.w3.org/2000/svg" fill="none"
                                                                     viewBox="0 0 24 24" stroke="currentColor"
@@ -396,7 +388,7 @@
                 <div class="flex justify-between mt-2">
                     @if (Auth::check() && Auth::user()->role_id == 2)
                         <button type="button" @click="isEditing = !isEditing; if (!isEditing) $refs.form.submit()"
-                            class="flex items-center gap-2 px-4 py-2 rounded-md"
+                            class="flex items-center gap-2 px-4 py-2 rounded-md" id="update-staff-btn"
                             :class="isEditing ? 'bg-gray-200 text-gray-700' : 'bg-red-500 text-white'">
 
                             <svg x-show="!isEditing" xmlns="http://www.w3.org/2000/svg" fill="none"
@@ -405,7 +397,7 @@
                                     d="M16.862 3.487a2.25 2.25 0 113.182 3.182L7.5 19.313 3 21l1.687-4.5 12.175-12.175z" />
                             </svg>
 
-                            <span x-text="isEditing ? 'Aceptar' : 'Modificar'"></span>
+                            <span class="text-edit-btn" x-text="isEditing ? 'Aceptar' : 'Modificar'"></span>
                         </button>
                     @endif
 
@@ -444,6 +436,16 @@
         }
 
         initializeSelect2(); // Inicializa al cargar la página
+
+        $('#update-staff-btn').on('click', function() {
+            $('.update-schedule-btn').trigger('click');
+            if ($('.text-edit-btn').text() == 'Aceptar') {
+                $('.update-holidays-btn').trigger('click');
+            } else {
+                $('.end-update-holidays-btn').trigger('click');
+
+            }
+        });
 
         // Si se edita el formulario, activamos o desactivamos el select correctamente
         document.addEventListener('alpine:init', () => {

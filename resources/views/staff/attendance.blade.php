@@ -691,7 +691,6 @@
                 const id = this.getAttribute('data-id'); // ID de la asistencia
 
                 // Rellenar los campos de entrada
-                document.getElementById('entryTime').value = entryTime;
                 document.getElementById('attendance_id').value = id;
 
                 // Cambiar dinámicamente el atributo 'action' del formulario
