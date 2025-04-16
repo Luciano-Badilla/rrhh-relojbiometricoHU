@@ -1127,7 +1127,7 @@ class reportsController extends Controller
                 $descripcion = [];
                 if ($info['article']) $descripcion[] = "Artículo: {$info['article']}";
                 if ($info['subsection']) $descripcion[] = "Inciso: {$info['subsection']}";
-                if ($info['decree']) $descripcion[] = "Decreto: {$info['decree']}";
+                if ($info['decree']) $descripcion[] = "Convenio: {$info['decree']}";
                 $sheet->setCellValue("A{$row}", implode(' - ', $descripcion));
                 $sheet->mergeCells("A{$row}:E{$row}");
                 $sheet->getStyle("A{$row}")->getFont()->setItalic(true)->setSize(10);

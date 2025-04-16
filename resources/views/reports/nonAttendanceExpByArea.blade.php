@@ -222,7 +222,7 @@
                                                 &nbsp; <strong>Inciso:</strong> {{ $info['subsection'] }}
                                             @endif
                                             @if ($info['decree'])
-                                                &nbsp; <strong>Decreto:</strong> {{ $info['decree'] }}
+                                                &nbsp; <strong>Convenio:</strong> {{ $info['decree'] }}
                                             @endif
                                         </p>
                                     @endif
