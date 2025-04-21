@@ -1,4 +1,8 @@
 <script src="https://cdn.tailwindcss.com"></script>
+<title>RRHH Relojbiometrico</title>
+
+<link rel="icon" href="{{ asset('images/hu_icon.png') }}" type="image/x-icon">
+
 <x-guest-layout>
     <!-- Session Status -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
