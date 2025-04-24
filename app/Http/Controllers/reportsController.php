@@ -451,6 +451,154 @@ class reportsController extends Controller
         return $pdfInstance->stream($fileName . '.pdf');
     }
 
+    public function attendanceSearch($id)
+    {
+        $staff = staff::find($id);
+        $file_number = $staff->file_number;
+
+        $schedules = $staff->schedules;
+        // Definir el orden de los días
+        $order = [
+            'Lunes' => 1,
+            'Martes' => 2,
+            'Miércoles' => 3,
+            'Jueves' => 4,
+            'Viernes' => 5,
+            'Sábado' => 6,
+            'Domingo' => 7,
+        ];
+
+        // Reordenar la colección según el orden definido
+        $schedules = $schedules->sortBy(function ($schedule) use ($order) {
+            return $order[$schedule->day_id] ?? 8; // Si no coincide, poner al final
+        });
+
+        // Para preservar los índices originales, utiliza sortBy y valores por referencia
+        $schedules = $schedules->values();
+
+        if ($staff->collective_agreement) {
+            $absenceReasons = absenceReason::where('decree', $staff->collective_agreement->name)->where('logical_erase', false)->get();
+        } else {
+            $absenceReasons = collect(); // Devuelve una colección vacía si no hay convenio colectivo
+        }
+
+
+        // Obtener mes y año actuales por si no están presentes en la solicitud
+        $month = now()->month; // Mes actual si no se proporciona
+        $year = now()->year; // Año actual si no se proporciona
+
+        // Filtrar los registros de asistencia según el mes y el año
+        $attendance = attendance::where('file_number', $file_number)
+            ->whereMonth('date', $month)
+            ->whereYear('date', $year)
+            ->get()
+            ->map(function ($item) {
+                // Formatear las fechas en formato dd/mm/yy
+
+                $item->date_formated = Carbon::parse($item->date)->format('d/m/y');
+                $item->hoursCompleted = $this->calculateWorkedHours($item->entryTime, $item->departureTime) ?? gmdate('H:i:s', 0);
+
+                return $item;
+            });
+
+
+        $days = $attendance->filter(function ($item) {
+            return $item->departureTime !== $item->entryTime;
+        })->pluck('date')->unique()->count();
+
+        $hoursCompleted = $attendance->pluck('hoursCompleted');
+        $extraHours = $attendance->pluck('extraHours');
+
+        // Inicializar la suma total de horas en segundos
+        $totalSeconds = 0;
+
+        foreach ($hoursCompleted as $time) {
+            // Separar horas, minutos y segundos
+            $timeParts = explode(':', $time);
+            $hours = (int) $timeParts[0]; // Horas
+            $minutes = (int) $timeParts[1]; // Minutos
+            $seconds = (int) $timeParts[2]; // Segundos
+
+            // Calcular el total en segundos
+            $totalSeconds += ($hours * 3600) + ($minutes * 60) + $seconds;
+        }
+
+        // Calcular el promedio en segundos
+        $count = 0;
+        foreach ($hoursCompleted as $hour) {
+            if ($hour != '00:00:00') {
+                $count += 1;
+            }
+        }
+
+        $extraHours = $attendance->pluck('extraHours');
+
+        // Inicializar la suma total de horas extra en segundos
+        $totalExtraSeconds = 0;
+
+        // Calcular los segundos totales de horas extra
+        foreach ($extraHours as $time) {
+            // Separar horas, minutos y segundos
+            $timeParts = explode(':', $time);
+            $hours = (int) $timeParts[0]; // Horas
+            $minutes = (int) $timeParts[1]; // Minutos
+            $seconds = (int) $timeParts[2]; // Segundos
+
+            // Calcular el total en segundos
+            $totalExtraSeconds += ($hours * 3600) + ($minutes * 60) + $seconds;
+        }
+
+        $averageSeconds = $count > 0 ? $totalSeconds / $count : 0;
+
+        // Convertir el promedio y el total a formato HH:mm
+        $totalExtraHoursFormatted = sprintf('%02d:%02d:%02d', floor($totalExtraSeconds / 3600), floor(($totalExtraSeconds % 3600) / 60), $totalExtraSeconds % 60);
+        $totalHoursFormatted = sprintf('%02d:%02d:%02d', floor($totalSeconds / 3600), floor(($totalSeconds % 3600) / 60), $totalSeconds % 60);
+        $hoursAverageFormatted = sprintf('%02d:%02d:%02d', floor($averageSeconds / 3600), floor(($averageSeconds % 3600) / 60), $averageSeconds % 60);
+
+        $attendanceDates = Attendance::where('file_number', $file_number)
+            ->whereMonth('date', $month)
+            ->whereYear('date', $year)
+            ->pluck('date')
+            ->toArray();
+
+        // Filtrar y eliminar las inasistencias que coincidan con fechas de asistencia
+        $nonAttendanceRaw = NonAttendance::where('file_number', $file_number)->whereYear('date', $year)
+            ->with('absenceReason')
+            ->get(); // SIN filtrar por mes ni año
+
+        $nonAttendance = $nonAttendanceRaw->filter(function ($item) use ($month, $year) {
+            return Carbon::parse($item->date)->month == $month &&
+                Carbon::parse($item->date)->year == $year;
+        })->map(function ($item) use ($schedules, $attendanceDates) {
+            if (in_array($item->date, $attendanceDates)) {
+                NonAttendance::where('id', $item->id)->delete();
+                return null;
+            }
+
+            $item->date = Carbon::parse($item->date)->format('d/m/y');
+            $item->day = Carbon::createFromFormat('d/m/y', $item->date)->locale('es')->translatedFormat('l');
+            $item->day = ucfirst($item->day);
+
+            // NO sobreescribas el objeto
+            $item->absence_reason_name = $item->absenceReason->name ?? null;
+
+            return $item;
+        })->filter();
+
+        $dataToExport = [
+            'staff' => $staff->toArray(),
+            'days' => $days,
+            'totalHours' => $totalHoursFormatted,
+            'hoursAverage' => $hoursAverageFormatted,
+            'totalExtraHours' => $totalExtraHoursFormatted,
+            'schedules' => $schedules->toArray(),
+            'attendances' => $attendance->sortBy('date')->values()->toArray(),
+            'non_attendances' => $nonAttendance->sortBy('date')->values()->toArray(),
+        ];
+
+        return response()->json($dataToExport);
+    }
+
     public function attendanceExport(Request $request)
     {
         // Decodificar datos
@@ -467,26 +615,38 @@ class reportsController extends Controller
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Reporte');
 
+
         // --- RESUMEN ---
         $sheet->setCellValue("A$row", "Universidad Nacional de Cuyo - Hospital universitario");
         $sheet->mergeCells("A$row:C$row");
         $sheet->getStyle("A$row")->getFont()->setBold(true)->setSize(14);
 
         $row += 2;
+        Log::info('STAFF:', [$staff]);
+        Log::info('Tipo de STAFF:', [gettype($staff)]);
 
         $infoPersonal = [
-            'Legajo' => $staff['file_number'],
-            'Nombre y apellido' => $staff['name_surname'],
-            'Cordinador' => staff::find(coordinator::find($staff['coordinator_id'])->staff_id)->name_surname,
+            'Legajo' => $staff['file_number'] ?? 'Sin legajo',
+            'Nombre y apellido' => $staff['name_surname'] ?? 'Sin nombre',
+            'Cordinador' => ($coordinator = coordinator::find($staff['coordinator_id'] ?? null))
+                ? (($coordinatorStaff = staff::find($coordinator->staff_id)) ? $coordinatorStaff->name_surname : 'Sin coordinador asignado')
+                : 'Sin coordinador asignado',
             'Condición' => ($staff['worker_status'] == 'planta')
-                ? 'Planta' . ' - ' . category::find($staff['category_id'])->name
+                ? 'Planta - ' . (($category = category::find($staff['category_id'] ?? null)) ? $category->name : 'Sin categoría asignada')
                 : 'Contratado',
-            'Secretaría' => secretary::find($staff['secretary_id'])->name,
-            'Fecha de ingreso' => Carbon::parse($staff['date_of_entry'])->format('d/m/y'),
-            'Fecha de baja' => $staff['inactive_since'] ? Carbon::parse($staff['inactive_since'])->format('d/m/y') : '—',
+            'Secretaría' => ($secretary = secretary::find($staff['secretary_id'] ?? null))
+                ? $secretary->name
+                : 'Sin secretaría asignada',
+            'Fecha de ingreso' => $staff['date_of_entry']
+                ? Carbon::parse($staff['date_of_entry'])->format('d/m/y')
+                : 'Sin fecha',
+            'Fecha de baja' => $staff['inactive_since']
+                ? Carbon::parse($staff['inactive_since'])->format('d/m/y')
+                : '—',
             'Fecha de reporte' => Carbon::now()->format('d/m/y'),
-            'Marca' => ($staff['marking']) ? '✔' : '✘',
+            'Marca' => ($staff['marking'] ?? false) ? '✔' : '✘',
         ];
+
 
         $sheet->setCellValue("A$row", "Información personal:");
         $sheet->mergeCells("A$row:B$row");
@@ -638,8 +798,6 @@ class reportsController extends Controller
             }
         }
 
-
-
         // Estilo rápido para toda la hoja
         $sheet->getStyle("A1:G$row")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
 
@@ -662,6 +820,7 @@ class reportsController extends Controller
         // Descargar el archivo
         $writer = new Xlsx($spreadsheet);
         $filename = $request->input('file_name') . '.xlsx';
+        Log::info('AAAAAAAAAAA');
 
         return response()->streamDownload(function () use ($writer) {
             $writer->save('php://output');
@@ -1010,7 +1169,7 @@ class reportsController extends Controller
                     $count = 0;
 
                     foreach ($staffGroup as $i => $item) {
-                        $currentDate = \Carbon\Carbon::parse($item->date);
+                        $currentDate = Carbon::parse($item->date);
 
                         if (is_null($start)) {
                             $start = $currentDate;
@@ -1019,7 +1178,7 @@ class reportsController extends Controller
                             continue;
                         }
 
-                        $previousDate = \Carbon\Carbon::parse($staffGroup[$i - 1]->date);
+                        $previousDate = Carbon::parse($staffGroup[$i - 1]->date);
 
                         if ($currentDate->diffInDays($previousDate) == 1) {
                             $end = $currentDate;
@@ -1467,5 +1626,22 @@ class reportsController extends Controller
         if (!empty($bulkInsert)) {
             NonAttendance_reports::insert($bulkInsert);
         }
+    }
+
+    public function calculateWorkedHours($entryTime, $exitTime)
+    {
+        $entryTimestamp = strtotime($entryTime);
+        $exitTimestamp = strtotime($exitTime);
+
+        // Calcular la diferencia en segundos
+        $workedSeconds = $exitTimestamp - $entryTimestamp;
+
+        // Convertir los segundos a horas, minutos y segundos
+        $hours = floor($workedSeconds / 3600); // Horas completas
+        $minutes = floor(($workedSeconds % 3600) / 60); // Minutos restantes
+        $seconds = $workedSeconds % 60; // Segundos restantes
+
+        // Retornar en formato H:i:s
+        return sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
     }
 }

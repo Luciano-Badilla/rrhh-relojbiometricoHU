@@ -64,6 +64,7 @@ Route::middleware(['auth', 'verified', CheckRole::class . ':2'])->group(function
     Route::post('/reports/tardiesByArea/export', [reportsController::class, 'tardiesByAreaExport'])->name('reportExport.tardiesByArea');
     Route::post('/reports/tardiesByAreaExcel/export', [reportsController::class, 'tardinessReportExportExcel'])->name('reportExport.tardiesByAreaExcel');
 
+    Route::get('/reports/attendanceSearch/export/{id}', [reportsController::class, 'attendanceSearch'])->name('reportExport.attendanceSearch');
     Route::post('/reports/attendance/export', [reportsController::class, 'attendanceExport'])->name('reportExport.attendance');
 
     Route::get('/individual_hours_report', [reports::class, 'individual_hours'])->name('report.individual_hours');
