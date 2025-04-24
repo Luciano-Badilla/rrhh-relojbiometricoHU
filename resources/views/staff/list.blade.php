@@ -1,3 +1,8 @@
+@php
+    use Carbon\Carbon;
+    Carbon::setLocale('es'); // Establece el idioma en español
+    $monthName = Carbon::now()->translatedFormat('F'); // Ej: abril
+@endphp
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
@@ -156,6 +161,18 @@
                             'tooltip' => true,
                             'tooltip_text' => 'Panel administrativo',
                         ],
+                    ]"
+                    :buttons="[
+                        [
+                            'id' => 'export-btn',
+                            'route' => 'staff.administration_panel',
+                            'classes' => 'btn btn-success rounded-xl custom-tooltip h-[2.40rem] attendance-export-btn',
+                            'icon' => '<i class=\'fa-solid fa-table\'></i>',
+                            'tooltip' => true,
+                            'tooltip_text' => 'Exportar resumen de '.$monthName.
+                            ' a Excel ',
+                            'data-file_number' => true,
+                        ],
                     ]" />
 
             </div>
@@ -204,5 +221,134 @@
             window.location.href = "{{ route('staff.create') }}";
         });
         $('.selectpicker').selectpicker('refresh'); // Solo si usas Bootstrap select
+
+        $(document).on('click', '.attendance-export-btn', function() {
+            var button = $(this);
+            var originalContent = button.html(); // Guardamos el contenido original
+            button.prop('disabled', true).html(
+                '<span class="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span> Cargando...'
+                );
+
+            var id = button.data('id');
+            var file_number = button.data('file_number');
+
+            $.ajax({
+                url: "{{ route('clockLogs.update', ['file_number' => '__ID__']) }}".replace(
+                    '__ID__', file_number),
+                type: 'GET',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    file_number: file_number
+                },
+                success: function() {
+                    console.log('Ajax de update de datos exitoso');
+                    $.ajax({
+                        url: '{{ route('reportExport.attendanceSearch', ['id' => '__ID__']) }}'
+                            .replace('__ID__', id),
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(response) {
+                            console.log('Ajax de obtencion de datos exitoso');
+
+                            var currentDate = new Date().toISOString().split(
+                                'T')[0];
+
+                            var form = $('<form>', {
+                                method: 'POST',
+                                action: '{{ route('reportExport.attendance') }}',
+                                target: '_blank'
+                            });
+
+                            form.append($('<input>', {
+                                type: 'hidden',
+                                name: '_token',
+                                value: $('meta[name="csrf-token"]')
+                                    .attr('content')
+                            }));
+
+                            form.append($('<input>', {
+                                type: 'hidden',
+                                name: 'staff',
+                                value: JSON.stringify(response
+                                    .staff)
+                            }));
+                            form.append($('<input>', {
+                                type: 'hidden',
+                                name: 'days',
+                                value: JSON.stringify(response.days)
+                            }));
+                            form.append($('<input>', {
+                                type: 'hidden',
+                                name: 'totalHours',
+                                value: JSON.stringify(response
+                                    .totalHours)
+                            }));
+                            form.append($('<input>', {
+                                type: 'hidden',
+                                name: 'hoursAverage',
+                                value: JSON.stringify(response
+                                    .hoursAverage)
+                            }));
+                            form.append($('<input>', {
+                                type: 'hidden',
+                                name: 'totalExtraHours',
+                                value: JSON.stringify(response
+                                    .totalExtraHours)
+                            }));
+                            form.append($('<input>', {
+                                type: 'hidden',
+                                name: 'schedules',
+                                value: JSON.stringify(response
+                                    .schedules)
+                            }));
+                            form.append($('<input>', {
+                                type: 'hidden',
+                                name: 'attendances',
+                                value: JSON.stringify(response
+                                    .attendances)
+                            }));
+                            form.append($('<input>', {
+                                type: 'hidden',
+                                name: 'non_attendances',
+                                value: JSON.stringify(response
+                                    .non_attendances)
+                            }));
+                            form.append($('<input>', {
+                                type: 'hidden',
+                                name: 'file_name',
+                                value: 'Resumen de asistencias - ' +
+                                    response.staff.name_surname +
+                                    ' - ' + currentDate
+                            }));
+
+                            $('body').append(form);
+                            form.submit();
+                            form.remove();
+
+                            // Restaurar el botón
+                            button.prop('disabled', false).html(
+                            originalContent);
+                        },
+                        error: function(error) {
+                            console.error(
+                                'Error al obtener el reporte de asistencia:',
+                                error);
+                            button.prop('disabled', false).html(
+                            originalContent);
+                        }
+                    });
+                },
+                error: function() {
+                    alert('Error al obtener datos');
+                    button.prop('disabled', false).html(originalContent);
+                }
+            });
+        });
+
+
+
+
+
+
     });
 </script>
