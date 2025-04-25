@@ -630,7 +630,7 @@ class reportsController extends Controller
         Log::info('Tipo de STAFF:', [gettype($staff)]);
 
         $infoPersonal = [
-            'Fecha de reporte' => $fecha ?? Carbon::now()->format('d/m/y'),
+            'Fecha de reporte' => $fecha ?? Carbon::now()->translatedFormat('d F Y'),
             'Legajo' => $staff['file_number'] ?? 'Sin legajo',
             'Nombre y apellido' => $staff['name_surname'] ?? 'Sin nombre',
             'Cordinador' => ($coordinator = coordinator::find($staff['coordinator_id'] ?? null))
