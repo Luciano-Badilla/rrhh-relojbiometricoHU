@@ -484,8 +484,10 @@ class reportsController extends Controller
 
 
         // Obtener mes y año actuales por si no están presentes en la solicitud
-        $month = now()->month; // Mes actual si no se proporciona
-        $year = now()->year; // Año actual si no se proporciona
+        $fechaAnterior = Carbon::now()->subMonth();
+
+        $month = $fechaAnterior->month;
+        $year = $fechaAnterior->year;
 
         // Filtrar los registros de asistencia según el mes y el año
         $attendance = attendance::where('file_number', $file_number)

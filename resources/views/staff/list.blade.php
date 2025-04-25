@@ -1,7 +1,7 @@
 @php
     use Carbon\Carbon;
     Carbon::setLocale('es'); // Establece el idioma en español
-    $monthName = Carbon::now()->translatedFormat('F'); // Ej: abril
+    $monthName = Carbon::now()->subMonth()->translatedFormat('F');
 @endphp
 <x-app-layout>
     <x-slot name="header">
@@ -227,7 +227,7 @@
             var originalContent = button.html(); // Guardamos el contenido original
             button.prop('disabled', true).html(
                 '<span class="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span> Cargando...'
-                );
+            );
 
             var id = button.data('id');
             var file_number = button.data('file_number');
@@ -327,14 +327,14 @@
 
                             // Restaurar el botón
                             button.prop('disabled', false).html(
-                            originalContent);
+                                originalContent);
                         },
                         error: function(error) {
                             console.error(
                                 'Error al obtener el reporte de asistencia:',
                                 error);
                             button.prop('disabled', false).html(
-                            originalContent);
+                                originalContent);
                         }
                     });
                 },
