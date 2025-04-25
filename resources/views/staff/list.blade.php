@@ -250,8 +250,25 @@
                         success: function(response) {
                             console.log('Ajax de obtencion de datos exitoso');
 
-                            var currentDate = new Date().toISOString().split(
-                                'T')[0];
+                            const fechaActual = new Date();
+
+                            // Restar un mes
+                            const fechaMesAnterior = new Date(fechaActual);
+                            fechaMesAnterior.setMonth(fechaActual.getMonth() -
+                                1);
+
+                            // Formatear en español
+                            const opciones = {
+                                month: 'long',
+                                year: 'numeric'
+                            };
+                            let mesAnteriorFormateado = fechaMesAnterior
+                                .toLocaleDateString('es-ES', opciones);
+
+                            // Capitalizar la primera letra (opcional)
+                            mesAnteriorFormateado = mesAnteriorFormateado
+                                .charAt(0).toUpperCase() + mesAnteriorFormateado
+                                .slice(1);
 
                             var form = $('<form>', {
                                 method: 'POST',
@@ -318,7 +335,14 @@
                                 name: 'file_name',
                                 value: 'Resumen de asistencias - ' +
                                     response.staff.name_surname +
-                                    ' - ' + currentDate
+                                    ' - ' + mesAnteriorFormateado
+                            }));
+
+                            form.append($('<input>', {
+                                type: 'hidden',
+                                name: 'fecha',
+                                value: JSON.stringify(response
+                                    .fecha)
                             }));
 
                             $('body').append(form);

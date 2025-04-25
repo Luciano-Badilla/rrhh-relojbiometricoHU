@@ -596,6 +596,7 @@ class reportsController extends Controller
             'schedules' => $schedules->toArray(),
             'attendances' => $attendance->sortBy('date')->values()->toArray(),
             'non_attendances' => $nonAttendance->sortBy('date')->values()->toArray(),
+            'fecha' => ucfirst($fechaAnterior->translatedFormat('F Y')),
         ];
 
         return response()->json($dataToExport);
@@ -612,6 +613,7 @@ class reportsController extends Controller
         $schedules = json_decode($request->input('schedules'), true);
         $attendances = json_decode($request->input('attendances'), true);
         $non_attendances = json_decode($request->input('non_attendances'), true);
+        $fecha = json_decode($request->input('fecha'), true);
         $row = 1;
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -628,6 +630,7 @@ class reportsController extends Controller
         Log::info('Tipo de STAFF:', [gettype($staff)]);
 
         $infoPersonal = [
+            'Fecha de reporte' => $fecha ?? Carbon::now()->translatedFormat('d F Y'),
             'Legajo' => $staff['file_number'] ?? 'Sin legajo',
             'Nombre y apellido' => $staff['name_surname'] ?? 'Sin nombre',
             'Cordinador' => ($coordinator = coordinator::find($staff['coordinator_id'] ?? null))
@@ -645,7 +648,6 @@ class reportsController extends Controller
             'Fecha de baja' => $staff['inactive_since']
                 ? Carbon::parse($staff['inactive_since'])->format('d/m/y')
                 : '—',
-            'Fecha de reporte' => Carbon::now()->format('d/m/y'),
             'Marca' => ($staff['marking'] ?? false) ? '✔' : '✘',
         ];
 

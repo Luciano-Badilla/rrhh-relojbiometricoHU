@@ -387,7 +387,7 @@
                             <div class="flex flex-col lg:flex-row items-left lg:items-center gap-3">
                                 <div class="w-full lg:mt-6">
                                     <input type="hidden" name="file_name"
-                                    value="Resumen de asistencias - {{ $staff->name_surname . ' ' . Carbon::now()->format('d-m-Y') }}">
+                                    value="Resumen de asistencias - {{ $staff->name_surname . ' ' . Carbon::now()->translatedFormat('d F Y') }}">
                                 <input type="hidden" name="attendances" id="attendances">
                                 <input type="hidden" name="non_attendances" id="non_attendances">
                                 <input type="hidden" name="staff" id="staff">
