@@ -1,60 +1,38 @@
-<script src="https://cdn.tailwindcss.com"></script>
-<x-guest-layout>
-    <form method="POST" action="{{ route('register') }}">
-        @csrf
+<html lang="es">
 
-        <!-- Name -->
-        <div>
-            <x-input-label for="name" :value="__('Nombre y Apellido')" />
-            <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" />
-            <x-input-error :messages="$errors->get('name')" class="mt-2" />
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Registro Deshabilitado</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+</head>
+
+<body class="bg-gray-50 min-h-screen flex items-center justify-center px-4">
+    <main class="max-w-md w-full text-center">
+        <div class="text-4xl text-yellow-500 mb-4">
+            <i class="fas fa-exclamation-triangle"></i>
         </div>
-        
-        <!-- Email Address -->
-        <div class="mt-4">
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+        <h1 class="font-semibold text-xl text-gray-900 mb-2">Registro Deshabilitado</h1>
+        <p class="text-gray-600 mb-6 text-sm leading-relaxed">
+            Lo sentimos, el registro de nuevos usuarios se encuentra <br /> temporalmente deshabilitado.
+        </p>
+        <div class="border border-yellow-300 rounded-md bg-yellow-50 p-4 mb-6 text-left text-xs text-yellow-800">
+            <div class="flex items-start mb-1">
+                <i class="fas fa-exclamation-triangle mr-2 mt-[2px] text-xs"></i>
+                <span class="font-semibold">Aviso Importante</span>
+            </div>
+            <p>
+                El sistema de registro no está disponible en este momento.
+                Por favor, contacte con el
+                administrador.
+            </p>
         </div>
-        
-        <!-- File Number -->
-        <div class="mt-4">
-            <x-input-label for="file_number" :value="__('Legajo')" />
-            <x-text-input id="file_number" class="block mt-1 w-full" type="number" name="file_number" :value="old('file_number')" required autofocus autocomplete="file_number" />
-            <x-input-error :messages="$errors->get('file_number')" class="mt-2" />
-        </div>
-        
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Contraseña')" />
+        <a href="{{ route('login') }}"
+            class="w-full bg-gray-900 text-white px-3 text-xs font-semibold py-2 rounded-xl mb-2 hover:bg-gray-800 transition">
+            Ir a Iniciar Sesión
+        </a>
+    </main>
+</body>
 
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="new-password" />
-
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
-
-        <!-- Confirm Password -->
-        <div class="mt-4">
-            <x-input-label for="password_confirmation" :value="__('Confirmar Contraseña')" />
-
-            <x-text-input id="password_confirmation" class="block mt-1 w-full"
-                            type="password"
-                            name="password_confirmation" required autocomplete="new-password" />
-
-            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
-        </div>
-
-        <div class="flex items-center justify-end mt-4">
-            <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('login') }}">
-                {{ __('Ya estas registrado?') }}
-            </a>
-
-            <x-primary-button class="ms-4">
-                {{ __('Registrarse') }}
-            </x-primary-button>
-        </div>
-    </form>
-</x-guest-layout>
+</html>
