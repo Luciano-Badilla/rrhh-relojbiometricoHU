@@ -626,8 +626,6 @@ class reportsController extends Controller
         $sheet->getStyle("A$row")->getFont()->setBold(true)->setSize(14);
 
         $row += 2;
-        Log::info('STAFF:', [$staff]);
-        Log::info('Tipo de STAFF:', [gettype($staff)]);
 
         $infoPersonal = [
             'Fecha de reporte' => $fecha ?? Carbon::now()->translatedFormat('d F Y'),
@@ -824,7 +822,6 @@ class reportsController extends Controller
         // Descargar el archivo
         $writer = new Xlsx($spreadsheet);
         $filename = $request->input('file_name') . '.xlsx';
-        Log::info('AAAAAAAAAAA');
 
         return response()->streamDownload(function () use ($writer) {
             $writer->save('php://output');

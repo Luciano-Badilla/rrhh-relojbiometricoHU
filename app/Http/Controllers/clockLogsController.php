@@ -37,7 +37,7 @@ class clockLogsController extends Controller
                     foreach ($logs as $log) {
 
                         // Verificar si el log ya existe en clockLogs
-                        $exists = clockLogs::where('uid', $log['uid'])->exists();
+                        $exists = clockLogs::where('uid', $log['uid'])->where('file_number', $log['id'])->exists();
                         $staff = staff::where('file_number', $log['id'])->first();
 
                         if (!$exists) {
@@ -89,8 +89,13 @@ class clockLogsController extends Controller
                     }
 
                     foreach ($logs as $log) {
-                        $exists = clockLogs::where('uid', $log['uid'])->exists();
+                        $exists = clockLogs::where('uid', $log['uid'])->where('file_number', $log['id'])->exists();
                         $staff = staff::where('file_number', $log['id'])->first();
+
+                        if ($log['id'] == 80243) {
+                            Log::info($log);
+                            Log::info($exists);
+                        }
 
                         if (!$exists) {
                             // Guardar el log si no existe

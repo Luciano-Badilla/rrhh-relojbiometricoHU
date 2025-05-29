@@ -501,7 +501,6 @@ class staffController extends Controller
             }
         }
 
-
         // Obtener los feriados del año desde la API
         $response = Http::get('https://api.argentinadatos.com/v1/feriados/' . $year);
         $holidays = $response->json();
