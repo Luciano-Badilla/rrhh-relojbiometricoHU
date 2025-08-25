@@ -1,4 +1,3 @@
-<script src="https://cdn.tailwindcss.com"></script>
 <title>RRHH Relojbiometrico</title>
 
 <link rel="icon" href="{{ asset('images/hu_icon.png') }}" type="image/x-icon">
